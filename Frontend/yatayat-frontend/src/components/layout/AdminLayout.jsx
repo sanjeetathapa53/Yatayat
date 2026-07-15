@@ -19,6 +19,7 @@ import {
   Building2 ,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { apiFetch } from "../../utils/api";
 
 const menuItems = [
   {
@@ -103,7 +104,8 @@ export default function AdminLayout({
     localStorage.getItem("yatayatAdmin") || "null"
   );
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await apiFetch("/api/admin/auth/logout", { method: "POST" }).catch(() => {});
     localStorage.removeItem("yatayatAdmin");
     localStorage.removeItem("adminAuthenticated");
     navigate("/admin/login");

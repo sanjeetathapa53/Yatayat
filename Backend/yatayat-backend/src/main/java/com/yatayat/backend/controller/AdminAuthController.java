@@ -5,7 +5,14 @@ import com.yatayat.backend.entity.User;
 import com.yatayat.backend.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,7 +34,8 @@ public class AdminAuthController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(
-            @RequestBody AdminLoginRequest request
+            @RequestBody AdminLoginRequest request,
+            HttpServletRequest httpRequest
     ) {
         Map<String, Object> response = new HashMap<>();
 
@@ -75,10 +83,34 @@ public class AdminAuthController {
         cleanAdmin.put("email", admin.getEmail());
         cleanAdmin.put("role", admin.getRole());
 
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        admin.getEmail(),
+                        null,
+                        java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                );
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        httpRequest.getSession(true).setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                securityContext
+        );
+
         response.put("success", true);
         response.put("message", "Admin login successful");
         response.put("admin", cleanAdmin);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.noContent().build();
     }
 }

@@ -196,6 +196,7 @@ public class OperatorBusService {
                 bus.getSeatCapacity(), bus.getBusType(), bus.getFuelType(),
                 bus.getPermitNumber(), bus.getPermitExpiryDate(),
                 bus.getInsuranceExpiryDate(), bus.getStatus().name(),
+                bus.getRejectionReason(), bus.getApprovedAt(),
                 bus.getCreatedAt(), bus.getUpdatedAt()
         );
     }

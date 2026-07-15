@@ -65,6 +65,11 @@ public class Bus {
     @Column(nullable = false, length = 30)
     private BusStatus status = BusStatus.PENDING;
 
+    private LocalDateTime approvedAt;
+
+    @Column(length = 1000)
+    private String rejectionReason;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(
             name = "operator_id",
@@ -128,7 +133,7 @@ public class Bus {
     }
 
     public boolean isOperationallyValid() {
-        return status == BusStatus.ACTIVE
+        return status == BusStatus.APPROVED
                 && !isPermitExpired()
                 && !isInsuranceExpired();
     }
@@ -179,6 +184,14 @@ public class Bus {
 
     public BusStatus getStatus() {
         return status;
+    }
+
+    public LocalDateTime getApprovedAt() {
+        return approvedAt;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
     }
 
     public TransportOperator getOperator() {
@@ -251,6 +264,14 @@ public class Bus {
 
     public void setStatus(BusStatus status) {
         this.status = status;
+    }
+
+    public void setApprovedAt(LocalDateTime approvedAt) {
+        this.approvedAt = approvedAt;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = clean(rejectionReason);
     }
 
     public void setOperator(

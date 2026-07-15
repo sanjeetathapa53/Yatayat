@@ -97,6 +97,10 @@ public class SecurityConfig {
                                 "/api/operator/buses/**"
                         ).hasRole("OPERATOR")
                         .requestMatchers(
+                                "/api/admin/buses",
+                                "/api/admin/buses/**"
+                        ).hasRole("ADMIN")
+                        .requestMatchers(
                                 "/",
                                 "/api/auth/**",
                                 "/login/**",

@@ -49,6 +49,7 @@ import LiveTrackingPage from "./pages/tracking/LiveTrackingPage";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminProtectedRoute from "./components/auth/AdminProtectedRoute";
 import TransportOperatorsPage from "./pages/admin/TransportOperatorsPage";
+import AdminBusesPage from "./pages/admin/AdminBusesPage";
 
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 
@@ -300,6 +301,10 @@ export default function App() {
   path="/admin/operators"
   element={<TransportOperatorsPage />}
 />
+  <Route
+    path="/admin/buses"
+    element={<AdminBusesPage />}
+  />
         </Route>
 
         {/* PUBLIC ROUTE AND TRACKING PAGES */}

@@ -3,7 +3,7 @@ package com.yatayat.backend.dto;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-public record OperatorBusResponse(
+public record AdminBusResponse(
         Long id,
         String busNumber,
         String busName,
@@ -19,6 +19,11 @@ public record OperatorBusResponse(
         String rejectionReason,
         LocalDateTime approvedAt,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        Long operatorId,
+        String operatorName,
+        String operatorEmail,
+        String operatorPhone,
+        String operatorRegistrationNumber
 ) {
 }

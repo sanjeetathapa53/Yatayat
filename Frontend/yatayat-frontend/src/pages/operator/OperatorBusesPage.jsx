@@ -64,7 +64,7 @@ export default function OperatorBusesPage() {
           <div className="rounded-3xl border border-slate-200 bg-white px-6 py-16 text-center"><Bus className="mx-auto text-slate-300" size={48} /><h2 className="mt-5 text-xl font-black">No buses registered yet. Register your first bus to continue.</h2></div>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {buses.map((bus) => <button type="button" key={bus.id} onClick={() => navigate(`/operator/buses/${bus.id}`)} className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm hover:border-[#08264a]"><div className="flex justify-between gap-4"><div><h2 className="text-xl font-black">{bus.busName}</h2><p className="mt-1 font-bold text-slate-500">{bus.busNumber}</p></div><Status status={bus.status} /></div><div className="mt-5 grid grid-cols-2 gap-3 text-sm"><p>Type: <b>{bus.busType}</b></p><p>Seats: <b>{bus.seatCapacity}</b></p></div></button>)}
+            {buses.map((bus) => <button type="button" key={bus.id} onClick={() => navigate(`/operator/buses/${bus.id}`)} className="rounded-3xl border border-slate-200 bg-white p-6 text-left shadow-sm hover:border-[#08264a]"><div className="flex justify-between gap-4"><div><h2 className="text-xl font-black">{bus.busName}</h2><p className="mt-1 font-bold text-slate-500">{bus.busNumber}</p></div><Status status={bus.status} /></div><div className="mt-5 grid grid-cols-2 gap-3 text-sm"><p>Type: <b>{bus.busType}</b></p><p>Seats: <b>{bus.seatCapacity}</b></p></div>{bus.status === "REJECTED" && bus.rejectionReason && <p className="mt-4 rounded-xl bg-red-50 p-3 text-sm font-bold text-red-700">Reason: {bus.rejectionReason}</p>}</button>)}
           </div>
         )}
         {!loading && <button type="button" onClick={loadBuses} className="flex items-center gap-2 text-sm font-black"><RefreshCw size={16} /> Refresh</button>}
@@ -74,6 +74,6 @@ export default function OperatorBusesPage() {
 }
 
 export function Status({ status }) {
-  const tone = status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : status === "PENDING" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700";
+  const tone = status === "APPROVED" ? "bg-emerald-100 text-emerald-700" : status === "REJECTED" ? "bg-red-100 text-red-700" : status === "PENDING" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-700";
   return <span className={`rounded-full px-3 py-1 text-xs font-black ${tone}`}>{status}</span>;
 }

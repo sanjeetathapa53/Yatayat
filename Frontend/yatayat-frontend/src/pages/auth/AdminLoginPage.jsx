@@ -11,6 +11,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import AuthLayout from "../../components/auth/AuthLayout";
+import { apiFetch } from "../../utils/api";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -33,8 +34,8 @@ export default function AdminLoginPage() {
       setLoggingIn(true);
       setError("");
 
-      const response = await fetch(
-        "http://localhost:8080/api/admin/auth/login",
+      const response = await apiFetch(
+        "/api/admin/auth/login",
         {
           method: "POST",
           headers: {
