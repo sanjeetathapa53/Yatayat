@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
+  Building2,
   Bus,
   CalendarDays,
   CheckCircle2,
@@ -23,6 +24,7 @@ const initialStats = {
   passengers: 0,
   totalDrivers: 0,
   pendingDrivers: 0,
+  pendingOperators: 0,
   approvedDrivers: 0,
   buses: 0,
   activeTrips: 0,
@@ -35,6 +37,7 @@ export default function AdminDashboard() {
 
   const [stats, setStats] = useState(initialStats);
   const [pendingDrivers, setPendingDrivers] = useState([]);
+  const [pendingOperators, setPendingOperators] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -49,9 +52,10 @@ export default function AdminDashboard() {
        * The pending-driver API may already exist once we finish admin approval.
        */
 
-      const pendingResponse = await fetch(
-        "http://localhost:8080/api/admin/drivers/pending"
-      );
+      const [pendingResponse, operatorsResponse] = await Promise.all([
+        fetch("http://localhost:8080/api/admin/drivers/pending"),
+        fetch("http://localhost:8080/api/admin/operators"),
+      ]);
 
       let pendingData = [];
 
@@ -60,6 +64,20 @@ export default function AdminDashboard() {
       }
 
       setPendingDrivers(Array.isArray(pendingData) ? pendingData : []);
+
+      let operatorsData = [];
+
+      if (operatorsResponse.ok) {
+        operatorsData = await operatorsResponse.json();
+      }
+
+      const pendingOperatorData = Array.isArray(operatorsData)
+        ? operatorsData.filter(
+            (operator) => operator.verificationStatus === "PENDING"
+          )
+        : [];
+
+      setPendingOperators(pendingOperatorData);
 
       /*
        * Temporary calculated values.
@@ -72,6 +90,7 @@ export default function AdminDashboard() {
         pendingDrivers: Array.isArray(pendingData)
           ? pendingData.length
           : 0,
+        pendingOperators: pendingOperatorData.length,
       }));
     } catch (fetchError) {
       console.error("Admin dashboard loading error:", fetchError);
@@ -92,6 +111,11 @@ export default function AdminDashboard() {
   const latestApplications = useMemo(
     () => pendingDrivers.slice(0, 5),
     [pendingDrivers]
+  );
+
+  const latestOperatorApplications = useMemo(
+    () => pendingOperators.slice(0, 5),
+    [pendingOperators]
   );
 
   return (
@@ -180,6 +204,15 @@ export default function AdminDashboard() {
             description={`${stats.activeTrips} active trips`}
             icon={<Bus size={23} />}
             tone="violet"
+            loading={loading}
+          />
+
+          <StatCard
+            label="Pending Operators"
+            value={stats.pendingOperators}
+            description="Require admin review"
+            icon={<Building2 size={23} />}
+            tone="amber"
             loading={loading}
           />
 
@@ -282,6 +315,52 @@ export default function AdminDashboard() {
             )}
           </div>
 
+          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:col-span-8">
+            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">
+                  Pending Operator Applications
+                </h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Review submitted transport operator registrations.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => navigate("/admin/operators")}
+                className="flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+              >
+                View All
+                <ArrowRight size={17} />
+              </button>
+            </div>
+
+            {loading ? (
+              <ApplicationSkeleton />
+            ) : latestOperatorApplications.length === 0 ? (
+              <div className="px-6 py-12 text-center">
+                <CheckCircle2
+                  size={30}
+                  className="mx-auto text-emerald-700"
+                />
+                <h3 className="mt-4 text-lg font-black text-slate-900">
+                  No pending operator applications
+                </h3>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {latestOperatorApplications.map((operator) => (
+                  <OperatorApplicationRow
+                    key={operator.id}
+                    operator={operator}
+                    onView={() => navigate("/admin/operators")}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* QUICK ACTIONS */}
 
           <aside className="space-y-6 xl:col-span-4">
@@ -302,6 +381,13 @@ export default function AdminDashboard() {
                   onClick={() =>
                     navigate("/admin/driver-applications")
                   }
+                />
+
+                <QuickAction
+                  icon={<Building2 size={20} />}
+                  label="Review Operator Applications"
+                  description={`${stats.pendingOperators} currently pending`}
+                  onClick={() => navigate("/admin/operators")}
                 />
 
                 <QuickAction
@@ -586,4 +672,41 @@ function getInitials(name) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
+}
+
+function OperatorApplicationRow({ operator, onView }) {
+  return (
+    <div className="flex flex-col gap-4 px-5 py-5 transition hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="flex min-w-0 items-start gap-4">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-sm font-black text-violet-700">
+          {getInitials(operator.name || "Operator")}
+        </div>
+        <div className="min-w-0">
+          <h3 className="truncate font-black text-slate-900">
+            {operator.name || "Transport Operator"}
+          </h3>
+          <p className="mt-1 truncate text-sm text-slate-500">
+            {operator.email || "Email unavailable"}
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <SmallBadge>{operator.registrationNumber || "No registration"}</SmallBadge>
+            <SmallBadge>{operator.operatorType || "Type unavailable"}</SmallBadge>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between gap-3 sm:justify-end">
+        <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-700">
+          PENDING
+        </span>
+        <button
+          type="button"
+          onClick={onView}
+          className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-700 transition hover:border-[#08264a] hover:bg-[#08264a] hover:text-white"
+        >
+          Review
+        </button>
+      </div>
+    </div>
+  );
 }

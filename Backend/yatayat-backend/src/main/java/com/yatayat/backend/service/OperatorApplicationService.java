@@ -10,7 +10,9 @@ import com.yatayat.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -170,6 +172,80 @@ public class OperatorApplicationService {
         return response;
     }
 
+    public List<Map<String, Object>> getAllApplications() {
+        return operatorRepository
+                .findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toMap)
+                .toList();
+    }
+
+    @Transactional
+    public Map<String, Object> approveApplication(Long operatorId) {
+        TransportOperator operator = findOperator(operatorId);
+
+        if (operator.getVerificationStatus() !=
+                OperatorVerificationStatus.PENDING) {
+            throw new IllegalArgumentException(
+                    "Only a pending operator application can be approved"
+            );
+        }
+
+        operator.setVerificationStatus(
+                OperatorVerificationStatus.APPROVED
+        );
+        operator.setRejectionReason(null);
+        operator.setApprovedAt(LocalDateTime.now());
+
+        TransportOperator saved = operatorRepository.save(operator);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put(
+                "message",
+                "Transport operator approved successfully"
+        );
+        response.put("operator", toMap(saved));
+
+        return response;
+    }
+
+    @Transactional
+    public Map<String, Object> rejectApplication(
+            Long operatorId,
+            String reason
+    ) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Rejection reason is required"
+            );
+        }
+
+        TransportOperator operator = findOperator(operatorId);
+
+        if (operator.getVerificationStatus() !=
+                OperatorVerificationStatus.PENDING) {
+            throw new IllegalArgumentException(
+                    "Only a pending operator application can be rejected"
+            );
+        }
+
+        operator.setVerificationStatus(
+                OperatorVerificationStatus.REJECTED
+        );
+        operator.setRejectionReason(reason.trim());
+        operator.setApprovedAt(null);
+
+        TransportOperator saved = operatorRepository.save(operator);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "Operator application rejected");
+        response.put("operator", toMap(saved));
+
+        return response;
+    }
+
     @Transactional
     public Map<String, Object> resubmitApplication(
             OperatorApplicationRequest request
@@ -325,6 +401,15 @@ public class OperatorApplicationService {
                     "Invalid operator type"
             );
         }
+    }
+
+    private TransportOperator findOperator(Long operatorId) {
+        return operatorRepository.findById(operatorId)
+                .orElseThrow(
+                        () -> new IllegalArgumentException(
+                                "Operator application not found"
+                        )
+                );
     }
 
     private String statusMessage(
