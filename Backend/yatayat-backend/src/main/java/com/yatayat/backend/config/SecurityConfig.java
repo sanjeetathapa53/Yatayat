@@ -97,6 +97,17 @@ public class SecurityConfig {
                                 "/api/operator/buses/**"
                         ).hasRole("OPERATOR")
                         .requestMatchers(
+                                "/api/operator/drivers",
+                                "/api/operator/drivers/**",
+                                "/api/operator/driver-invitations",
+                                "/api/operator/driver-invitations/**"
+                        ).hasRole("OPERATOR")
+                        .requestMatchers(
+                                "/api/driver/operator-invitations",
+                                "/api/driver/operator-invitations/**",
+                                "/api/driver/operator-association"
+                        ).hasRole("DRIVER")
+                        .requestMatchers(
                                 "/api/admin/buses",
                                 "/api/admin/buses/**"
                         ).hasRole("ADMIN")

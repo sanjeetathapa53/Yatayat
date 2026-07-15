@@ -2,10 +2,12 @@ package com.yatayat.backend.service;
 
 import com.yatayat.backend.dto.OperatorDashboardResponse;
 import com.yatayat.backend.entity.BusStatus;
+import com.yatayat.backend.entity.DriverOperatorAssociationStatus;
 import com.yatayat.backend.entity.OperatorVerificationStatus;
 import com.yatayat.backend.entity.TransportOperator;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.repository.BusRepository;
+import com.yatayat.backend.repository.DriverOperatorAssociationRepository;
 import com.yatayat.backend.repository.TransportOperatorRepository;
 import com.yatayat.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -18,15 +20,18 @@ public class OperatorDashboardService {
     private final UserRepository userRepository;
     private final TransportOperatorRepository operatorRepository;
     private final BusRepository busRepository;
+    private final DriverOperatorAssociationRepository associationRepository;
 
     public OperatorDashboardService(
             UserRepository userRepository,
             TransportOperatorRepository operatorRepository,
-            BusRepository busRepository
+            BusRepository busRepository,
+            DriverOperatorAssociationRepository associationRepository
     ) {
         this.userRepository = userRepository;
         this.operatorRepository = operatorRepository;
         this.busRepository = busRepository;
+        this.associationRepository = associationRepository;
     }
 
     public OperatorDashboardResponse getDashboard(String authenticatedEmail) {
@@ -74,9 +79,12 @@ public class OperatorDashboardService {
                 ),
                 busRepository.countByOperatorAndStatus(
                         operator,
-                        BusStatus.ACTIVE
+                        BusStatus.APPROVED
                 ),
-                busRepository.countDistinctAssignedDriversByOperator(operator),
+                associationRepository.countByOperatorAndStatus(
+                        operator,
+                        DriverOperatorAssociationStatus.ACTIVE
+                ),
                 0,
                 0
         );

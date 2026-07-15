@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import DriverLayout from "../../components/layout/DriverLayout";
+import { apiFetch } from "../../utils/api";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -39,6 +40,7 @@ export default function DriverProfilePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [operatorAssociation, setOperatorAssociation] = useState(null);
 
   const fetchDriverProfile = async (manualRefresh = false) => {
     if (!loggedInUser?.id) {
@@ -72,6 +74,13 @@ export default function DriverProfilePage() {
 
       setDriver(data.driver);
 
+      const associationResponse = await apiFetch("/api/driver/operator-association");
+      if (associationResponse.ok) {
+        setOperatorAssociation(await associationResponse.json());
+      } else if (associationResponse.status === 204) {
+        setOperatorAssociation(null);
+      }
+
       localStorage.setItem(
         "yatayatUser",
         JSON.stringify({
@@ -101,7 +110,13 @@ export default function DriverProfilePage() {
   };
 
   useEffect(() => {
-    fetchDriverProfile();
+    let active = true;
+    Promise.resolve().then(() => {
+      if (active) fetchDriverProfile();
+    });
+    return () => { active = false; };
+    // The initial profile load intentionally runs once for the signed-in user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (loading) {
@@ -200,6 +215,11 @@ export default function DriverProfilePage() {
           <p>{error}</p>
         </div>
       )}
+
+      <section className={`mb-6 rounded-3xl border p-6 ${operatorAssociation ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white"}`}>
+        <div className="flex items-center gap-3"><Briefcase size={22} /><h2 className="text-xl font-black">Associated Operator</h2></div>
+        {operatorAssociation ? <><p className="mt-4 text-2xl font-black text-slate-900">{operatorAssociation.operatorName}</p><p className="mt-1 text-sm text-slate-600">{operatorAssociation.operatorEmail} · {operatorAssociation.operatorPhone}</p></> : <p className="mt-4 text-sm font-bold text-slate-500">You do not have an active operator association.</p>}
+      </section>
 
       {/* PROFILE HEADER */}
 

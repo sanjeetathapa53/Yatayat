@@ -1,284 +1,101 @@
-import { useState } from "react";
-import {
-  Search,
-  SlidersHorizontal,
-  ShieldAlert,
-  Route,
-  UserRound,
-  Mail,
-  Wrench,
-  MoreVertical,
-  ChevronDown,
-  CheckCircle,
-} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Building2, CheckCircle2, Loader2, Mail, RefreshCw, XCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import DriverLayout from "../../components/layout/DriverLayout";
-
-const notifications = [
-  {
-    id: 1,
-    group: "New Alerts",
-    type: "security",
-    title: "New device login OTP",
-    message:
-      "A new login attempt was detected from a Windows device in Kathmandu. Use OTP 449-102 to verify your identity.",
-    time: "Just now",
-    unread: true,
-    urgent: true,
-    actions: ["Verify", "Dismiss"],
-  },
-  {
-    id: 2,
-    group: "New Alerts",
-    type: "route",
-    title: "Bus delay alert",
-    message:
-      "Route #422 (Ratna Park - Koteshwor) is experiencing a 15-minute delay due to road construction at New Baneshwor. Adjust speed accordingly.",
-    time: "12m ago",
-    unread: true,
-    actions: ["View Route Map"],
-  },
-  {
-    id: 3,
-    group: "Earlier Today",
-    type: "passenger",
-    title: "Priority Seating Request",
-    message:
-      "Passenger at Terminal B requires ramp assistance for wheelchair boarding. Arrival estimated in 10 minutes.",
-    time: "3h ago",
-    unread: false,
-  },
-  {
-    id: 4,
-    group: "Earlier Today",
-    type: "admin",
-    title: "Shift Schedule Finalized",
-    message:
-      "The duty roster for the upcoming Dashain festival has been updated. Please review your assigned shifts in the portal.",
-    time: "5h ago",
-    unread: false,
-  },
-  {
-    id: 5,
-    group: "Earlier Today",
-    type: "maintenance",
-    title: "Vehicle Health Report",
-    message:
-      "Bus BA 1 PA 4502: Tire pressure in rear-left is 5 PSI below optimal. Maintenance suggested at next depot stop.",
-    time: "Yesterday",
-    unread: false,
-  },
-];
+import { apiFetch } from "../../utils/api";
 
 export default function DriverNotificationsPage() {
-  const [activeFilter, setActiveFilter] = useState("All");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [items, setItems] = useState(notifications);
+  const navigate = useNavigate();
+  const [invitations, setInvitations] = useState([]);
+  const [association, setAssociation] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [confirmation, setConfirmation] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
-  const filtered = items.filter((item) => {
-    const matchesFilter =
-      activeFilter === "All" ||
-      (activeFilter === "Unread" && item.unread) ||
-      (activeFilter === "Archived" && item.archived);
-
-    const matchesSearch =
-      item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.message.toLowerCase().includes(searchTerm.toLowerCase());
-
-    return matchesFilter && matchesSearch;
-  });
-
-  const markAllRead = () => {
-    setItems((prev) => prev.map((item) => ({ ...item, unread: false })));
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const [invitationResponse, associationResponse] = await Promise.all([
+        apiFetch("/api/driver/operator-invitations"),
+        apiFetch("/api/driver/operator-association"),
+      ]);
+      if (invitationResponse.status === 401 || associationResponse.status === 401) {
+        navigate("/login", { replace: true });
+        return;
+      }
+      if (invitationResponse.status === 403 || associationResponse.status === 403) {
+        navigate("/driver/application-status", { replace: true });
+        return;
+      }
+      const invitationData = await invitationResponse.json().catch(() => ({}));
+      if (!invitationResponse.ok) throw new Error(invitationData.message || "Unable to load invitations.");
+      setInvitations(Array.isArray(invitationData) ? invitationData : []);
+      setAssociation(associationResponse.status === 204 ? null : await associationResponse.json());
+    } catch (loadError) {
+      setError(loadError.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const grouped = filtered.reduce((acc, item) => {
-    if (!acc[item.group]) acc[item.group] = [];
-    acc[item.group].push(item);
-    return acc;
-  }, {});
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      apiFetch("/api/driver/operator-invitations"),
+      apiFetch("/api/driver/operator-association"),
+    ]).then(async ([invitationResponse, associationResponse]) => {
+      if (invitationResponse.status === 401 || associationResponse.status === 401) {
+        navigate("/login", { replace: true });
+        return null;
+      }
+      if (invitationResponse.status === 403 || associationResponse.status === 403) {
+        navigate("/driver/application-status", { replace: true });
+        return null;
+      }
+      const invitationData = await invitationResponse.json().catch(() => ({}));
+      if (!invitationResponse.ok) throw new Error(invitationData.message || "Unable to load invitations.");
+      const activeData = associationResponse.status === 204 ? null : await associationResponse.json();
+      return { invitationData, activeData };
+    }).then((data) => {
+      if (active && data) {
+        setInvitations(data.invitationData);
+        setAssociation(data.activeData);
+      }
+    }).catch((loadError) => { if (active) setError(loadError.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [navigate]);
 
-  return (
-    <DriverLayout activePage="Notifications">
-      <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            Notifications
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Manage route updates, passenger alerts, admin messages, and security notices.
-          </p>
-        </div>
-
-        <div className="rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white shadow-sm">
-          Arriving at Terminal
-        </div>
-      </header>
-
-      <section className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex flex-wrap gap-3">
-          {["All", "Unread", "Archived"].map((item) => (
-            <button
-              key={item}
-              onClick={() => setActiveFilter(item)}
-              className={`rounded-full px-5 py-3 text-sm font-black transition ${
-                activeFilter === item
-                  ? "bg-[#08264a] text-white"
-                  : "bg-white text-slate-500 hover:text-[#08264a]"
-              }`}
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 sm:w-80">
-            <Search size={18} className="text-slate-500" />
-            <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search notifications..."
-              className="w-full bg-transparent text-sm outline-none"
-            />
-          </div>
-
-          <button className="flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50">
-            <SlidersHorizontal size={17} />
-            Filter
-          </button>
-
-          <button
-            onClick={markAllRead}
-            className="rounded-xl px-4 py-3 text-sm font-black text-[#1d3f6e] hover:bg-white"
-          >
-            Mark all as read
-          </button>
-        </div>
-      </section>
-
-      <section className="space-y-10">
-        {Object.entries(grouped).map(([group, groupItems]) => (
-          <div key={group}>
-            <div className="mb-4 flex items-center gap-4">
-              <p className="text-xs font-black uppercase tracking-[0.25em] text-slate-500">
-                {group}
-              </p>
-              <div className="h-px flex-1 bg-slate-200"></div>
-            </div>
-
-            <div className="space-y-4">
-              {groupItems.map((item) => (
-                <NotificationCard key={item.id} item={item} />
-              ))}
-            </div>
-          </div>
-        ))}
-      </section>
-
-      <div className="mt-10 flex justify-center">
-        <button className="flex items-center gap-2 rounded-xl px-5 py-3 text-sm font-black text-slate-500 hover:bg-white hover:text-[#08264a]">
-          Load more notifications
-          <ChevronDown size={18} />
-        </button>
-      </div>
-    </DriverLayout>
-  );
-}
-
-function NotificationCard({ item }) {
-  const config = getNotificationConfig(item.type);
-
-  return (
-    <div
-      className={`relative rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md ${
-        item.urgent ? "border-l-4 border-l-red-600" : item.unread ? "border-l-4 border-l-[#1d3f6e]" : ""
-      }`}
-    >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex gap-4">
-          <div
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${config.bg} ${config.text}`}
-          >
-            {config.icon}
-          </div>
-
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="font-black text-slate-900">{item.title}</h2>
-              {item.unread && (
-                <span className="h-2 w-2 rounded-full bg-[#1d3f6e]"></span>
-              )}
-            </div>
-
-            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-500">
-              {item.message}
-            </p>
-
-            {item.actions && (
-              <div className="mt-4 flex flex-wrap gap-3">
-                {item.actions.map((action) => (
-                  <button
-                    key={action}
-                    className={`rounded-lg px-4 py-2 text-xs font-black ${
-                      action === "Dismiss"
-                        ? "text-slate-500 hover:bg-slate-100"
-                        : "bg-blue-50 text-[#1d3f6e] hover:bg-blue-100"
-                    }`}
-                  >
-                    {action}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-3 sm:justify-end">
-          <p className="text-xs font-black uppercase text-slate-400">
-            {item.time}
-          </p>
-
-          {!item.unread ? (
-            <button className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
-              <MoreVertical size={18} />
-            </button>
-          ) : (
-            <CheckCircle size={16} className="text-[#1d3f6e]" />
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function getNotificationConfig(type) {
-  const configs = {
-    security: {
-      icon: <ShieldAlert size={22} />,
-      bg: "bg-red-50",
-      text: "text-red-600",
-    },
-    route: {
-      icon: <Route size={22} />,
-      bg: "bg-blue-50",
-      text: "text-[#1d3f6e]",
-    },
-    passenger: {
-      icon: <UserRound size={22} />,
-      bg: "bg-slate-100",
-      text: "text-slate-500",
-    },
-    admin: {
-      icon: <Mail size={22} />,
-      bg: "bg-slate-100",
-      text: "text-slate-500",
-    },
-    maintenance: {
-      icon: <Wrench size={22} />,
-      bg: "bg-slate-100",
-      text: "text-slate-500",
-    },
+  const respond = async () => {
+    if (!confirmation) return;
+    try {
+      setProcessing(true);
+      const response = await apiFetch(
+        `/api/driver/operator-invitations/${confirmation.invitation.associationId}/${confirmation.action}`,
+        { method: "POST" }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.message || "Unable to respond to invitation.");
+      setInvitations((current) => current.filter((item) => item.associationId !== data.associationId));
+      if (confirmation.action === "accept") setAssociation(data);
+      toast.success(confirmation.action === "accept" ? "Operator invitation accepted." : "Operator invitation rejected.");
+      setConfirmation(null);
+    } catch (responseError) {
+      setError(responseError.message);
+    } finally {
+      setProcessing(false);
+    }
   };
 
-  return configs[type];
+  return <DriverLayout activePage="Notifications"><div className="space-y-7">
+    <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="text-3xl font-black text-slate-900">Operator Invitations</h1><p className="mt-1 text-sm text-slate-600">Review invitations from approved transport operators.</p></div><button type="button" onClick={load} className="flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 font-black text-white"><RefreshCw size={17} /> Refresh</button></header>
+    {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
+    {association && <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6"><div className="flex items-center gap-3 text-emerald-700"><CheckCircle2 /><h2 className="text-xl font-black">Active Operator</h2></div><p className="mt-4 text-2xl font-black text-slate-900">{association.operatorName}</p><p className="mt-1 text-sm text-slate-600">{association.operatorEmail} · {association.operatorPhone}</p></section>}
+    {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 size={40} className="animate-spin" /></div> : invitations.length === 0 ? <div className="rounded-3xl border border-slate-200 bg-white p-14 text-center"><Mail size={46} className="mx-auto text-slate-300" /><h2 className="mt-4 text-xl font-black">No pending operator invitations.</h2></div> : <section className="grid gap-4 lg:grid-cols-2">{invitations.map((invitation) => <article key={invitation.associationId} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-start gap-4"><div className="rounded-2xl bg-blue-50 p-3 text-[#08264a]"><Building2 /></div><div><h2 className="text-xl font-black text-slate-900">{invitation.operatorName}</h2><p className="mt-1 text-sm text-slate-500">{invitation.operatorEmail}</p><p className="mt-3 text-xs font-bold uppercase text-slate-400">Invited {new Date(invitation.invitedAt).toLocaleString()}</p></div></div><div className="mt-6 flex gap-3"><button type="button" disabled={processing} onClick={() => setConfirmation({ action: "accept", invitation })} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 font-black text-white"><CheckCircle2 size={18} /> Accept</button><button type="button" disabled={processing} onClick={() => setConfirmation({ action: "reject", invitation })} className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 font-black text-white"><XCircle size={18} /> Reject</button></div></article>)}</section>}
+  </div>
+  {confirmation && <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4"><div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl"><h2 className="text-xl font-black">{confirmation.action === "accept" ? "Accept invitation?" : "Reject invitation?"}</h2><p className="mt-3 text-sm text-slate-600">{confirmation.action === "accept" ? `You will become actively associated with ${confirmation.invitation.operatorName}.` : `Reject the invitation from ${confirmation.invitation.operatorName}?`}</p><div className="mt-6 flex gap-3"><button type="button" disabled={processing} onClick={() => setConfirmation(null)} className="flex-1 rounded-xl border border-slate-300 py-3 font-black">Cancel</button><button type="button" disabled={processing} onClick={respond} className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 font-black text-white ${confirmation.action === "accept" ? "bg-emerald-600" : "bg-red-600"}`}>{processing && <Loader2 size={17} className="animate-spin" />} Confirm</button></div></div></div>}
+  </DriverLayout>;
 }

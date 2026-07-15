@@ -1,4 +1,4 @@
-import { Building2, Bus, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import { Building2, Bus, LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { apiFetch } from "../../utils/api";
@@ -46,6 +46,7 @@ export default function OperatorLayout({ children }) {
         <nav className="flex-1 space-y-2 p-4">
           <NavItem icon={<LayoutDashboard size={19} />} label="Dashboard" path="/operator/dashboard" active={location.pathname === "/operator/dashboard"} navigate={navigate} />
           <NavItem icon={<Bus size={19} />} label="Buses" path="/operator/buses" active={location.pathname.startsWith("/operator/buses")} navigate={navigate} />
+          <NavItem icon={<Users size={19} />} label="Drivers" path="/operator/drivers" active={location.pathname.startsWith("/operator/drivers")} navigate={navigate} />
         </nav>
 
         <div className="border-t border-slate-200 p-5">
