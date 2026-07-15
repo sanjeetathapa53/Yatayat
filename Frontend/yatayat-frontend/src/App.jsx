@@ -38,6 +38,9 @@ import DriverApplicationDetailsPage from "./pages/admin/DriverApplicationDetails
 import OperatorApplicationPage from "./pages/operator/OperatorApplicationPage";
 import OperatorApplicationStatusPage from "./pages/operator/OperatorApplicationStatusPage";
 import OperatorDashboard from "./pages/operator/OperatorDashboard";
+import OperatorBusesPage from "./pages/operator/OperatorBusesPage";
+import OperatorBusRegistrationPage from "./pages/operator/OperatorBusRegistrationPage";
+import OperatorBusDetailsPage from "./pages/operator/OperatorBusDetailsPage";
 
 
 import RoutesPage from "./pages/routes/RoutesPage";
@@ -323,6 +326,14 @@ export default function App() {
     </ProtectedRoute>
   }
 />
+
+{[
+  ["/operator/buses", <OperatorBusesPage />],
+  ["/operator/buses/register", <OperatorBusRegistrationPage />],
+  ["/operator/buses/:id", <OperatorBusDetailsPage />],
+].map(([path, page]) => (
+  <Route key={path} path={path} element={<ProtectedRoute allowedRole="OPERATOR">{page}</ProtectedRoute>} />
+))}
 
         <Route
           path="/bookings"

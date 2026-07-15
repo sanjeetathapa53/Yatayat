@@ -44,4 +44,13 @@ public interface BusRepository
     long countDistinctAssignedDriversByOperator(
             @Param("operator") TransportOperator operator
     );
+
+    List<Bus> findByOperatorOrderByCreatedAtDesc(
+            TransportOperator operator
+    );
+
+    Optional<Bus> findByIdAndOperator(
+            Long id,
+            TransportOperator operator
+    );
 }

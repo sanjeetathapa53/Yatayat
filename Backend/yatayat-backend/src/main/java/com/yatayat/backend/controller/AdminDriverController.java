@@ -11,7 +11,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/drivers")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AdminDriverController {
 
     private final AdminDriverService adminDriverService;

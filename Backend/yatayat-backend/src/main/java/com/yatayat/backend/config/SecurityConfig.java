@@ -5,6 +5,7 @@ import com.yatayat.backend.repository.UserRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -21,12 +22,16 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.List;
+import java.util.Arrays;
 
 @Configuration
 public class SecurityConfig {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${yatayat.cors.allowed-origins:http://localhost:5173}")
+    private String allowedOrigins;
 
     public SecurityConfig(UserRepository userRepository) {
         this.userRepository = userRepository;
@@ -42,16 +47,30 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(
-                List.of("http://localhost:5173")
+                Arrays.stream(allowedOrigins.split(","))
+                        .map(String::trim)
+                        .filter(origin -> !origin.isBlank())
+                        .toList()
         );
-        configuration.setAllowedMethods(List.of("GET", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET", "POST", "PUT", "PATCH",
+                        "DELETE", "OPTIONS"
+                )
+        );
+        configuration.setAllowedHeaders(List.of(
+                "Content-Type",
+                "Authorization",
+                "Accept",
+                "X-Requested-With"
+        ));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration(
-                "/api/operator/dashboard",
+                "/api/**",
                 configuration
         );
         return source;
@@ -68,10 +87,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 HttpMethod.OPTIONS,
-                                "/api/operator/dashboard"
+                                "/api/**"
                         ).permitAll()
                         .requestMatchers(
                                 "/api/operator/dashboard"
+                        ).hasRole("OPERATOR")
+                        .requestMatchers(
+                                "/api/operator/buses",
+                                "/api/operator/buses/**"
                         ).hasRole("OPERATOR")
                         .requestMatchers(
                                 "/",

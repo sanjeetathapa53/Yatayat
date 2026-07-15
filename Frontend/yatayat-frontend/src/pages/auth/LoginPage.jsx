@@ -14,6 +14,7 @@ import { toast } from "react-toastify";
 
 import AuthLayout from "../../components/auth/AuthLayout";
 import RoleTabs from "../../components/auth/RoleTabs";
+import { API_BASE_URL, apiFetch } from "../../utils/api";
 
 export default function LoginPage() {
   const [role, setRole] = useState("passenger");
@@ -54,8 +55,8 @@ export default function LoginPage() {
   }, []);
 
   const redirectDriverByStatus = async (user) => {
-    const statusResponse = await fetch(
-      `http://localhost:8080/api/drivers/status/${user.id}`
+    const statusResponse = await apiFetch(
+      `/api/drivers/status/${user.id}`
     );
 
     const statusData = await statusResponse.json();
@@ -127,8 +128,8 @@ export default function LoginPage() {
   };
 
   const redirectOperatorByStatus = async (user) => {
-    const response = await fetch(
-      `http://localhost:8080/api/operators/status/${user.id}`
+    const response = await apiFetch(
+      `/api/operators/status/${user.id}`
     );
   
     const data = await response.json();
@@ -205,11 +206,10 @@ export default function LoginPage() {
     try {
       setLoading(true);
 
-      const response = await fetch(
-        "http://localhost:8080/api/auth/login",
+      const response = await apiFetch(
+        "/api/auth/login",
         {
           method: "POST",
-          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
@@ -437,7 +437,7 @@ to continue.
             type="button"
             onClick={() => {
               window.location.href =
-                "http://localhost:8080/api/auth/google-login";
+                `${API_BASE_URL}/api/auth/google-login`;
             }}
             className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Building2, Bus, CalendarDays, CheckCircle2, Loader2, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import OperatorLayout from "../../components/layout/OperatorLayout";
+import { apiFetch } from "../../utils/api";
 
 export default function OperatorDashboard() {
   const navigate = useNavigate();
@@ -11,9 +12,7 @@ export default function OperatorDashboard() {
   useEffect(() => {
     let active = true;
 
-    fetch("http://localhost:8080/api/operator/dashboard", {
-      credentials: "include",
-    }).then(async (response) => {
+    apiFetch("/api/operator/dashboard").then(async (response) => {
       if (response.status === 401) {
         navigate("/login", { replace: true });
         return null;
@@ -65,10 +64,16 @@ export default function OperatorDashboard() {
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black">Quick Actions</h2>
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-              {["Register Bus", "Manage Buses", "Manage Drivers", "Create Scheduled Trip", "View Active Trips"].map((label) => (
-                <button key={label} type="button" disabled className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left opacity-70">
-                  <p className="font-black text-slate-700">{label}</p>
-                  <p className="mt-2 text-xs font-bold text-slate-500">Coming next</p>
+              {[
+                { label: "Register Bus", path: "/operator/buses/register" },
+                { label: "Manage Buses", path: "/operator/buses" },
+                { label: "Manage Drivers" },
+                { label: "Create Scheduled Trip" },
+                { label: "View Active Trips" },
+              ].map((action) => (
+                <button key={action.label} type="button" disabled={!action.path} onClick={() => action.path && navigate(action.path)} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left disabled:opacity-70">
+                  <p className="font-black text-slate-700">{action.label}</p>
+                  <p className="mt-2 text-xs font-bold text-slate-500">{action.path ? "Open" : "Coming next"}</p>
                 </button>
               ))}
             </div>
@@ -77,7 +82,7 @@ export default function OperatorDashboard() {
           {dashboard.totalBuses === 0 && (
             <section className="rounded-3xl border border-blue-200 bg-blue-50 p-6">
               <h2 className="font-black">Your organization is approved.</h2>
-              <p className="mt-2 text-sm text-slate-600">Register your first bus to continue. Bus registration is coming next.</p>
+              <p className="mt-2 text-sm text-slate-600">Register your first bus to continue.</p>
             </section>
           )}
         </div>

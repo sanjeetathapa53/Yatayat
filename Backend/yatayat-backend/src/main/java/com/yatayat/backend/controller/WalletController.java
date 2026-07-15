@@ -16,7 +16,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/wallet")
-@CrossOrigin(origins = "http://localhost:5173")
 public class WalletController {
 
     private final UserRepository userRepository;

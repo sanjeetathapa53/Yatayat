@@ -10,7 +10,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/drivers")
-@CrossOrigin(origins = "http://localhost:5173")
 public class DriverApplicationController {
 
     private final DriverApplicationService applicationService;

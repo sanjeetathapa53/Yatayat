@@ -75,6 +75,9 @@ public class Bus {
     )
     private TransportOperator operator;
 
+    @Column(name = "operator_name", nullable = false, length = 150)
+    private String operatorName;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "driver_profile_id",
@@ -182,6 +185,10 @@ public class Bus {
         return operator;
     }
 
+    public String getOperatorName() {
+        return operatorName;
+    }
+
     public DriverProfile getAssignedDriver() {
         return assignedDriver;
     }
@@ -250,6 +257,10 @@ public class Bus {
             TransportOperator operator
     ) {
         this.operator = operator;
+    }
+
+    public void setOperatorName(String operatorName) {
+        this.operatorName = clean(operatorName);
     }
 
     public void setAssignedDriver(

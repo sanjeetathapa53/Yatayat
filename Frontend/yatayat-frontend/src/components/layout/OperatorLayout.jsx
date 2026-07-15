@@ -1,16 +1,17 @@
-import { Building2, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import { Building2, Bus, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { apiFetch } from "../../utils/api";
 
 export default function OperatorLayout({ children }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const logout = async () => {
     try {
-      await fetch("http://localhost:8080/api/auth/logout", {
+      await apiFetch("/api/auth/logout", {
         method: "POST",
-        credentials: "include",
       });
     } finally {
       localStorage.removeItem("yatayatUser");
@@ -42,10 +43,9 @@ export default function OperatorLayout({ children }) {
           </button>
         </div>
 
-        <nav className="flex-1 p-4">
-          <button type="button" className="flex w-full items-center gap-3 rounded-xl bg-[#08264a] px-4 py-3 text-sm font-black text-white">
-            <LayoutDashboard size={19} /> Dashboard
-          </button>
+        <nav className="flex-1 space-y-2 p-4">
+          <NavItem icon={<LayoutDashboard size={19} />} label="Dashboard" path="/operator/dashboard" active={location.pathname === "/operator/dashboard"} navigate={navigate} />
+          <NavItem icon={<Bus size={19} />} label="Buses" path="/operator/buses" active={location.pathname.startsWith("/operator/buses")} navigate={navigate} />
         </nav>
 
         <div className="border-t border-slate-200 p-5">
@@ -66,5 +66,13 @@ export default function OperatorLayout({ children }) {
         <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>
+  );
+}
+
+function NavItem({ icon, label, path, active, navigate }) {
+  return (
+    <button type="button" onClick={() => navigate(path)} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-black ${active ? "bg-[#08264a] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+      {icon} {label}
+    </button>
   );
 }

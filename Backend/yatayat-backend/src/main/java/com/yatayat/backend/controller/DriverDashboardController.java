@@ -9,7 +9,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/drivers/dashboard")
-@CrossOrigin(origins = "http://localhost:5173")
 public class DriverDashboardController {
 
     private final DriverDashboardService dashboardService;

@@ -12,7 +12,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin/auth")
-@CrossOrigin(origins = "http://localhost:5173")
 public class AdminAuthController {
 
     private final UserRepository userRepository;
