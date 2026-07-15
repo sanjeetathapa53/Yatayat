@@ -37,6 +37,7 @@ import DriverApplicationDetailsPage from "./pages/admin/DriverApplicationDetails
 
 import OperatorApplicationPage from "./pages/operator/OperatorApplicationPage";
 import OperatorApplicationStatusPage from "./pages/operator/OperatorApplicationStatusPage";
+import OperatorDashboard from "./pages/operator/OperatorDashboard";
 
 
 import RoutesPage from "./pages/routes/RoutesPage";
@@ -312,6 +313,15 @@ export default function App() {
 <Route
   path="/operator/application-status"
   element={<OperatorApplicationStatusPage />}
+/>
+
+<Route
+  path="/operator/dashboard"
+  element={
+    <ProtectedRoute allowedRole="OPERATOR">
+      <OperatorDashboard />
+    </ProtectedRoute>
+  }
 />
 
         <Route

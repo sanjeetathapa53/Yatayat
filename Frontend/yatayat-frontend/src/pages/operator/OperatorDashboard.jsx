@@ -1,0 +1,97 @@
+import { useEffect, useState } from "react";
+import { Building2, Bus, CalendarDays, CheckCircle2, Loader2, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import OperatorLayout from "../../components/layout/OperatorLayout";
+
+export default function OperatorDashboard() {
+  const navigate = useNavigate();
+  const [dashboard, setDashboard] = useState(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    fetch("http://localhost:8080/api/operator/dashboard", {
+      credentials: "include",
+    }).then(async (response) => {
+      if (response.status === 401) {
+        navigate("/login", { replace: true });
+        return null;
+      }
+      if (response.status === 403 || response.status === 404) {
+        navigate("/operator/application-status", { replace: true });
+        return null;
+      }
+      if (!response.ok) throw new Error("Unable to load operator dashboard.");
+      return response.json();
+    }).then((data) => {
+      if (active && data) setDashboard(data);
+    }).catch((loadError) => {
+      if (active) setError(loadError.message);
+    });
+
+    return () => { active = false; };
+  }, [navigate]);
+
+  return (
+    <OperatorLayout>
+      {error ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50 p-5 font-bold text-red-700">{error}</div>
+      ) : !dashboard ? (
+        <div className="flex min-h-[360px] items-center justify-center"><Loader2 className="animate-spin" size={40} /></div>
+      ) : (
+        <div className="space-y-6">
+          <section className="rounded-3xl bg-[#08264a] p-7 text-white shadow-sm">
+            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+              <div>
+                <p className="text-sm font-bold text-blue-200">Namaste,</p>
+                <h1 className="mt-2 text-3xl font-black">{dashboard.organizationName}</h1>
+                <p className="mt-2 text-sm text-slate-300">Registration: {dashboard.registrationNumber}</p>
+              </div>
+              <span className="inline-flex items-center gap-2 self-start rounded-full bg-emerald-500/20 px-4 py-2 text-sm font-black text-emerald-100">
+                <CheckCircle2 size={18} /> {dashboard.approvalStatus}
+              </span>
+            </div>
+          </section>
+
+          <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+            <Stat label="Total Buses" value={dashboard.totalBuses} icon={<Bus />} />
+            <Stat label="Pending Buses" value={dashboard.pendingBuses} icon={<Building2 />} />
+            <Stat label="Associated Drivers" value={dashboard.totalAssociatedDrivers} icon={<Users />} />
+            <Stat label="Upcoming Trips" value={dashboard.upcomingTrips} icon={<CalendarDays />} />
+            <Stat label="Active Trips" value={dashboard.activeTrips} icon={<CheckCircle2 />} />
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-xl font-black">Quick Actions</h2>
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+              {["Register Bus", "Manage Buses", "Manage Drivers", "Create Scheduled Trip", "View Active Trips"].map((label) => (
+                <button key={label} type="button" disabled className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left opacity-70">
+                  <p className="font-black text-slate-700">{label}</p>
+                  <p className="mt-2 text-xs font-bold text-slate-500">Coming next</p>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {dashboard.totalBuses === 0 && (
+            <section className="rounded-3xl border border-blue-200 bg-blue-50 p-6">
+              <h2 className="font-black">Your organization is approved.</h2>
+              <p className="mt-2 text-sm text-slate-600">Register your first bus to continue. Bus registration is coming next.</p>
+            </section>
+          )}
+        </div>
+      )}
+    </OperatorLayout>
+  );
+}
+
+function Stat({ label, value, icon }) {
+  return (
+    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="text-[#08264a]">{icon}</div>
+      <p className="mt-4 text-xs font-black uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="mt-2 text-3xl font-black">{value}</p>
+    </article>
+  );
+}

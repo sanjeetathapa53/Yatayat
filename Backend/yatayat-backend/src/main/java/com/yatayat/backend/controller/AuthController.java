@@ -8,9 +8,15 @@ import com.yatayat.backend.entity.User;
 import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.service.EmailService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 import com.yatayat.backend.dto.ForgotPasswordRequest;
 import com.yatayat.backend.entity.Wallet;
@@ -22,7 +28,7 @@ import java.util.Random;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "http://localhost:5173", allowCredentials = "true")
 public class AuthController {
 
     private final UserRepository userRepository;
@@ -163,7 +169,10 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public Object login(@RequestBody LoginRequest request) {
+    public Object login(
+            @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest
+    ) {
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
 
         if (user == null) return "User not found";
@@ -179,6 +188,27 @@ public class AuthController {
             return "Password is not encrypted. Please register again.";
         }
 
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        user.getEmail(),
+                        null,
+                        java.util.List.of(
+                                new SimpleGrantedAuthority(
+                                        "ROLE_" + user.getRole().toUpperCase()
+                                )
+                        )
+                );
+
+        SecurityContext securityContext =
+                SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        httpRequest.getSession(true).setAttribute(
+                HttpSessionSecurityContextRepository
+                        .SPRING_SECURITY_CONTEXT_KEY,
+                securityContext
+        );
+
         Map<String, Object> response = new HashMap<>();
         response.put("id", user.getId());
         response.put("fullName", user.getFullName());
@@ -187,6 +217,15 @@ public class AuthController {
         response.put("role", user.getRole());
 
         return response;
+    }
+
+    @PostMapping("/logout")
+    public void logout(HttpServletRequest request) {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        SecurityContextHolder.clearContext();
     }
 
     @PostMapping("/change-password")
