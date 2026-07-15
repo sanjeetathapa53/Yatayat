@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        @page { size: A4; margin: 22mm; }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #eef3f8;
+            color: #0f172a;
+        }
+
+        .ticket {
+            background: #ffffff;
+            border-radius: 24px;
+            overflow: hidden;
+            border: 1px solid #dbe3ef;
+        }
+
+        .top {
+            background: #08264a;
+            color: white;
+            padding: 30px;
+        }
+
+        .brand {
+            font-size: 34px;
+            font-weight: 900;
+            letter-spacing: 1px;
+        }
+
+        .subtitle {
+            color: #cbd5e1;
+            margin-top: 6px;
+            font-size: 13px;
+        }
+
+        .badge {
+            float: right;
+            background: #dcfce7;
+            color: #047857;
+            padding: 9px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .content {
+            padding: 28px;
+        }
+
+        .passenger-box {
+            background: #f8fafc;
+            border-radius: 18px;
+            padding: 20px;
+            margin-bottom: 22px;
+        }
+
+        .label {
+            color: #64748b;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .big {
+            font-size: 26px;
+            font-weight: 900;
+            margin-top: 6px;
+        }
+
+        .route-card {
+            background: #08264a;
+            color: white;
+            border-radius: 20px;
+            padding: 26px;
+            text-align: center;
+            margin-bottom: 22px;
+        }
+
+        .route {
+            font-size: 28px;
+            font-weight: 900;
+            margin-top: 8px;
+        }
+
+        .details {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .details td {
+            padding: 13px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .value {
+            text-align: right;
+            font-weight: 900;
+            font-size: 14px;
+        }
+
+        .qr-section {
+            margin-top: 24px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 22px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .qr-section img {
+            width: 185px;
+            height: 185px;
+        }
+
+        .qr-text {
+            margin-top: 10px;
+            font-size: 10px;
+            color: #64748b;
+            word-break: break-all;
+        }
+
+        .footer {
+            background: #f8fafc;
+            padding: 18px;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+<div class="ticket">
+    <div class="top">
+        <span class="badge">{{bookingStatus}} · {{paymentStatus}}</span>
+        <div class="brand">YATAYAT</div>
+        <div class="subtitle">Official E-Ticket · Smart Public Transport Nepal</div>
+    </div>
+
+    <div class="content">
+        <div class="passenger-box">
+            <div class="label">Passenger</div>
+            <div class="big">{{passengerName}}</div>
+            <div style="margin-top:12px;" class="label">Booking ID</div>
+            <div style="font-weight:900;margin-top:4px;">YT-{{bookingId}}</div>
+        </div>
+
+        <div class="route-card">
+            <div class="label" style="color:#cbd5e1;">Route</div>
+            <div class="route">{{routeName}}</div>
+        </div>
+
+        <table class="details">
+            <tr><td class="label">Bus Number</td><td class="value">{{busNumber}}</td></tr>
+            <tr><td class="label">Seat Number</td><td class="value">{{seatNumber}}</td></tr>
+            <tr><td class="label">Travel Date</td><td class="value">{{travelDate}}</td></tr>
+            <tr><td class="label">Departure Time</td><td class="value">{{departureTime}}</td></tr>
+            <tr><td class="label">Amount Paid</td><td class="value">NPR {{fare}}</td></tr>
+        </table>
+
+        <div class="qr-section">
+            <div class="label">Scan while boarding</div>
+            <div style="margin-top:14px;">
+                <img src="data:image/png;base64,{{qrBase64}}" />
+            </div>
+            <div class="qr-text">{{qrCode}}</div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Please arrive at least 15 minutes before departure.<br />
+        Thank you for choosing Yatayat.
+    </div>
+</div>
+</body>
+</html>

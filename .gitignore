@@ -1,0 +1,23 @@
+# Frontend
+Frontend/yatayat-frontend/node_modules/
+Frontend/yatayat-frontend/dist/
+Frontend/yatayat-frontend/dist-ssr/
+
+# Backend
+Backend/yatayat-backend/target/
+Backend/yatayat-backend/uploads/
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db

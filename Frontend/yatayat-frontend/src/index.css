@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+
+
+body {
+  font-family: "Inter", sans-serif;
+}
+
+html[lang="ne"] body {
+  font-family: "Noto Sans Devanagari", sans-serif;
+}
+
+.field-input {
+  width: 100%;
+  background: transparent;
+  color: #0f172a;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.field-input::placeholder {
+  color: #94a3b8;
+}
