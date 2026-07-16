@@ -15,6 +15,8 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import { logoutUser } from "../../services/authService";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -28,6 +30,7 @@ export default function DriverLayout({
   const [menuOpen, setMenuOpen] = useState(false);
   const [driver, setDriver] = useState(null);
   const [loadingDriver, setLoadingDriver] = useState(true);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const loggedInUser = useMemo(() => {
     try {
@@ -109,14 +112,13 @@ export default function DriverLayout({
     setMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("yatayatUser");
-    localStorage.removeItem("loginTime");
-    localStorage.removeItem("driverApplicationStatus");
+  const handleLogout = async () => {
+    if (!window.confirm("Are you sure you want to log out?")) return;
 
-    navigate("/login", {
-      replace: true,
-    });
+    setLoggingOut(true);
+    await logoutUser();
+    toast.success("Logged out successfully");
+    navigate("/", { replace: true });
   };
 
   const menuItems = [
@@ -259,6 +261,7 @@ export default function DriverLayout({
                 getInitials(currentDriverName)
               )}
             </button>
+
           </div>
         </div>
       </header>
@@ -273,12 +276,12 @@ export default function DriverLayout({
       )}
 
       <aside
-        className={`fixed left-0 top-16 z-50 flex h-[calc(100vh-64px)] w-64 flex-col justify-between border-r border-slate-200 bg-[#061a33] p-4 text-white transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed left-0 top-16 z-50 flex h-[calc(100vh-64px)] w-64 flex-col justify-between overflow-y-auto border-r border-slate-200 bg-[#061a33] p-3 text-white transition-transform duration-300 lg:translate-x-0 ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
         <div>
-          <div className="mb-6 flex items-center justify-between lg:hidden">
+          <div className="mb-3 flex items-center justify-between lg:hidden">
             <h2 className="text-xl font-black">
               Driver Menu
             </h2>
@@ -291,7 +294,7 @@ export default function DriverLayout({
             </button>
           </div>
 
-          <nav className="space-y-2">
+          <nav className="space-y-1">
             {menuItems.map((item) => {
               const isActive =
                 activePage === item.label ||
@@ -302,7 +305,7 @@ export default function DriverLayout({
                   type="button"
                   key={item.label}
                   onClick={() => go(item.path)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                     isActive
                       ? "bg-white/15 text-white"
                       : "text-slate-300 hover:bg-white/10 hover:text-white"
@@ -316,11 +319,11 @@ export default function DriverLayout({
           </nav>
         </div>
 
-        <div className="border-t border-white/10 pt-4">
+        <div className="mt-2 border-t border-white/10 pt-3">
           <button
             type="button"
             onClick={() => go("/driver/profile")}
-            className="mb-4 flex w-full items-center gap-3 rounded-xl bg-white/10 p-3 text-left transition hover:bg-white/15"
+            className="mb-2 flex w-full items-center gap-3 rounded-xl bg-white/10 p-2.5 text-left transition hover:bg-white/15"
           >
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-200 text-sm font-black text-[#08264a]">
               {loadingDriver ? (
@@ -347,7 +350,7 @@ export default function DriverLayout({
             </div>
           </button>
 
-          <div className="mb-3 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300">
+          <div className="mb-2 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300">
             <ShieldCheck size={15} />
             {formatStatus(verificationStatus)}
           </div>
@@ -355,10 +358,15 @@ export default function DriverLayout({
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-red-500/10 hover:text-red-300"
+            disabled={loggingOut}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 py-2.5 text-sm font-black text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <LogOut size={20} />
-            Logout
+            {loggingOut ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <LogOut size={20} />
+            )}
+            {loggingOut ? "Logging out..." : "Logout"}
           </button>
         </div>
       </aside>

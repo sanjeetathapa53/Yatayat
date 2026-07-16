@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { apiFetch } from "../utils/api";
 
 export default function useWallet() {
   const user = JSON.parse(localStorage.getItem("yatayatUser"));
@@ -9,19 +10,22 @@ export default function useWallet() {
   const loadWallet = async () => {
     if (!user?.id) return;
 
-    const balanceRes = await fetch(
-      `http://localhost:8080/api/wallet/balance/${user.id}`,
-      { credentials: "include" }
-    );
+    const balanceRes = await apiFetch(`/api/wallet/balance/${user.id}`);
+    if (!balanceRes.ok) {
+      setBalance(0);
+      setTransactions([]);
+      return;
+    }
     const balanceText = await balanceRes.text();
-    setBalance(Number(balanceText));
+    setBalance(Number(balanceText) || 0);
 
-    const historyRes = await fetch(
-      `http://localhost:8080/api/wallet/history/${user.id}`,
-      { credentials: "include" }
-    );
-    const historyData = await historyRes.json();
-    setTransactions(historyData);
+    const historyRes = await apiFetch(`/api/wallet/history/${user.id}`);
+    if (!historyRes.ok) {
+      setTransactions([]);
+      return;
+    }
+    const historyData = await historyRes.json().catch(() => []);
+    setTransactions(Array.isArray(historyData) ? historyData : []);
   };
 
   const topUpWallet = async (amount, paymentMethod) => {
