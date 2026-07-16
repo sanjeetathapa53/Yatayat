@@ -17,6 +17,13 @@ Backend/yatayat-backend/uploads/
 # Environment
 .env
 .env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
+application-secrets.properties
+application-secrets.yml
+application-secrets.yaml
 
 # OS
 .DS_Store

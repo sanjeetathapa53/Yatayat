@@ -195,7 +195,7 @@ export default function AdminLayout({
               </p>
 
               <p className="truncate text-xs text-slate-500">
-                {admin?.email || "admin@yatayat.com"}
+                {admin?.email || "Administrator"}
               </p>
             </div>
           </div>
