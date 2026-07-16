@@ -133,3 +133,43 @@ Credentials previously committed to Git must be rotated even after they are remo
 4. Verify the application with the replacement credential.
 5. Review Git history and provider logs to determine the remaining exposure.
 
+## Session and endpoint security
+
+- Yatayat uses Spring Security server sessions; it does not use JWT authentication.
+- Frontend requests to protected backend endpoints must include credentials so the browser sends the session cookie.
+- Anonymous access is limited to the registration, login, OTP, password-reset, and Google OAuth entry points documented in `API_PERMISSION_MATRIX.md`.
+- Passenger, driver, operator, and administrator endpoints are protected by their corresponding roles.
+- Resource IDs in an existing URL or request body do not grant access. Ownership-sensitive endpoints compare them with the authenticated account or use an owner-scoped repository query.
+- A `401` response means no valid authenticated session was supplied. A `403` response means the session has the wrong role. Private resources that do not belong to the session user generally return `404`.
+
+## CSRF architecture status
+
+Yatayat currently authenticates with the `JSESSIONID` cookie and disables Spring Security CSRF protection. This was necessary for the existing React integration because the client sends session cookies with `credentials: "include"` but does not obtain or return a CSRF token. Enabling Spring's default CSRF filter without updating the client would reject authenticated `POST`, `PUT`, `PATCH`, and `DELETE` requests with `403`.
+
+Cookie `SameSite` behavior can reduce exposure to requests initiated from a different site, but it is not a complete CSRF defense. Yatayat does not currently set an explicit production cookie policy in application configuration. Browser defaults, reverse-proxy behavior, same-site subdomains, deployment topology, and future cookie changes cannot replace a server-validated CSRF token.
+
+State-changing operations currently relying only on the session cookie include:
+
+- logout and password change;
+- wallet top-up, PIN creation/verification, payment, booking creation, cancellation, and ticket use;
+- driver and operator application submission/resubmission;
+- driver invitation acceptance/rejection and operator driver invitations;
+- operator bus registration;
+- administrator driver, operator, and bus approval/rejection.
+
+### Required CSRF implementation before deployment
+
+Implement CSRF as a focused security task before production deployment, preferably before shared staging or any environment that uses real accounts:
+
+1. Configure Spring Security with `CookieCsrfTokenRepository` using the conventional `XSRF-TOKEN` cookie and `X-XSRF-TOKEN` request header.
+2. Make the CSRF token cookie readable by React while keeping the session cookie `HttpOnly`, `Secure` in production, and explicitly configured with an appropriate `SameSite` policy.
+3. Add `X-XSRF-TOKEN` to the allowed CORS headers.
+4. Provide a safe token-bootstrap request or ensure the token is eagerly materialized after application startup/login.
+5. Centralize protected frontend requests through `apiFetch`; read the CSRF cookie and attach the header to every unsafe method.
+6. Refresh the token after login and after session/authentication changes. Preserve OAuth `state` validation and verify the Google callback flow.
+7. Decide narrowly which truly anonymous authentication endpoints require a CSRF exemption. Do not exempt authenticated business endpoints.
+8. Add tests proving missing/invalid tokens are rejected and valid tokens work for passenger, driver, operator, and administrator mutations.
+9. Smoke-test registration, login, logout, OAuth, uploads, wallet, bookings, invitations, and approvals with the React client.
+
+CSRF is intentionally not enabled in Phase 2B final review because doing so without the coordinated React token flow would break existing functionality.
+

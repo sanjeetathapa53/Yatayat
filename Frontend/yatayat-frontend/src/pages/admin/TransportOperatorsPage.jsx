@@ -49,7 +49,8 @@ export default function TransportOperatorsPage() {
       setError("");
 
       const response = await fetch(
-        `${API_BASE_URL}/api/admin/operators`
+        `${API_BASE_URL}/api/admin/operators`,
+        { credentials: "include" }
       );
 
       const data = await response.json();
@@ -132,6 +133,7 @@ export default function TransportOperatorsPage() {
         `${API_BASE_URL}/api/admin/operators/${operatorId}/approve`,
         {
           method: "PUT",
+          credentials: "include",
         }
       );
 
@@ -179,6 +181,7 @@ export default function TransportOperatorsPage() {
         `${API_BASE_URL}/api/admin/operators/${selectedOperator.id}/reject`,
         {
           method: "PUT",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },

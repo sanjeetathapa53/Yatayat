@@ -111,6 +111,7 @@ export default function OperatorApplicationPage() {
 
       const response = await fetch(endpoint, {
         method: isResubmission ? "PUT" : "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

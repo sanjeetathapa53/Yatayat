@@ -4,6 +4,10 @@ import com.yatayat.backend.service.DriverApplicationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.security.core.Authentication;
+import com.yatayat.backend.entity.User;
+import com.yatayat.backend.service.AuthenticatedUserService;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,11 +17,14 @@ import java.util.Map;
 public class DriverApplicationController {
 
     private final DriverApplicationService applicationService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public DriverApplicationController(
-            DriverApplicationService applicationService
+            DriverApplicationService applicationService,
+            AuthenticatedUserService authenticatedUserService
     ) {
         this.applicationService = applicationService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     @PostMapping(
@@ -45,12 +52,15 @@ public class DriverApplicationController {
             @RequestPart MultipartFile citizenshipFront,
             @RequestPart MultipartFile citizenshipBack,
             @RequestPart MultipartFile licenseFront,
-            @RequestPart MultipartFile licenseBack
+            @RequestPart MultipartFile licenseBack,
+            Authentication authentication
     ) {
         try {
+            User authenticatedUser = authenticatedUserService.requireUser(authentication);
+
             Map<String, Object> response =
                     applicationService.submitApplication(
-                            email,
+                            authenticatedUser.getEmail(),
                             dateOfBirth,
                             permanentAddress,
                             currentAddress,
@@ -73,6 +83,8 @@ public class DriverApplicationController {
 
             return ResponseEntity.ok(response);
 
+        } catch (ResponseStatusException exception) {
+            throw exception;
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(
                     errorResponse(exception.getMessage())
@@ -91,9 +103,11 @@ public class DriverApplicationController {
 
     @GetMapping("/status/{userId}")
     public ResponseEntity<Map<String, Object>> getStatus(
-            @PathVariable Long userId
+            @PathVariable Long userId,
+            Authentication authentication
     ) {
         try {
+            authenticatedUserService.requireOwnedUser(authentication, userId);
             return ResponseEntity.ok(
                     applicationService.getApplicationStatus(userId)
             );
@@ -107,9 +121,11 @@ public class DriverApplicationController {
 
     @GetMapping("/profile/{userId}")
     public ResponseEntity<Map<String, Object>> getDriverProfile(
-            @PathVariable Long userId
+            @PathVariable Long userId,
+            Authentication authentication
     ) {
         try {
+            authenticatedUserService.requireOwnedUser(authentication, userId);
             return ResponseEntity.ok(
                     applicationService.getDriverProfile(userId)
             );

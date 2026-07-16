@@ -53,8 +53,8 @@ export default function AdminDashboard() {
        */
 
       const [pendingResponse, operatorsResponse] = await Promise.all([
-        fetch("http://localhost:8080/api/admin/drivers/pending"),
-        fetch("http://localhost:8080/api/admin/operators"),
+        fetch("http://localhost:8080/api/admin/drivers/pending", { credentials: "include" }),
+        fetch("http://localhost:8080/api/admin/operators", { credentials: "include" }),
       ]);
 
       let pendingData = [];

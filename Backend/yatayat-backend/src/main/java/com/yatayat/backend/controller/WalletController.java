@@ -4,13 +4,14 @@ import com.yatayat.backend.dto.TopUpRequest;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.entity.Wallet;
 import com.yatayat.backend.entity.WalletTransaction;
-import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.repository.WalletRepository;
 import com.yatayat.backend.repository.WalletTransactionRepository;
 import org.springframework.web.bind.annotation.*;
 import com.yatayat.backend.dto.WalletPaymentRequest;
 import com.yatayat.backend.dto.WalletPinRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.Authentication;
+import com.yatayat.backend.service.AuthenticatedUserService;
 
 import java.util.List;
 
@@ -18,31 +19,27 @@ import java.util.List;
 @RequestMapping("/api/wallet")
 public class WalletController {
 
-    private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository transactionRepository;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public WalletController(
-            UserRepository userRepository,
             WalletRepository walletRepository,
             WalletTransactionRepository transactionRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            AuthenticatedUserService authenticatedUserService
     ) {
-        this.userRepository = userRepository;
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
         this.passwordEncoder = passwordEncoder;
+        this.authenticatedUserService = authenticatedUserService;
 
     }
 
     @GetMapping("/balance/{userId}")
-    public Object getBalance(@PathVariable Long userId) {
-        User user = userRepository.findById(userId).orElse(null);
-
-        if (user == null) {
-            return "User not found";
-        }
+    public Object getBalance(@PathVariable Long userId, Authentication authentication) {
+        User user = authenticatedUserService.requireOwnedUser(authentication, userId);
 
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseGet(() -> walletRepository.save(new Wallet(user)));
@@ -51,12 +48,8 @@ public class WalletController {
     }
 
     @PostMapping("/topup")
-    public String topUp(@RequestBody TopUpRequest request) {
-        User user = userRepository.findById(request.getUserId()).orElse(null);
-
-        if (user == null) {
-            return "User not found";
-        }
+    public String topUp(@RequestBody TopUpRequest request, Authentication authentication) {
+        User user = authenticatedUserService.requireOwnedUser(authentication, request.getUserId());
 
         if (request.getAmount() == null || request.getAmount() <= 0) {
             return "Invalid amount";
@@ -82,12 +75,8 @@ public class WalletController {
     }
 
     @GetMapping("/history/{userId}")
-    public Object getHistory(@PathVariable Long userId) {
-        User user = userRepository.findById(userId).orElse(null);
-
-        if (user == null) {
-            return "User not found";
-        }
+    public Object getHistory(@PathVariable Long userId, Authentication authentication) {
+        User user = authenticatedUserService.requireOwnedUser(authentication, userId);
 
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseGet(() -> walletRepository.save(new Wallet(user)));
@@ -99,12 +88,8 @@ public class WalletController {
     }
 
     @PostMapping("/create-pin")
-    public String createWalletPin(@RequestBody WalletPinRequest request) {
-        User user = userRepository.findById(request.getUserId()).orElse(null);
-
-        if (user == null) {
-            return "User not found";
-        }
+    public String createWalletPin(@RequestBody WalletPinRequest request, Authentication authentication) {
+        User user = authenticatedUserService.requireOwnedUser(authentication, request.getUserId());
 
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseGet(() -> walletRepository.save(new Wallet(user)));
@@ -120,12 +105,8 @@ public class WalletController {
     }
 
     @PostMapping("/verify-pin")
-    public String verifyWalletPin(@RequestBody WalletPinRequest request) {
-        User user = userRepository.findById(request.getUserId()).orElse(null);
-
-        if (user == null) {
-            return "User not found";
-        }
+    public String verifyWalletPin(@RequestBody WalletPinRequest request, Authentication authentication) {
+        User user = authenticatedUserService.requireOwnedUser(authentication, request.getUserId());
 
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseGet(() -> walletRepository.save(new Wallet(user)));
@@ -142,12 +123,8 @@ public class WalletController {
     }
 
     @GetMapping("/pin-status/{userId}")
-    public String getWalletPinStatus(@PathVariable Long userId) {
-        User user = userRepository.findById(userId).orElse(null);
-
-        if (user == null) {
-            return "User not found";
-        }
+    public String getWalletPinStatus(@PathVariable Long userId, Authentication authentication) {
+        User user = authenticatedUserService.requireOwnedUser(authentication, userId);
 
         Wallet wallet = walletRepository.findByUser(user)
                 .orElseGet(() -> walletRepository.save(new Wallet(user)));
@@ -160,12 +137,8 @@ public class WalletController {
     }
 
     @PostMapping("/pay")
-    public String payFromWallet(@RequestBody WalletPaymentRequest request) {
-        User user = userRepository.findById(request.getUserId()).orElse(null);
-
-        if (user == null) {
-            return "User not found";
-        }
+    public String payFromWallet(@RequestBody WalletPaymentRequest request, Authentication authentication) {
+        User user = authenticatedUserService.requireOwnedUser(authentication, request.getUserId());
 
         if (request.getAmount() == null || request.getAmount() <= 0) {
             return "Invalid amount";

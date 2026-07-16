@@ -10,9 +10,9 @@ import com.yatayat.backend.service.EmailService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -34,9 +34,6 @@ public class AuthController {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${spring.datasource.url}")
-    private String datasourceUrl;
-
     private final Map<String, String> otpStorage = new HashMap<>();
 
     public AuthController(UserRepository userRepository,
@@ -45,12 +42,6 @@ public class AuthController {
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
-    }
-
-    @GetMapping("/db-check")
-    public String dbCheck() {
-        long count = userRepository.count();
-        return "BACKEND DB URL = " + datasourceUrl + " | USERS COUNT = " + count;
     }
 
     @GetMapping("/google-login")
@@ -88,8 +79,6 @@ public class AuthController {
         otpStorage.put(email, otp);
         emailService.sendOtpEmail(email, otp);
 
-        System.out.println("OTP sent to " + email + ": " + otp);
-
         return "OTP sent to email";
     }
 
@@ -117,7 +106,10 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public String register(@RequestBody RegisterRequest request) {
+    public String register(
+            @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest
+    ) {
 
         if (
                 request.getEmail() == null ||
@@ -163,6 +155,24 @@ public class AuthController {
         }
 
         userRepository.save(user);
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        user.getEmail(),
+                        null,
+                        java.util.List.of(
+                                new SimpleGrantedAuthority(
+                                        "ROLE_" + user.getRole().toUpperCase()
+                                )
+                        )
+                );
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
+        httpRequest.getSession(true).setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                securityContext
+        );
 
         return "Successfully registered";
     }
@@ -228,8 +238,11 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    public String changePassword(@RequestBody ChangePasswordRequest request) {
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+    public String changePassword(
+            @RequestBody ChangePasswordRequest request,
+            Authentication authentication
+    ) {
+        User user = userRepository.findByEmailIgnoreCase(authentication.getName()).orElse(null);
 
         if (user == null) return "User not found";
         if (user.getPassword() == null || user.getPassword().isBlank()) {

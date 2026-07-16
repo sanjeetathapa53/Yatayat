@@ -50,7 +50,12 @@ public class AdminBusController {
             ResponseStatusException exception
     ) {
         return ResponseEntity.status(exception.getStatusCode()).body(
-                Map.of("success", false, "message", exception.getReason())
+                Map.of(
+                        "success", false,
+                        "message", exception.getReason() == null
+                                ? "Request could not be completed"
+                                : exception.getReason()
+                )
         );
     }
 }

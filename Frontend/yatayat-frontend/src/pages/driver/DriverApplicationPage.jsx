@@ -222,6 +222,7 @@ export default function DriverApplicationPage() {
         "http://localhost:8080/api/drivers/application",
         {
           method: "POST",
+          credentials: "include",
           body: payload,
         }
       );

@@ -3,6 +3,9 @@ package com.yatayat.backend.controller;
 import com.yatayat.backend.service.DriverDashboardService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import com.yatayat.backend.service.AuthenticatedUserService;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -12,21 +15,28 @@ import java.util.Map;
 public class DriverDashboardController {
 
     private final DriverDashboardService dashboardService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public DriverDashboardController(
-            DriverDashboardService dashboardService
+            DriverDashboardService dashboardService,
+            AuthenticatedUserService authenticatedUserService
     ) {
         this.dashboardService = dashboardService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     @GetMapping("/{userId}")
     public ResponseEntity<Map<String, Object>> getDashboard(
-            @PathVariable Long userId
+            @PathVariable Long userId,
+            Authentication authentication
     ) {
         try {
+            authenticatedUserService.requireOwnedUser(authentication, userId);
             return ResponseEntity.ok(
                     dashboardService.getDashboard(userId)
             );
+        } catch (ResponseStatusException exception) {
+            throw exception;
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(
                     errorResponse(exception.getMessage())

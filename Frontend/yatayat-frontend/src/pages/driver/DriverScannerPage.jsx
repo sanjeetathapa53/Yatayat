@@ -30,6 +30,7 @@ export default function DriverScannerPage() {
     try {
       const res = await fetch("http://localhost:8080/api/bookings/validate-qr", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qrCode }),
       });
@@ -67,6 +68,7 @@ export default function DriverScannerPage() {
     try {
       const res = await fetch("http://localhost:8080/api/bookings/mark-used", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ qrCode: scanResult.booking.qrCode }),
       });

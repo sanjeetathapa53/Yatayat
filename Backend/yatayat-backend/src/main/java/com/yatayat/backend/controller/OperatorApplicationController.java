@@ -4,6 +4,8 @@ import com.yatayat.backend.dto.OperatorApplicationRequest;
 import com.yatayat.backend.service.OperatorApplicationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
+import com.yatayat.backend.service.AuthenticatedUserService;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -13,19 +15,24 @@ import java.util.Map;
 public class OperatorApplicationController {
 
     private final OperatorApplicationService applicationService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public OperatorApplicationController(
-            OperatorApplicationService applicationService
+            OperatorApplicationService applicationService,
+            AuthenticatedUserService authenticatedUserService
     ) {
         this.applicationService = applicationService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     @PostMapping("/application")
     public ResponseEntity<Map<String, Object>>
     submitApplication(
-            @RequestBody OperatorApplicationRequest request
+            @RequestBody OperatorApplicationRequest request,
+            Authentication authentication
     ) {
         try {
+            authenticatedUserService.requireOwnedUser(authentication, request.getUserId());
             return ResponseEntity.ok(
                     applicationService.submitApplication(request)
             );
@@ -39,9 +46,11 @@ public class OperatorApplicationController {
     @PutMapping("/application/resubmit")
     public ResponseEntity<Map<String, Object>>
     resubmitApplication(
-            @RequestBody OperatorApplicationRequest request
+            @RequestBody OperatorApplicationRequest request,
+            Authentication authentication
     ) {
         try {
+            authenticatedUserService.requireOwnedUser(authentication, request.getUserId());
             return ResponseEntity.ok(
                     applicationService.resubmitApplication(
                             request
@@ -57,9 +66,11 @@ public class OperatorApplicationController {
     @GetMapping("/status/{userId}")
     public ResponseEntity<Map<String, Object>>
     getApplicationStatus(
-            @PathVariable Long userId
+            @PathVariable Long userId,
+            Authentication authentication
     ) {
         try {
+            authenticatedUserService.requireOwnedUser(authentication, userId);
             return ResponseEntity.ok(
                     applicationService
                             .getApplicationStatus(userId)

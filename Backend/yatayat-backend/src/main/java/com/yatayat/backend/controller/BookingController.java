@@ -11,7 +11,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import com.yatayat.backend.service.AuthenticatedUserService;
 
 import java.util.*;
 
@@ -26,6 +30,7 @@ public class BookingController {
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
     private final TicketPdfService ticketPdfService;
+    private final AuthenticatedUserService authenticatedUserService;
 
     public BookingController(
             BookingRepository bookingRepository,
@@ -34,7 +39,8 @@ public class BookingController {
             WalletTransactionRepository transactionRepository,
             PasswordEncoder passwordEncoder,
             EmailService emailService,
-            TicketPdfService ticketPdfService
+            TicketPdfService ticketPdfService,
+            AuthenticatedUserService authenticatedUserService
     ) {
         this.bookingRepository = bookingRepository;
         this.userRepository = userRepository;
@@ -43,19 +49,21 @@ public class BookingController {
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.ticketPdfService = ticketPdfService;
+        this.authenticatedUserService = authenticatedUserService;
     }
 
     @PostMapping("/create")
     @Transactional
-    public Map<String, Object> createBooking(@RequestBody BookingRequest request) {
+    public Map<String, Object> createBooking(
+            @RequestBody BookingRequest request,
+            Authentication authentication
+    ) {
         Map<String, Object> response = new HashMap<>();
 
-        User user = userRepository.findById(request.getUserId()).orElse(null);
-        if (user == null) {
-            response.put("success", false);
-            response.put("message", "User not found");
-            return response;
-        }
+        User user = authenticatedUserService.requireOwnedUser(
+                authentication,
+                request.getUserId()
+        );
 
         boolean seatAlreadyBooked =
                 bookingRepository.existsByBusNumberAndTravelDateAndSeatNumberAndBookingStatusNot(
@@ -136,16 +144,16 @@ public class BookingController {
 
     @PutMapping("/{bookingId}/cancel")
     @Transactional
-    public Map<String, Object> cancelBooking(@PathVariable Long bookingId) {
+    public Map<String, Object> cancelBooking(
+            @PathVariable Long bookingId,
+            Authentication authentication
+    ) {
         Map<String, Object> response = new HashMap<>();
 
-        Booking booking = bookingRepository.findById(bookingId).orElse(null);
-
-        if (booking == null) {
-            response.put("success", false);
-            response.put("message", "Booking not found");
-            return response;
-        }
+        User authenticatedUser = authenticatedUserService.requireUser(authentication);
+        Booking booking = bookingRepository
+                .findByIdAndPassenger(bookingId, authenticatedUser)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         if ("CANCELLED".equals(booking.getBookingStatus())) {
             response.put("success", false);
@@ -186,12 +194,14 @@ public class BookingController {
     }
 
     @GetMapping("/{bookingId}/ticket-pdf")
-    public ResponseEntity<byte[]> downloadTicketPdf(@PathVariable Long bookingId) {
-        Booking booking = bookingRepository.findById(bookingId).orElse(null);
-
-        if (booking == null) {
-            return ResponseEntity.notFound().build();
-        }
+    public ResponseEntity<byte[]> downloadTicketPdf(
+            @PathVariable Long bookingId,
+            Authentication authentication
+    ) {
+        User authenticatedUser = authenticatedUserService.requireUser(authentication);
+        Booking booking = bookingRepository
+                .findByIdAndPassenger(bookingId, authenticatedUser)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
         byte[] pdf = ticketPdfService.generateTicketPdf(booking);
 
@@ -205,12 +215,11 @@ public class BookingController {
     }
 
     @GetMapping("/user/{userId}")
-    public Object getUserBookings(@PathVariable Long userId) {
-        User user = userRepository.findById(userId).orElse(null);
-
-        if (user == null) {
-            return "User not found";
-        }
+    public Object getUserBookings(
+            @PathVariable Long userId,
+            Authentication authentication
+    ) {
+        User user = authenticatedUserService.requireOwnedUser(authentication, userId);
 
         return bookingRepository.findByPassengerOrderByCreatedAtDesc(user)
                 .stream()
