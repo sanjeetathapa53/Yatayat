@@ -46,7 +46,8 @@ export default function MyBookingsPage() {
       setLoading(true);
 
       const res = await fetch(
-        `http://localhost:8080/api/bookings/user/${user.id}`
+        `http://localhost:8080/api/bookings/user/${user.id}`,
+        { credentials: "include" }
       );
 
       if (!res.ok) {
@@ -136,6 +137,7 @@ export default function MyBookingsPage() {
         `http://localhost:8080/api/bookings/${selectedBooking.id}/cancel`,
         {
           method: "PUT",
+          credentials: "include",
         }
       );
 

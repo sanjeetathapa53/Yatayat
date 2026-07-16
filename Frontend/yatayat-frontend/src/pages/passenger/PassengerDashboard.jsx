@@ -25,7 +25,8 @@ useEffect(() => {
   const fetchBalance = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8080/api/wallet/balance/${user.id}`
+        `http://localhost:8080/api/wallet/balance/${user.id}`,
+        { credentials: "include" }
       );
 
       const balance = await response.text();

@@ -45,17 +45,17 @@ export default function WalletPage() {
   }, []);
 
   const loadWallet = async () => {
-    const balanceRes = await fetch(`http://localhost:8080/api/wallet/balance/${user.id}`);
+    const balanceRes = await fetch(`http://localhost:8080/api/wallet/balance/${user.id}`, { credentials: "include" });
     const balanceText = await balanceRes.text();
     setBalance(Number(balanceText));
 
-    const historyRes = await fetch(`http://localhost:8080/api/wallet/history/${user.id}`);
+    const historyRes = await fetch(`http://localhost:8080/api/wallet/history/${user.id}`, { credentials: "include" });
     const historyData = await historyRes.json();
     setTransactions(historyData);
   };
 
   const checkPinStatus = async () => {
-    const res = await fetch(`http://localhost:8080/api/wallet/pin-status/${user.id}`);
+    const res = await fetch(`http://localhost:8080/api/wallet/pin-status/${user.id}`, { credentials: "include" });
     const text = await res.text();
     setPinStatus(text);
   };
@@ -74,6 +74,7 @@ export default function WalletPage() {
   const rechargeWallet = async () => {
     const response = await fetch("http://localhost:8080/api/wallet/topup", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },
@@ -100,6 +101,7 @@ export default function WalletPage() {
 
     const res = await fetch("http://localhost:8080/api/wallet/create-pin", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },

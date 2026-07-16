@@ -12,8 +12,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -90,34 +95,39 @@ public class SecurityConfig {
                                 "/api/**"
                         ).permitAll()
                         .requestMatchers(
-                                "/api/operator/dashboard"
-                        ).hasRole("OPERATOR")
-                        .requestMatchers(
-                                "/api/operator/buses",
-                                "/api/operator/buses/**"
-                        ).hasRole("OPERATOR")
-                        .requestMatchers(
-                                "/api/operator/drivers",
-                                "/api/operator/drivers/**",
-                                "/api/operator/driver-invitations",
-                                "/api/operator/driver-invitations/**"
-                        ).hasRole("OPERATOR")
-                        .requestMatchers(
-                                "/api/driver/operator-invitations",
-                                "/api/driver/operator-invitations/**",
-                                "/api/driver/operator-association"
-                        ).hasRole("DRIVER")
-                        .requestMatchers(
-                                "/api/admin/buses",
-                                "/api/admin/buses/**"
-                        ).hasRole("ADMIN")
-                        .requestMatchers(
                                 "/",
-                                "/api/auth/**",
+                                "/error",
                                 "/login/**",
                                 "/oauth2/**"
                         ).permitAll()
-                        .anyRequest().permitAll()
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/auth/google-login",
+                                "/api/auth/google-register"
+                        ).permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/auth/send-otp",
+                                "/api/auth/verify-otp",
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/api/auth/send-forgot-password-otp",
+                                "/api/auth/reset-password",
+                                "/api/admin/auth/login"
+                        ).permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/bookings/validate-qr",
+                                "/api/bookings/mark-used"
+                        ).hasRole("DRIVER")
+                        .requestMatchers("/api/bookings/**").hasRole("PASSENGER")
+                        .requestMatchers("/api/wallet/**").hasRole("PASSENGER")
+                        .requestMatchers("/api/drivers/**").hasRole("DRIVER")
+                        .requestMatchers("/api/driver/**").hasRole("DRIVER")
+                        .requestMatchers("/api/operators/**").hasRole("OPERATOR")
+                        .requestMatchers("/api/operator/**").hasRole("OPERATOR")
+                        .anyRequest().authenticated()
                 )
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint(
@@ -153,6 +163,24 @@ public class SecurityConfig {
                                 }
 
                                 user = existingUser.get();
+
+                                UsernamePasswordAuthenticationToken applicationAuthentication =
+                                        new UsernamePasswordAuthenticationToken(
+                                                user.getEmail(),
+                                                null,
+                                                List.of(new SimpleGrantedAuthority(
+                                                        "ROLE_" + user.getRole().toUpperCase()
+                                                ))
+                                        );
+                                SecurityContext securityContext =
+                                        SecurityContextHolder.createEmptyContext();
+                                securityContext.setAuthentication(applicationAuthentication);
+                                SecurityContextHolder.setContext(securityContext);
+                                request.getSession(true).setAttribute(
+                                        HttpSessionSecurityContextRepository
+                                                .SPRING_SECURITY_CONTEXT_KEY,
+                                        securityContext
+                                );
 
                                 String redirectUrl =
                                         "http://localhost:5173/google-success"

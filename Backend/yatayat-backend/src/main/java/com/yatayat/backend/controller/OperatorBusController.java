@@ -59,7 +59,9 @@ public class OperatorBusController {
         return ResponseEntity.status(exception.getStatusCode()).body(
                 Map.of(
                         "success", false,
-                        "message", exception.getReason()
+                        "message", exception.getReason() == null
+                                ? "Request could not be completed"
+                                : exception.getReason()
                 )
         );
     }

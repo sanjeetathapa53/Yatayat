@@ -38,7 +38,8 @@ export default function DriverApplicationsPage() {
       setError("");
 
       const response = await fetch(
-        `${API_BASE_URL}/api/admin/drivers/pending`
+        `${API_BASE_URL}/api/admin/drivers/pending`,
+        { credentials: "include" }
       );
 
       if (!response.ok) {

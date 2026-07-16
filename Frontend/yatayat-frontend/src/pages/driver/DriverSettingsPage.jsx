@@ -81,7 +81,8 @@ export default function DriverSettingsPage() {
       setLoadingDriver(true);
 
       const response = await fetch(
-        `${API_BASE_URL}/api/drivers/profile/${loggedInUser.id}`
+        `${API_BASE_URL}/api/drivers/profile/${loggedInUser.id}`,
+        { credentials: "include" }
       );
 
       const data = await response.json();

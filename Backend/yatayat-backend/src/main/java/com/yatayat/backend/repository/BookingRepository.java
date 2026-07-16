@@ -10,6 +10,7 @@ import java.util.List;
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByPassengerOrderByCreatedAtDesc(User passenger);
+    Optional<Booking> findByIdAndPassenger(Long id, User passenger);
     Optional<Booking> findByQrCode(String qrCode);
 
 

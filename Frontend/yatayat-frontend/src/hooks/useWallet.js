@@ -10,13 +10,15 @@ export default function useWallet() {
     if (!user?.id) return;
 
     const balanceRes = await fetch(
-      `http://localhost:8080/api/wallet/balance/${user.id}`
+      `http://localhost:8080/api/wallet/balance/${user.id}`,
+      { credentials: "include" }
     );
     const balanceText = await balanceRes.text();
     setBalance(Number(balanceText));
 
     const historyRes = await fetch(
-      `http://localhost:8080/api/wallet/history/${user.id}`
+      `http://localhost:8080/api/wallet/history/${user.id}`,
+      { credentials: "include" }
     );
     const historyData = await historyRes.json();
     setTransactions(historyData);
@@ -27,6 +29,7 @@ export default function useWallet() {
 
     const res = await fetch("http://localhost:8080/api/wallet/topup", {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },

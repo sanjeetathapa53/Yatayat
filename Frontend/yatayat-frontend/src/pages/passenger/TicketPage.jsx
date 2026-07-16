@@ -60,7 +60,7 @@ const [cancelSuccess, setCancelSuccess] = useState(false);
     try {
       const response = await fetch(
         `http://localhost:8080/api/bookings/${booking.id}/cancel`,
-        { method: "PUT" }
+        { method: "PUT", credentials: "include" }
       );
   
       const data = await response.json();

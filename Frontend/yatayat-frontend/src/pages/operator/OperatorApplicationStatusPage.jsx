@@ -77,7 +77,8 @@ export default function OperatorApplicationStatusPage() {
       setError("");
 
       const response = await fetch(
-        `${API_BASE_URL}/api/operators/status/${loggedInUser.id}`
+        `${API_BASE_URL}/api/operators/status/${loggedInUser.id}`,
+        { credentials: "include" }
       );
 
       const data = await response.json();

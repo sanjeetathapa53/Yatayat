@@ -187,6 +187,7 @@ export default function RegisterPage() {
         `${API_BASE_URL}/api/auth/register`,
         {
           method: "POST",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },

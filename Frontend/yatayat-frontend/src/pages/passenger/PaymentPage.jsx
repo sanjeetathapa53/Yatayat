@@ -28,7 +28,8 @@ export default function PaymentPage() {
     const fetchBalance = async () => {
       try {
         const res = await fetch(
-          `http://localhost:8080/api/wallet/balance/${user.id}`
+          `http://localhost:8080/api/wallet/balance/${user.id}`,
+          { credentials: "include" }
         );
         const data = await res.text();
         setWalletBalance(Number(data));
@@ -92,6 +93,7 @@ export default function PaymentPage() {
     try {
       const res = await fetch("http://localhost:8080/api/bookings/create", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },

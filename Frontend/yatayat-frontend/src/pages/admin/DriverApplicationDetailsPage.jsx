@@ -39,7 +39,8 @@ export default function DriverApplicationDetailsPage() {
       setError("");
 
       const response = await fetch(
-        `${API_BASE_URL}/api/admin/drivers/${id}`
+        `${API_BASE_URL}/api/admin/drivers/${id}`,
+        { credentials: "include" }
       );
 
       const data = await response.json();
@@ -76,6 +77,7 @@ export default function DriverApplicationDetailsPage() {
         `${API_BASE_URL}/api/admin/drivers/${id}/approve`,
         {
           method: "PUT",
+          credentials: "include",
         }
       );
 
@@ -126,6 +128,7 @@ export default function DriverApplicationDetailsPage() {
         `${API_BASE_URL}/api/admin/drivers/${id}/reject`,
         {
           method: "PUT",
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
           },
