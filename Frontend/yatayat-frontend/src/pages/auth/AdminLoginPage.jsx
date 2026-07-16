@@ -16,8 +16,8 @@ import { apiFetch } from "../../utils/api";
 export default function AdminLoginPage() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("admin@yatayat.com");
-  const [password, setPassword] = useState("Admin@123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [error, setError] = useState("");
@@ -109,7 +109,7 @@ export default function AdminLoginPage() {
                   setEmail(event.target.value);
                   setError("");
                 }}
-                placeholder="admin@yatayat.com"
+                placeholder="admin@example.com"
                 autoComplete="email"
                 required
                 className="w-full bg-transparent text-sm outline-none"
@@ -180,12 +180,6 @@ export default function AdminLoginPage() {
             )}
           </button>
         </form>
-
-        {/* <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4 text-xs leading-5 text-blue-700">
-          <p className="font-black">Development admin account</p>
-          <p className="mt-1">Email: admin@yatayat.com</p>
-          <p>Password: Admin@123</p>
-        </div> */}
 
         <p className="mt-5 text-center text-sm text-slate-600">
           Not an admin?{" "}
