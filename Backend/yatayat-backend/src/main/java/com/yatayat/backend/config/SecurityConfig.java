@@ -107,13 +107,20 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
+                                "/api/admin/auth/login"
+                        ).permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/admin/auth/logout"
+                        ).hasRole("ADMIN")
+                        .requestMatchers(
+                                HttpMethod.POST,
                                 "/api/auth/send-otp",
                                 "/api/auth/verify-otp",
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/send-forgot-password-otp",
-                                "/api/auth/reset-password",
-                                "/api/admin/auth/login"
+                                "/api/auth/reset-password"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers(

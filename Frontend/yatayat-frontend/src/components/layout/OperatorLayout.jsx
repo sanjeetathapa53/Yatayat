@@ -1,7 +1,7 @@
 import { Building2, Bus, LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { apiFetch } from "../../utils/api";
+import { logoutUser } from "../../services/authService";
 
 export default function OperatorLayout({ children }) {
   const navigate = useNavigate();
@@ -9,16 +9,8 @@ export default function OperatorLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const logout = async () => {
-    try {
-      await apiFetch("/api/auth/logout", {
-        method: "POST",
-      });
-    } finally {
-      localStorage.removeItem("yatayatUser");
-      localStorage.removeItem("loginTime");
-      localStorage.removeItem("operatorApplicationStatus");
-      navigate("/login", { replace: true });
-    }
+    await logoutUser();
+    navigate("/", { replace: true });
   };
 
   return (

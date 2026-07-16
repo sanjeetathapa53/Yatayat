@@ -7,6 +7,7 @@ import com.yatayat.backend.dto.RegisterRequest;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.service.EmailService;
+import com.yatayat.backend.service.SessionLogoutService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -33,15 +34,18 @@ public class AuthController {
     private final UserRepository userRepository;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final SessionLogoutService sessionLogoutService;
 
     private final Map<String, String> otpStorage = new HashMap<>();
 
     public AuthController(UserRepository userRepository,
                           EmailService emailService,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          SessionLogoutService sessionLogoutService) {
         this.userRepository = userRepository;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
+        this.sessionLogoutService = sessionLogoutService;
     }
 
     @GetMapping("/google-login")
@@ -229,12 +233,15 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public void logout(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
-        SecurityContextHolder.clearContext();
+    public Map<String, Object> logout(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        sessionLogoutService.logout(request, response);
+        return Map.of(
+                "success", true,
+                "message", "Logged out successfully"
+        );
     }
 
     @PostMapping("/change-password")

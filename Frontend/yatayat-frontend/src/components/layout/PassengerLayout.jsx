@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { logoutUser } from "../../services/authService";
 
 export default function PassengerLayout({ children, activePage = "Dashboard" }) {
   const navigate = useNavigate();
@@ -38,15 +39,10 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
     setMenuOpen(false);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("yatayatUser");
-    localStorage.removeItem("loginTime");
-  
+  const handleLogout = async () => {
+    await logoutUser();
     toast.success("Logged out successfully");
-  
-    setTimeout(() => {
-      navigate("/");
-    }, 800);
+    navigate("/", { replace: true });
   };
 
   const menuItems = [
@@ -140,10 +136,10 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
           </nav>
         </div>
 
-        <div className="flex items-center justify-between rounded-xl bg-slate-50 p-3">
+        <div className="border-t border-slate-200 pt-4">
           <button
             onClick={() => go("/profile")}
-            className="flex items-center gap-3 text-left"
+            className="flex w-full items-center gap-3 rounded-xl bg-slate-50 p-3 text-left transition hover:bg-slate-100"
           >
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#1d3f6e] text-sm font-bold text-white">
               {initials}
@@ -159,10 +155,11 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
 
           <button
             onClick={handleLogout}
-            className="text-slate-500 transition hover:text-red-500"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-black text-red-600 transition hover:bg-red-100"
             title="Logout"
           >
             <LogOut size={18} />
+            Logout
           </button>
         </div>
       </aside>

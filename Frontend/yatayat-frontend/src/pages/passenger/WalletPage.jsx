@@ -13,6 +13,7 @@ import {
   Download,
 } from "lucide-react";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import { apiFetch } from "../../utils/api";
 
 const paymentMethods = [
   { id: "ESEWA", name: "eSewa", desc: "Digital wallet payment", icon: <Smartphone size={22} /> },
@@ -31,6 +32,7 @@ export default function WalletPage() {
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState([]);
   const [pinStatus, setPinStatus] = useState("");
+  const [walletError, setWalletError] = useState("");
 
   const [success, setSuccess] = useState(false);
   const [showPinModal, setShowPinModal] = useState(false);
@@ -45,19 +47,33 @@ export default function WalletPage() {
   }, []);
 
   const loadWallet = async () => {
-    const balanceRes = await fetch(`http://localhost:8080/api/wallet/balance/${user.id}`, { credentials: "include" });
-    const balanceText = await balanceRes.text();
-    setBalance(Number(balanceText));
+    try {
+      setWalletError("");
+      const balanceRes = await apiFetch(`/api/wallet/balance/${user.id}`);
+      if (!balanceRes.ok) throw new Error(walletErrorMessage(balanceRes.status));
+      const balanceText = await balanceRes.text();
+      setBalance(Number(balanceText) || 0);
 
-    const historyRes = await fetch(`http://localhost:8080/api/wallet/history/${user.id}`, { credentials: "include" });
-    const historyData = await historyRes.json();
-    setTransactions(historyData);
+      const historyRes = await apiFetch(`/api/wallet/history/${user.id}`);
+      if (!historyRes.ok) throw new Error(walletErrorMessage(historyRes.status));
+      const historyData = await historyRes.json().catch(() => []);
+      setTransactions(Array.isArray(historyData) ? historyData : []);
+    } catch (error) {
+      setBalance(0);
+      setTransactions([]);
+      setWalletError(error.message || "Unable to load wallet information.");
+    }
   };
 
   const checkPinStatus = async () => {
-    const res = await fetch(`http://localhost:8080/api/wallet/pin-status/${user.id}`, { credentials: "include" });
-    const text = await res.text();
-    setPinStatus(text);
+    try {
+      const res = await apiFetch(`/api/wallet/pin-status/${user.id}`);
+      if (!res.ok) throw new Error(walletErrorMessage(res.status));
+      setPinStatus(await res.text());
+    } catch (error) {
+      setPinStatus("");
+      setWalletError(error.message || "Unable to load wallet PIN status.");
+    }
   };
 
   const handleRecharge = async () => {
@@ -149,6 +165,12 @@ export default function WalletPage() {
         </div>
       )}
 
+      {walletError && (
+        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">
+          {walletError}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
         <section className="space-y-5 xl:col-span-7">
           <div className="rounded-3xl bg-[#08264a] p-6 text-white shadow-lg">
@@ -190,10 +212,10 @@ export default function WalletPage() {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <WalletStat label="Wallet Status" value={pinStatus === "PIN_SET" ? "Active" : "Inactive"} />
-            <WalletStat label="Transactions" value={transactions.length} />
+            <WalletStat label="Transactions" value={(Array.isArray(transactions) ? transactions : []).length} />
             <WalletStat
               label="Ticket Payments"
-              value={transactions.filter((t) => t.type === "TICKET_PAYMENT").length}
+              value={(Array.isArray(transactions) ? transactions : []).filter((t) => t.type === "TICKET_PAYMENT").length}
             />
           </div>
 
@@ -300,7 +322,7 @@ export default function WalletPage() {
             </h2>
 
             <div className="mt-5 space-y-3">
-              {transactions.length === 0 ? (
+              {(Array.isArray(transactions) ? transactions : []).length === 0 ? (
                 <div className="rounded-xl bg-slate-50 p-6 text-center">
                   <p className="font-black text-slate-900">No transactions yet</p>
                   <p className="mt-1 text-sm text-slate-500">
@@ -308,7 +330,7 @@ export default function WalletPage() {
                   </p>
                 </div>
               ) : (
-                transactions.map((item) => (
+                (Array.isArray(transactions) ? transactions : []).map((item) => (
                   <Transaction key={item.id} item={item} />
                 ))
               )}
@@ -383,6 +405,13 @@ export default function WalletPage() {
       )}
     </PassengerLayout>
   );
+}
+
+function walletErrorMessage(status) {
+  if (status === 401) return "Your session has expired. Please log in again.";
+  if (status === 403) return "Your account is not authorized to access this wallet.";
+  if (status === 404) return "Wallet information was not found for this account.";
+  return "Unable to load wallet information.";
 }
 
 function WalletStat({ label, value }) {

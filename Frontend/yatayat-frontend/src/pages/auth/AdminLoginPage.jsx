@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
         }
       );
 
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
 
       if (!response.ok || !data.success) {
         setError(data.message || "Invalid admin credentials.");

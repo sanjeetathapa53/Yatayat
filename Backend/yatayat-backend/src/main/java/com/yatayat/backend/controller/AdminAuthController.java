@@ -3,6 +3,7 @@ package com.yatayat.backend.controller;
 import com.yatayat.backend.dto.AdminLoginRequest;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.repository.UserRepository;
+import com.yatayat.backend.service.SessionLogoutService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -12,7 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,13 +24,16 @@ public class AdminAuthController {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SessionLogoutService sessionLogoutService;
 
     public AdminAuthController(
             UserRepository userRepository,
-            PasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder,
+            SessionLogoutService sessionLogoutService
     ) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.sessionLogoutService = sessionLogoutService;
     }
 
     @PostMapping("/login")
@@ -105,12 +109,14 @@ public class AdminAuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request) {
-        HttpSession session = request.getSession(false);
-        if (session != null) {
-            session.invalidate();
-        }
-        SecurityContextHolder.clearContext();
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<Map<String, Object>> logout(
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        sessionLogoutService.logout(request, response);
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Logged out successfully"
+        ));
     }
 }

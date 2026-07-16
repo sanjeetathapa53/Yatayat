@@ -53,14 +53,15 @@ export default function TransportOperatorsPage() {
         { credentials: "include" }
       );
 
-      const data = await response.json();
-
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          data.message ||
+          errorData.message ||
             "Unable to load transport operators."
         );
       }
+
+      const data = await response.json();
 
       setOperators(Array.isArray(data) ? data : []);
     } catch (loadError) {
