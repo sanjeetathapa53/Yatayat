@@ -55,6 +55,16 @@ export default function LoginPage() {
 
       window.history.replaceState({}, "", "/login");
     }
+
+    if (params.get("googleError") === "oauth") {
+      toast.error("Google sign-in was cancelled or could not be completed.");
+      window.history.replaceState({}, "", "/login");
+    }
+
+    if (params.get("googleError") === "session") {
+      toast.error("Google sign-in session could not be restored. Please try again.");
+      window.history.replaceState({}, "", "/login");
+    }
   }, []);
 
   const redirectDriverByStatus = async (user) => {
