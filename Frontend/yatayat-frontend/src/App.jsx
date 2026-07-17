@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Routes, Route } from "react-router-dom";
 
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/auth/LoginPage";
@@ -15,11 +15,15 @@ import SeatSelectionPage from "./pages/passenger/SeatSelectionPage";
 import BookingSummaryPage from "./pages/passenger/BookingSummaryPage";
 import PaymentPage from "./pages/passenger/PaymentPage";
 import TicketPage from "./pages/passenger/TicketPage";
-import MyBookingsPage from "./pages/passenger/MyBookingsPage";
 import HistoryPage from "./pages/passenger/HistoryPage";
 import SettingsPage from "./pages/passenger/SettingsPage";
 import PassengerTripSearchPage from "./pages/passenger/PassengerTripSearchPage";
 import PassengerTripDetailsPage from "./pages/passenger/PassengerTripDetailsPage";
+import CreatePassengerBookingPage from "./pages/passenger/CreatePassengerBookingPage";
+import PassengerBookingsPage from "./pages/passenger/PassengerBookingsPage";
+import PassengerBookingDetailsPage from "./pages/passenger/PassengerBookingDetailsPage";
+import PassengerLocalRoutesPage from "./pages/passenger/PassengerLocalRoutesPage";
+import PassengerLocalRouteDetailsPage from "./pages/passenger/PassengerLocalRouteDetailsPage";
 
 import DriverApplicationPage from "./pages/driver/DriverApplicationPage";
 import DriverApplicationStatusPage from "./pages/driver/DriverApplicationStatusPage";
@@ -48,7 +52,6 @@ import CreateOperatorTripPage from "./pages/operator/CreateOperatorTripPage";
 import OperatorTripDetailsPage from "./pages/operator/OperatorTripDetailsPage";
 
 
-import RoutesPage from "./pages/routes/RoutesPage";
 import LiveTrackingPage from "./pages/tracking/LiveTrackingPage";
 
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -140,7 +143,13 @@ export default function App() {
         />
 
         <Route path="/passenger/trips" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerTripSearchPage /></ProtectedRoute>} />
+        <Route path="/passenger/out-of-valley" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerTripSearchPage /></ProtectedRoute>} />
+        <Route path="/passenger/local-routes" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerLocalRoutesPage /></ProtectedRoute>} />
+        <Route path="/passenger/local-routes/:routeId" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerLocalRouteDetailsPage /></ProtectedRoute>} />
         <Route path="/passenger/trips/:tripId" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerTripDetailsPage /></ProtectedRoute>} />
+        <Route path="/passenger/trips/:tripId/book" element={<ProtectedRoute allowedRole="PASSENGER"><CreatePassengerBookingPage /></ProtectedRoute>} />
+        <Route path="/passenger/bookings" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerBookingsPage /></ProtectedRoute>} />
+        <Route path="/passenger/bookings/:bookingReference" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerBookingDetailsPage /></ProtectedRoute>} />
 
         <Route
           path="/seat-selection"
@@ -182,7 +191,7 @@ export default function App() {
           path="/my-bookings"
           element={
             <ProtectedRoute allowedRole="PASSENGER">
-              <MyBookingsPage />
+              <PassengerBookingsPage />
             </ProtectedRoute>
           }
         />
@@ -322,7 +331,7 @@ export default function App() {
 
         {/* PUBLIC ROUTE AND TRACKING PAGES */}
 
-        <Route path="/routes" element={<RoutesPage />} />
+        <Route path="/routes" element={<Navigate to="/passenger/local-routes" replace />} />
         <Route path="/track-bus" element={<LiveTrackingPage />} />
         <Route path="/track-bus/:id" element={<LiveTrackingPage />} />
 

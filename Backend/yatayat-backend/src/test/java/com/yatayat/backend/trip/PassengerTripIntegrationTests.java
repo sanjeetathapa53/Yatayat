@@ -66,6 +66,35 @@ class PassengerTripIntegrationTests {
 
     @Test
     @WithMockUser(username = "passenger@example.com", roles = "PASSENGER")
+    void futureSearchableLocalTripAppearsWithLocalType() throws Exception {
+        trip.getRoute().setTripType(TripType.LOCAL);
+        when(tripRepository.searchPassengerVisible(eq("Gongabu"), eq("Ratnapark"),
+                any(), anyList(), isNull(), isNull())).thenReturn(List.of(trip));
+
+        mockMvc.perform(get("/api/passenger/trips/search")
+                        .param("origin", "Gongabu").param("destination", "Ratnapark"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].tripId").value(10))
+                .andExpect(jsonPath("$[0].tripType").value("LOCAL"));
+    }
+
+    @Test
+    @WithMockUser(username = "passenger@example.com", roles = "PASSENGER")
+    void futureSearchableOutsideValleyTripStillAppears() throws Exception {
+        trip.getRoute().setTripType(TripType.OUT_OF_VALLEY);
+        when(tripRepository.searchPassengerVisible(eq("Kathmandu"), eq("Pokhara"),
+                any(), anyList(), isNull(), isNull())).thenReturn(List.of(trip));
+
+        mockMvc.perform(get("/api/passenger/trips/search")
+                        .param("origin", "Kathmandu").param("destination", "Pokhara"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].tripType").value("OUT_OF_VALLEY"));
+    }
+
+    @Test
+    @WithMockUser(username = "passenger@example.com", roles = "PASSENGER")
     void searchTrimsWhitespaceAndPreservesCaseInsensitiveRepositoryContract() throws Exception {
         when(tripRepository.searchPassengerVisible(eq("kAtHmAnDu"), eq("POKHARA"),
                 any(), anyList(), isNull(), isNull())).thenReturn(List.of());

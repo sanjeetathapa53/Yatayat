@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Edit3, Loader2, MapPin, Plus, Route as RouteIcon, X } from "lucide-react";
 import AdminLayout from "../../components/layout/AdminLayout";
 import { apiFetch } from "../../utils/api";
+import { expireAdminSession } from "../../utils/adminSession";
+import { useNavigate } from "react-router-dom";
 
 const emptyForm = {
   code: "",
@@ -10,10 +12,12 @@ const emptyForm = {
   destination: "",
   distanceKm: "",
   estimatedDurationMinutes: "",
+  tripType: "OUT_OF_VALLEY",
   status: "ACTIVE",
 };
 
 export default function AdminRoutesPage() {
+  const navigate = useNavigate();
   const [routes, setRoutes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -27,6 +31,10 @@ export default function AdminRoutesPage() {
       setLoading(true);
       setError("");
       const response = await apiFetch("/api/admin/routes");
+      if (response.status === 401) {
+        expireAdminSession(navigate);
+        return;
+      }
       if (!response.ok) throw new Error("Unable to load routes.");
       const data = await response.json();
       setRoutes(Array.isArray(data) ? data : []);
@@ -35,7 +43,7 @@ export default function AdminRoutesPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [navigate]);
 
   useEffect(() => {
     loadRoutes();
@@ -57,6 +65,7 @@ export default function AdminRoutesPage() {
       destination: route.destination,
       distanceKm: route.distanceKm,
       estimatedDurationMinutes: route.estimatedDurationMinutes,
+      tripType: route.tripType,
       status: route.status,
     });
     setError("");
@@ -80,6 +89,10 @@ export default function AdminRoutesPage() {
           }),
         }
       );
+      if (response.status === 401) {
+        expireAdminSession(navigate);
+        return;
+      }
       const data = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(data?.message || "Unable to save route.");
@@ -125,13 +138,14 @@ export default function AdminRoutesPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-lg bg-blue-50 px-3 py-1 text-xs font-black text-[#08264a]">{route.code}</span>
                       <span className={`rounded-full px-3 py-1 text-xs font-black ${route.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{route.status}</span>
+                      <TripTypeBadge tripType={route.tripType} />
                     </div>
                     <h2 className="mt-3 text-xl font-black text-slate-900">{route.name}</h2>
                   </div>
                   <button type="button" onClick={() => openEdit(route)} className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:bg-slate-50" title="Edit route"><Edit3 size={18} /></button>
                 </div>
                 <div className="mt-5 flex items-center gap-3 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
-                  <MapPin size={18} /> {route.origin} → {route.destination}
+                  <MapPin size={18} /> {route.origin} to {route.destination}
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
                   <Info label="Distance" value={`${route.distanceKm} km`} />
@@ -157,6 +171,7 @@ export default function AdminRoutesPage() {
               <Field label="Destination" value={form.destination} onChange={(value) => setForm({ ...form, destination: value })} />
               <Field label="Distance (km)" type="number" step="0.01" value={form.distanceKm} onChange={(value) => setForm({ ...form, distanceKm: value })} />
               <Field label="Estimated Duration (minutes)" type="number" value={form.estimatedDurationMinutes} onChange={(value) => setForm({ ...form, estimatedDurationMinutes: value })} />
+              <label><span className="text-xs font-black uppercase tracking-wider text-slate-500">Trip Type</span><select required value={form.tripType} onChange={(event) => setForm({ ...form, tripType: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 font-bold outline-none"><option value="OUT_OF_VALLEY">Outside Valley</option><option value="LOCAL">Local</option></select></label>
               <label className="sm:col-span-2"><span className="text-xs font-black uppercase tracking-wider text-slate-500">Status</span><select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })} className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 font-bold outline-none"><option value="ACTIVE">ACTIVE</option><option value="INACTIVE">INACTIVE</option></select></label>
             </div>
             <button type="submit" disabled={saving} className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-3 font-black text-white disabled:opacity-60">{saving && <Loader2 size={18} className="animate-spin" />}{saving ? "Saving..." : "Save Route"}</button>
@@ -173,4 +188,9 @@ function Field({ label, value, onChange, type = "text", step }) {
 
 function Info({ label, value }) {
   return <div className="rounded-xl border border-slate-100 p-3"><p className="text-xs font-black uppercase text-slate-400">{label}</p><p className="mt-1 font-black text-slate-800">{value}</p></div>;
+}
+
+function TripTypeBadge({ tripType }) {
+  const local = tripType === "LOCAL";
+  return <span className={`rounded-full px-3 py-1 text-xs font-black ${local ? "bg-amber-100 text-amber-700" : "bg-violet-100 text-violet-700"}`}>{local ? "Local" : "Outside Valley"}</span>;
 }

@@ -1,24 +1,14 @@
 import { Navigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function ProtectedRoute({ children, allowedRole }) {
-  const storedUser = localStorage.getItem("yatayatUser");
-  const loginTime = localStorage.getItem("loginTime");
+  const { user, restoring } = useAuth();
 
-  const user = storedUser ? JSON.parse(storedUser) : null;
-
-  if (!user || !loginTime) {
-    return <Navigate to="/login" replace />;
+  if (restoring) {
+    return <div className="min-h-screen bg-slate-50" aria-label="Restoring session" />;
   }
 
-  const sessionLimit = 30 * 60 * 1000;
-
-  if (Date.now() - Number(loginTime) > sessionLimit) {
-    localStorage.removeItem("yatayatUser");
-    localStorage.removeItem("loginTime");
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRole && user.role !== allowedRole) {
+  if (!user || (allowedRole && user.role !== allowedRole)) {
     return <Navigate to="/login" replace />;
   }
 

@@ -15,8 +15,11 @@ import { toast } from "react-toastify";
 import AuthLayout from "../../components/auth/AuthLayout";
 import RoleTabs from "../../components/auth/RoleTabs";
 import { API_BASE_URL, apiFetch } from "../../utils/api";
+import { useAuth } from "../../context/AuthContext";
+import { logoutUser } from "../../services/authService";
 
 export default function LoginPage() {
+  const { setAuthenticatedUser } = useAuth();
   const [role, setRole] = useState("passenger");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -247,29 +250,24 @@ export default function LoginPage() {
       }
 
       if (role === "passenger" && data.role !== "PASSENGER") {
+        await logoutUser();
         toast.error("This account is not registered as Passenger");
         return;
       }
 
       if (role === "driver" && data.role !== "DRIVER") {
+        await logoutUser();
         toast.error("This account is not registered as Driver");
         return;
       }
 
       if (role === "operator" && data.role !== "OPERATOR") {
+        await logoutUser();
         toast.error("This account is not registered as Operator");
         return;
       }
 
-      localStorage.setItem(
-        "yatayatUser",
-        JSON.stringify(data)
-      );
-
-      localStorage.setItem(
-        "loginTime",
-        Date.now().toString()
-      );
+      setAuthenticatedUser(data);
 
       if (data.role === "PASSENGER") {
         toast.success("Login successful");

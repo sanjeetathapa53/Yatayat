@@ -11,6 +11,7 @@ public record RouteResponse(
         String destination,
         BigDecimal distanceKm,
         Integer estimatedDurationMinutes,
+        String tripType,
         String status,
         LocalDateTime createdAt,
         LocalDateTime updatedAt

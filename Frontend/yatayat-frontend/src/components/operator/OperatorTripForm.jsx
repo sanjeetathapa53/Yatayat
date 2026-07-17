@@ -4,15 +4,15 @@ export default function OperatorTripForm({ form, eligibility, submitting, submit
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Select label="Route" value={form.routeId} onChange={(value) => onChange("routeId", value)} required>
           <option value="">Select an active route</option>
-          {eligibility.routes.map((route) => <option key={route.id} value={route.id}>{route.code} · {route.name} ({route.origin} → {route.destination})</option>)}
+          {eligibility.routes.map((route) => <option key={route.id} value={route.id}>{route.code} - {route.name} - {route.tripType === "LOCAL" ? "Local" : "Outside Valley"} ({route.origin} to {route.destination})</option>)}
         </Select>
         <Select label="Bus" value={form.busId} onChange={(value) => onChange("busId", value)} required>
           <option value="">Select an eligible bus</option>
-          {eligibility.buses.map((bus) => <option key={bus.id} value={bus.id}>{bus.busNumber} · {bus.busName || bus.busType} · {bus.seatCapacity} seats</option>)}
+          {eligibility.buses.map((bus) => <option key={bus.id} value={bus.id}>{bus.busNumber} - {bus.busName || bus.busType} - {bus.seatCapacity} seats</option>)}
         </Select>
         <Select label="Driver" value={form.driverId} onChange={(value) => onChange("driverId", value)} required>
           <option value="">Select an eligible driver</option>
-          {eligibility.drivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.fullName} · {driver.licenseNumber} ({driver.licenseCategory})</option>)}
+          {eligibility.drivers.map((driver) => <option key={driver.id} value={driver.id}>{driver.fullName} - {driver.licenseNumber} ({driver.licenseCategory})</option>)}
         </Select>
         <Field label="Fare (NPR)" type="number" min="0.01" step="0.01" value={form.fare} onChange={(value) => onChange("fare", value)} required />
         <Field label="Departure date and time" type="datetime-local" value={form.departureAt} onChange={(value) => onChange("departureAt", value)} required />
@@ -24,7 +24,7 @@ export default function OperatorTripForm({ form, eligibility, submitting, submit
       </label>
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <button type="button" onClick={onCancel} className="rounded-xl border border-slate-300 px-5 py-3 font-black text-slate-600">Cancel</button>
-        <button disabled={submitting} className="rounded-xl bg-[#08264a] px-6 py-3 font-black text-white disabled:opacity-60">{submitting ? "Saving…" : submitLabel}</button>
+        <button disabled={submitting} className="rounded-xl bg-[#08264a] px-6 py-3 font-black text-white disabled:opacity-60">{submitting ? "Saving..." : submitLabel}</button>
       </div>
     </form>
   );

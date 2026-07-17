@@ -1,0 +1,287 @@
+package com.yatayat.backend.trip;
+
+import com.yatayat.backend.config.SecurityConfig;
+import com.yatayat.backend.controller.PassengerBookingController;
+import com.yatayat.backend.entity.*;
+import com.yatayat.backend.repository.*;
+import com.yatayat.backend.service.PassengerBookingService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@WebMvcTest(controllers = PassengerBookingController.class)
+@Import({SecurityConfig.class, PassengerBookingService.class})
+class PassengerBookingIntegrationTests {
+    @Autowired private MockMvc mockMvc;
+    @MockitoBean private UserRepository userRepository;
+    @MockitoBean private ScheduledTripRepository tripRepository;
+    @MockitoBean private PassengerTripBookingRepository bookingRepository;
+
+    private User passengerA;
+    private User passengerB;
+    private ScheduledTrip trip;
+    private PassengerTripBooking booking;
+
+    @BeforeEach
+    void setUp() {
+        passengerA = new User("Passenger A", "a@example.com", "9800000001", "encoded", "PASSENGER");
+        passengerA.setId(1L);
+        passengerB = new User("Passenger B", "b@example.com", "9800000002", "encoded", "PASSENGER");
+        passengerB.setId(2L);
+        when(userRepository.findByEmailIgnoreCase("a@example.com")).thenReturn(Optional.of(passengerA));
+        when(userRepository.findByEmailIgnoreCase("b@example.com")).thenReturn(Optional.of(passengerB));
+        trip = validTrip();
+        booking = confirmedBooking(passengerA, "YAT-20260717-ABC123");
+        when(bookingRepository.existsByBookingReference(anyString())).thenReturn(false);
+        when(bookingRepository.saveAndFlush(any())).thenAnswer(invocation -> {
+            PassengerTripBooking saved = invocation.getArgument(0);
+            if (saved.getId() == null) saved.setId(50L);
+            if (saved.getBookedAt() == null) saved.setBookedAt(LocalDateTime.now());
+            return saved;
+        });
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void authenticatedPassengerCreatesBookingWithServerCalculatedFare() throws Exception {
+        prepareCapacity(0L);
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                        .content(validRequest(2)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bookingReference").value(org.hamcrest.Matchers.matchesPattern("YAT-\\d{8}-[A-F0-9]{6}")))
+                .andExpect(jsonPath("$.bookingStatus").value("CONFIRMED"))
+                .andExpect(jsonPath("$.farePerSeat").value(500.00))
+                .andExpect(jsonPath("$.totalFare").value(1000.00))
+                .andExpect(jsonPath("$.passengerPhone").value("******0001"))
+                .andExpect(jsonPath("$.passenger").doesNotExist())
+                .andExpect(jsonPath("$.version").doesNotExist());
+        verify(userRepository).findByEmailIgnoreCase("a@example.com");
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void exactRemainingCapacitySucceeds() throws Exception {
+        trip.setSeatCapacitySnapshot(4);
+        prepareCapacity(2L);
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                .content(validRequest(2))).andExpect(status().isCreated());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void localTripSeatBookingIsRejectedWithoutSaving() throws Exception {
+        trip.getRoute().setTripType(TripType.LOCAL);
+        prepareCapacity(0L);
+
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                        .content(validRequest(1)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Local trips do not support seat reservations."));
+
+        verify(bookingRepository, never()).sumConfirmedSeatsByTrip(any());
+        verify(bookingRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void requestBeyondRemainingCapacityReturnsConflict() throws Exception {
+        trip.setSeatCapacitySnapshot(4);
+        prepareCapacity(3L);
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                        .content(validRequest(2))).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Not enough seats are available for this trip."));
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void cancelledBookingsReleaseCapacityThroughConfirmedSeatAggregate() throws Exception {
+        trip.setSeatCapacitySnapshot(2);
+        prepareCapacity(0L);
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                .content(validRequest(2))).andExpect(status().isCreated());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void tripLockIsAcquiredBeforeCapacityIsCalculated() throws Exception {
+        prepareCapacity(0L);
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                .content(validRequest(1))).andExpect(status().isCreated());
+        var order = inOrder(tripRepository, bookingRepository);
+        order.verify(tripRepository).findPassengerVisibleByIdForUpdate(eq(10L), any(), anyList());
+        order.verify(bookingRepository).sumConfirmedSeatsByTrip(trip);
+        order.verify(bookingRepository).saveAndFlush(any());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void nonPositiveSeatsAndInvalidPassengerFieldsAreRejected() throws Exception {
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                .content(validRequest(0))).andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                .content("{\"tripId\":10,\"passengerName\":\"X\",\"passengerPhone\":\"bad\",\"numberOfSeats\":1}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void missingOrInvisibleTripReturnsSafeNotFound() throws Exception {
+        when(tripRepository.findPassengerVisibleByIdForUpdate(eq(99L), any(), anyList()))
+                .thenReturn(Optional.empty());
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                .content(validRequestForTrip(99L, 1))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void pastCancelledAndClosedTripsCannotBeBooked() throws Exception {
+        for (TripStatus status : List.of(TripStatus.CANCELLED, TripStatus.IN_PROGRESS, TripStatus.COMPLETED)) {
+            trip.setStatus(status);
+            when(tripRepository.findPassengerVisibleByIdForUpdate(eq(10L), any(), anyList()))
+                    .thenReturn(Optional.of(trip));
+            mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                    .content(validRequest(1))).andExpect(status().isNotFound());
+        }
+        trip.setStatus(TripStatus.SCHEDULED); trip.setDepartureAt(LocalDateTime.now().minusHours(1));
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                .content(validRequest(1))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void invalidRouteOperatorBusDriverAndDocumentsCannotBeBooked() throws Exception {
+        assertInvalidResource(() -> trip.getRoute().setStatus(RouteStatus.INACTIVE));
+        trip = validTrip(); assertInvalidResource(() -> trip.getOperator().setVerificationStatus(OperatorVerificationStatus.PENDING));
+        trip = validTrip(); assertInvalidResource(() -> trip.getBus().setStatus(BusStatus.REJECTED));
+        trip = validTrip(); assertInvalidResource(() -> trip.getBus().setPermitExpiryDate(trip.getDepartureAt().toLocalDate().minusDays(1)));
+        trip = validTrip(); assertInvalidResource(() -> trip.getBus().setInsuranceExpiryDate(trip.getDepartureAt().toLocalDate().minusDays(1)));
+        trip = validTrip(); assertInvalidResource(() -> trip.getDriver().setVerificationStatus(DriverVerificationStatus.PENDING));
+        trip = validTrip(); assertInvalidResource(() -> trip.getDriver().setLicenseExpiryDate(trip.getDepartureAt().toLocalDate().minusDays(1)));
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void listReturnsOnlyAuthenticatedPassengersSafeBookings() throws Exception {
+        when(bookingRepository.findByPassengerOrderByBookedAtDesc(passengerA)).thenReturn(List.of(booking));
+        mockMvc.perform(get("/api/passenger/bookings")).andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].bookingReference").value(booking.getBookingReference()))
+                .andExpect(jsonPath("$[0].passengerName").doesNotExist())
+                .andExpect(jsonPath("$[0].passenger").doesNotExist());
+        verify(bookingRepository).findByPassengerOrderByBookedAtDesc(passengerA);
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void ownerCanViewSafeDetailsButOtherPassengerReceivesNotFound() throws Exception {
+        when(bookingRepository.findByBookingReferenceAndPassenger(booking.getBookingReference(), passengerA))
+                .thenReturn(Optional.of(booking));
+        mockMvc.perform(get("/api/passenger/bookings/" + booking.getBookingReference()))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.passengerPhone").value("******0001"))
+                .andExpect(jsonPath("$.scheduledTrip").doesNotExist());
+        mockMvc.perform(get("/api/passenger/bookings/" + booking.getBookingReference())
+                        .with(user("b@example.com").roles("PASSENGER")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void passengerCanCancelOwnFutureBookingAndRepeatIsIdempotent() throws Exception {
+        when(bookingRepository.findByBookingReferenceAndPassenger(booking.getBookingReference(), passengerA))
+                .thenReturn(Optional.of(booking));
+        mockMvc.perform(post("/api/passenger/bookings/" + booking.getBookingReference() + "/cancel"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.bookingStatus").value("CANCELLED"))
+                .andExpect(jsonPath("$.cancelledAt").exists());
+        mockMvc.perform(post("/api/passenger/bookings/" + booking.getBookingReference() + "/cancel"))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.bookingStatus").value("CANCELLED"));
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void otherPassengerCannotCancelAndClosedBookingCannotBeCancelled() throws Exception {
+        mockMvc.perform(post("/api/passenger/bookings/" + booking.getBookingReference() + "/cancel")
+                        .with(user("b@example.com").roles("PASSENGER")))
+                .andExpect(status().isNotFound());
+        booking.getScheduledTrip().setDepartureAt(LocalDateTime.now().minusMinutes(1));
+        when(bookingRepository.findByBookingReferenceAndPassenger(booking.getBookingReference(), passengerA))
+                .thenReturn(Optional.of(booking));
+        mockMvc.perform(post("/api/passenger/bookings/" + booking.getBookingReference() + "/cancel"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    void anonymousIsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/passenger/bookings")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void operatorDriverAndAdminRolesAreDeniedByService() throws Exception {
+        for (String role : List.of("OPERATOR", "DRIVER", "ADMIN")) {
+            User user = new User(role, "operator@example.com", "", "", role);
+            when(userRepository.findByEmailIgnoreCase("operator@example.com")).thenReturn(Optional.of(user));
+            mockMvc.perform(get("/api/passenger/bookings")).andExpect(status().isForbidden());
+        }
+    }
+
+    private void assertInvalidResource(Runnable mutation) throws Exception {
+        mutation.run();
+        when(tripRepository.findPassengerVisibleByIdForUpdate(eq(10L), any(), anyList()))
+                .thenReturn(Optional.of(trip));
+        mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
+                .content(validRequest(1))).andExpect(status().isNotFound());
+    }
+    private void prepareCapacity(long booked) {
+        when(tripRepository.findPassengerVisibleByIdForUpdate(eq(10L), any(), anyList()))
+                .thenReturn(Optional.of(trip));
+        when(bookingRepository.sumConfirmedSeatsByTrip(trip)).thenReturn(booked);
+    }
+    private String validRequest(int seats) { return validRequestForTrip(10L, seats); }
+    private String validRequestForTrip(long tripId, int seats) {
+        return "{\"tripId\":%d,\"passengerName\":\"Passenger A\",\"passengerPhone\":\"9800000001\",\"numberOfSeats\":%d,\"totalFare\":1}".formatted(tripId, seats);
+    }
+    private PassengerTripBooking confirmedBooking(User owner, String reference) {
+        PassengerTripBooking result = new PassengerTripBooking(); result.setId(50L);
+        result.setBookingReference(reference); result.setPassenger(owner); result.setScheduledTrip(trip);
+        result.setPassengerName(owner.getFullName()); result.setPassengerPhone(owner.getPhone());
+        result.setNumberOfSeats(2); result.setFarePerSeat(trip.getFare());
+        result.setTotalFare(trip.getFare().multiply(BigDecimal.valueOf(2)));
+        result.setStatus(BookingStatus.CONFIRMED); result.setBookedAt(LocalDateTime.now()); return result;
+    }
+    private ScheduledTrip validTrip() {
+        LocalDateTime departure = LocalDateTime.now().plusDays(3);
+        com.yatayat.backend.entity.Route route = new com.yatayat.backend.entity.Route();
+        route.setId(20L); route.setCode("KTM-PKR"); route.setName("Kathmandu to Pokhara");
+        route.setOrigin("Kathmandu"); route.setDestination("Pokhara"); route.setStatus(RouteStatus.ACTIVE);
+        route.setTripType(TripType.OUT_OF_VALLEY);
+        User operatorUser = new User("Operator", "op@example.com", "", "", "OPERATOR");
+        TransportOperator operator = new TransportOperator(); operator.setId(30L); operator.setUser(operatorUser);
+        operator.setName("Safe Travels"); operator.setVerificationStatus(OperatorVerificationStatus.APPROVED);
+        Bus bus = new Bus(); bus.setId(40L); bus.setBusNumber("BA-1-KHA-1000");
+        bus.setStatus(BusStatus.APPROVED); bus.setSeatCapacity(40); bus.setPermitExpiryDate(departure.toLocalDate().plusYears(1));
+        bus.setInsuranceExpiryDate(departure.toLocalDate().plusYears(1));
+        DriverProfile driver = new DriverProfile(new User("Driver", "d@example.com", "", "", "DRIVER"));
+        driver.setId(45L); driver.setVerificationStatus(DriverVerificationStatus.APPROVED);
+        driver.setLicenseExpiryDate(departure.toLocalDate().plusYears(1));
+        ScheduledTrip result = new ScheduledTrip(); result.setId(10L); result.setRoute(route); result.setOperator(operator);
+        result.setBus(bus); result.setDriver(driver); result.setDepartureAt(departure);
+        result.setEstimatedArrivalAt(departure.plusHours(6)); result.setFare(new BigDecimal("500.00"));
+        result.setSeatCapacitySnapshot(40); result.setStatus(TripStatus.SCHEDULED); result.setBoardingNotes("Gate 2"); return result;
+    }
+}

@@ -1,17 +1,14 @@
 import { Navigate, Outlet } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AdminProtectedRoute() {
-  const adminAuthenticated =
-    localStorage.getItem("adminAuthenticated") === "true";
+  const { user, restoring } = useAuth();
 
-  const admin = JSON.parse(
-    localStorage.getItem("yatayatAdmin") || "null"
-  );
+  if (restoring) {
+    return <div className="min-h-screen bg-slate-50" aria-label="Restoring session" />;
+  }
 
-  const isValidAdmin =
-    adminAuthenticated && admin?.role === "ADMIN";
-
-  if (!isValidAdmin) {
+  if (!user || user.role !== "ADMIN") {
     return <Navigate to="/admin/login" replace />;
   }
 

@@ -43,7 +43,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse createRoute(RouteRequest request) {
-        validate(request);
+        validate(request, true);
         String code = request.code().trim();
         if (routeRepository.existsByCodeIgnoreCase(code)) {
             conflict("Route code is already registered");
@@ -63,7 +63,7 @@ public class RouteService {
 
     @Transactional
     public RouteResponse updateRoute(Long id, RouteRequest request) {
-        validate(request);
+        validate(request, false);
         Route route = findRoute(id);
         if (routeRepository.existsByCodeIgnoreCaseAndIdNot(
                 request.code().trim(), id
@@ -124,10 +124,11 @@ public class RouteService {
         route.setDestination(request.destination());
         route.setDistanceKm(request.distanceKm());
         route.setEstimatedDurationMinutes(request.estimatedDurationMinutes());
+        if (request.tripType() != null) route.setTripType(request.tripType());
         route.setStatus(request.status() == null ? RouteStatus.ACTIVE : request.status());
     }
 
-    private void validate(RouteRequest request) {
+    private void validate(RouteRequest request, boolean creating) {
         if (request == null) badRequest("Route details are required");
         required(request.code(), "Route code");
         required(request.name(), "Route name");
@@ -143,6 +144,9 @@ public class RouteService {
         if (request.estimatedDurationMinutes() == null ||
                 request.estimatedDurationMinutes() <= 0) {
             badRequest("Estimated duration must be greater than zero");
+        }
+        if (creating && request.tripType() == null) {
+            badRequest("Trip type is required");
         }
         if (request.origin().trim().equalsIgnoreCase(request.destination().trim())) {
             badRequest("Origin and destination must be different");
@@ -171,7 +175,7 @@ public class RouteService {
         return new RouteResponse(
                 route.getId(), route.getCode(), route.getName(),
                 route.getOrigin(), route.getDestination(), route.getDistanceKm(),
-                route.getEstimatedDurationMinutes(), route.getStatus().name(),
+                route.getEstimatedDurationMinutes(), route.getTripType().name(), route.getStatus().name(),
                 route.getCreatedAt(), route.getUpdatedAt()
         );
     }

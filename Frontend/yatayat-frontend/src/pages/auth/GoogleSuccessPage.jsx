@@ -1,27 +1,22 @@
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { useAuth } from "../../context/AuthContext";
 
 export default function GoogleSuccessPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const { restoreSession } = useAuth();
 
   useEffect(() => {
-    const user = {
-      id: searchParams.get("id"),
-      fullName: searchParams.get("fullName"),
-      email: searchParams.get("email"),
-      phone: searchParams.get("phone"),
-      role: searchParams.get("role"),
-    };
-
-    localStorage.setItem("yatayatUser", JSON.stringify(user));
-    localStorage.setItem("loginTime", Date.now().toString());
-
-    toast.success("Google login successful");
-
-    navigate("/passenger/dashboard");
-  }, [navigate, searchParams]);
+    restoreSession().then((user) => {
+      if (!user) {
+        navigate("/login", { replace: true });
+        return;
+      }
+      toast.success("Google login successful");
+      navigate("/passenger/dashboard", { replace: true });
+    });
+  }, [navigate, restoreSession]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-100">

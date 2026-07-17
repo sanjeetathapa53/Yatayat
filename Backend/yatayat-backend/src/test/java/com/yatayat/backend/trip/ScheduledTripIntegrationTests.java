@@ -124,6 +124,36 @@ class ScheduledTripIntegrationTests {
 
     @Test
     @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void localRoutesAreExcludedFromScheduledTripEligibility() throws Exception {
+        com.yatayat.backend.entity.Route local = route(31L, RouteStatus.ACTIVE);
+        local.setTripType(TripType.LOCAL);
+        when(routeRepository.findByStatusOrderByCodeAsc(RouteStatus.ACTIVE)).thenReturn(List.of(route, local));
+        when(busRepository.findByOperatorOrderByCreatedAtDesc(operator)).thenReturn(List.of(bus));
+        when(associationRepository.findByOperatorAndStatusOrderByInvitedAtDesc(
+                operator, DriverOperatorAssociationStatus.ACTIVE)).thenReturn(List.of(association));
+
+        mockMvc.perform(get("/api/operator/trips/eligibility"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.routes.length()").value(1))
+                .andExpect(jsonPath("$.routes[0].tripType").value("OUT_OF_VALLEY"));
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void operatorCannotScheduleLocalRoute() throws Exception {
+        route.setTripType(TripType.LOCAL);
+        when(routeRepository.findById(3L)).thenReturn(Optional.of(route));
+
+        mockMvc.perform(post("/api/operator/trips")
+                        .contentType("application/json")
+                        .content(request(departure, arrival, "850.00")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message")
+                        .value("Only out-of-valley routes support scheduled seat booking"));
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
     void approvedOperatorWithNoActiveRoutesReceivesEmptyRoutes() throws Exception {
         when(routeRepository.findByStatusOrderByCodeAsc(RouteStatus.ACTIVE)).thenReturn(List.of());
         when(busRepository.findByOperatorOrderByCreatedAtDesc(operator)).thenReturn(List.of(bus));

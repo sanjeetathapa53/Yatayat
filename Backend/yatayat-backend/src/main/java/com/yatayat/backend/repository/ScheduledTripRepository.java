@@ -62,6 +62,27 @@ public interface ScheduledTripRepository extends JpaRepository<ScheduledTrip, Lo
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver"})
+    @Query("""
+            select distinct trip from ScheduledTrip trip
+            join DriverOperatorAssociation association
+              on association.driver = trip.driver and association.operator = trip.operator
+            where trip.id = :tripId
+              and trip.departureAt > :now
+              and trip.status in :statuses
+              and trip.route.status = com.yatayat.backend.entity.RouteStatus.ACTIVE
+              and trip.operator.verificationStatus = com.yatayat.backend.entity.OperatorVerificationStatus.APPROVED
+              and trip.bus.status = com.yatayat.backend.entity.BusStatus.APPROVED
+              and trip.driver.verificationStatus = com.yatayat.backend.entity.DriverVerificationStatus.APPROVED
+              and association.status = com.yatayat.backend.entity.DriverOperatorAssociationStatus.ACTIVE
+            """)
+    Optional<ScheduledTrip> findPassengerVisibleByIdForUpdate(
+            @Param("tripId") Long tripId,
+            @Param("now") LocalDateTime now,
+            @Param("statuses") List<TripStatus> statuses
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select trip from ScheduledTrip trip
             where trip.bus = :bus

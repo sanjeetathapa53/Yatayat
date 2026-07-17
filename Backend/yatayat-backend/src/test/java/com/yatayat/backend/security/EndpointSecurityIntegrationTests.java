@@ -108,6 +108,60 @@ class EndpointSecurityIntegrationTests {
     }
 
     @Test
+    void anonymousUserCannotRestoreSession() throws Exception {
+        mockMvc.perform(get("/api/auth/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void passengerDriverAndOperatorSessionsRestoreSafeIdentity() throws Exception {
+        for (String role : List.of("PASSENGER", "DRIVER", "OPERATOR")) {
+            String email = role.toLowerCase() + "@example.com";
+            User user = new User(role + " User", email, "9800000000",
+                    passwordEncoder.encode("test-password"), role);
+            user.setId((long) role.length());
+            when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+            when(userRepository.findByEmailIgnoreCase(email)).thenReturn(Optional.of(user));
+
+            MvcResult login = mockMvc.perform(post("/api/auth/login")
+                            .contentType("application/json")
+                            .content("{\"email\":\"" + email + "\",\"password\":\"test-password\"}"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+            assertNotNull(session);
+            mockMvc.perform(get("/api/auth/me").session(session))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.email").value(email))
+                    .andExpect(jsonPath("$.role").value(role))
+                    .andExpect(jsonPath("$.password").doesNotExist())
+                    .andExpect(jsonPath("$.otp").doesNotExist());
+        }
+    }
+
+    @Test
+    void adminSessionRestoresSafeIdentity() throws Exception {
+        User admin = new User("Administrator", "restore-admin@example.com", "",
+                passwordEncoder.encode("test-admin-password"), "ADMIN");
+        admin.setId(99L);
+        when(userRepository.findByEmail("restore-admin@example.com")).thenReturn(Optional.of(admin));
+        when(userRepository.findByEmailIgnoreCase("restore-admin@example.com")).thenReturn(Optional.of(admin));
+
+        MvcResult login = mockMvc.perform(post("/api/admin/auth/login")
+                        .contentType("application/json")
+                        .content("{\"email\":\"restore-admin@example.com\",\"password\":\"test-admin-password\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        MockHttpSession session = (MockHttpSession) login.getRequest().getSession(false);
+        mockMvc.perform(get("/api/auth/me").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.role").value("ADMIN"))
+                .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    @Test
     void passengerLoginCreatesRolePassengerSession() throws Exception {
         MockHttpSession session = loginPassenger();
         SecurityContext context = (SecurityContext) session.getAttribute(

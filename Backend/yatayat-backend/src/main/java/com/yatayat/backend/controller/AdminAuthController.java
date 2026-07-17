@@ -14,6 +14,7 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -96,7 +97,13 @@ public class AdminAuthController {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
-        httpRequest.getSession(true).setAttribute(
+        HttpSession session = httpRequest.getSession(false);
+        if (session == null) {
+            session = httpRequest.getSession(true);
+        } else {
+            httpRequest.changeSessionId();
+        }
+        session.setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 securityContext
         );
