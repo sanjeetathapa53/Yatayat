@@ -2,7 +2,6 @@ package com.yatayat.backend.config;
 
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.repository.UserRepository;
-import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,20 +11,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import java.util.List;
 import java.util.Arrays;
 
@@ -82,7 +72,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, GoogleOAuthHandler googleOAuthHandler) throws Exception {
 
         http
                 .cors(cors -> cors.configurationSource(
@@ -145,88 +135,16 @@ public class SecurityConfig {
                         )
                 )
                 .oauth2Login(oauth -> oauth
-                        .successHandler((request, response, authentication) -> {
-
-                            OAuth2User oauthUser = (OAuth2User) authentication.getPrincipal();
-
-                            String email = oauthUser.getAttribute("email");
-                            String name = oauthUser.getAttribute("name");
-
-                            String mode = (String) request.getSession().getAttribute("googleMode");
-
-                            if (mode == null) {
-                                mode = "LOGIN";
-                            }
-
-                            Optional<User> existingUser = userRepository.findByEmail(email);
-                            User user;
-
-                            if ("LOGIN".equals(mode)) {
-
-                                if (existingUser.isEmpty()) {
-                                    request.getSession().removeAttribute("googleMode");
-                                    response.sendRedirect("http://localhost:5173/login?googleError=notRegistered");
-                                    return;
-                                }
-
-                                user = existingUser.get();
-
-                                UsernamePasswordAuthenticationToken applicationAuthentication =
-                                        new UsernamePasswordAuthenticationToken(
-                                                user.getEmail(),
-                                                null,
-                                                List.of(new SimpleGrantedAuthority(
-                                                        "ROLE_" + user.getRole().toUpperCase()
-                                                ))
-                                        );
-                                SecurityContext securityContext =
-                                        SecurityContextHolder.createEmptyContext();
-                                securityContext.setAuthentication(applicationAuthentication);
-                                SecurityContextHolder.setContext(securityContext);
-                                request.getSession(true).setAttribute(
-                                        HttpSessionSecurityContextRepository
-                                                .SPRING_SECURITY_CONTEXT_KEY,
-                                        securityContext
-                                );
-
-                                String redirectUrl =
-                                        "http://localhost:5173/google-success"
-                                                + "?id=" + user.getId()
-                                                + "&fullName=" + URLEncoder.encode(user.getFullName(), StandardCharsets.UTF_8)
-                                                + "&email=" + URLEncoder.encode(user.getEmail(), StandardCharsets.UTF_8)
-                                                + "&phone=" + URLEncoder.encode(user.getPhone() == null ? "" : user.getPhone(), StandardCharsets.UTF_8)
-                                                + "&role=" + user.getRole();
-
-                                request.getSession().removeAttribute("googleMode");
-                                response.setStatus(HttpServletResponse.SC_FOUND);
-                                response.sendRedirect(redirectUrl);
-                                return;
-                            }
-
-                            if ("REGISTER".equals(mode)) {
-
-                                if (existingUser.isPresent()) {
-                                    request.getSession().removeAttribute("googleMode");
-                                    response.sendRedirect("http://localhost:5173/login?googleRegistered=alreadyExists");
-                                    return;
-                                }
-
-                                user = new User(
-                                        name,
-                                        email,
-                                        "",
-                                        passwordEncoder.encode("GOOGLE_LOGIN"),
-                                        "PASSENGER"
-                                );
-
-                                userRepository.save(user);
-
-                                request.getSession().removeAttribute("googleMode");
-                                response.sendRedirect("http://localhost:5173/login?googleRegistered=true");
-                            }
-                        })
-                );
+                        .successHandler(googleOAuthHandler)
+                        .failureHandler(googleOAuthHandler));
 
         return http.build();
+    }
+
+    @Bean
+    public GoogleOAuthHandler googleOAuthHandler(
+            @Value("${yatayat.oauth.frontend-success-url:http://localhost:5173/google-success}") String successUrl,
+            @Value("${yatayat.oauth.frontend-failure-url:http://localhost:5173/login?googleError=oauth}") String failureUrl) {
+        return new GoogleOAuthHandler(userRepository, successUrl, failureUrl);
     }
 }

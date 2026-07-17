@@ -10,11 +10,18 @@ export default function GoogleSuccessPage() {
   useEffect(() => {
     restoreSession().then((user) => {
       if (!user) {
-        navigate("/login", { replace: true });
+        toast.error("Google sign-in could not be restored. Please try again.");
+        navigate("/login?googleError=session", { replace: true });
         return;
       }
       toast.success("Google login successful");
-      navigate("/passenger/dashboard", { replace: true });
+      const destinations = {
+        PASSENGER: "/passenger/dashboard",
+        DRIVER: "/driver/dashboard",
+        OPERATOR: "/operator/dashboard",
+        ADMIN: "/admin/dashboard",
+      };
+      navigate(destinations[user.role] || "/login", { replace: true });
     });
   }, [navigate, restoreSession]);
 
