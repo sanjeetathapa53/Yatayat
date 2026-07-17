@@ -51,6 +51,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import AdminProtectedRoute from "./components/auth/AdminProtectedRoute";
 import TransportOperatorsPage from "./pages/admin/TransportOperatorsPage";
 import AdminBusesPage from "./pages/admin/AdminBusesPage";
+import AdminRoutesPage from "./pages/admin/AdminRoutesPage";
 
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 
@@ -305,6 +306,10 @@ export default function App() {
   <Route
     path="/admin/buses"
     element={<AdminBusesPage />}
+  />
+  <Route
+    path="/admin/routes"
+    element={<AdminRoutesPage />}
   />
         </Route>
 
