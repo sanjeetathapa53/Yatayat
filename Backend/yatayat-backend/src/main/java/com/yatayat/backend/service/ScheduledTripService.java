@@ -47,9 +47,10 @@ public class ScheduledTripService {
 
         List<RouteEligibilityResponse> routes = routeRepository
                 .findByStatusOrderByCodeAsc(RouteStatus.ACTIVE).stream()
+                .filter(route -> route.getTripType() == TripType.OUT_OF_VALLEY)
                 .map(route -> new RouteEligibilityResponse(
                         route.getId(), route.getCode(), route.getName(),
-                        route.getOrigin(), route.getDestination()
+                        route.getOrigin(), route.getDestination(), route.getTripType().name()
                 )).toList();
 
         List<BusEligibilityResponse> buses = busRepository
@@ -173,6 +174,9 @@ public class ScheduledTripService {
                 .orElseThrow(() -> notFound("Route not found"));
         if (route.getStatus() != RouteStatus.ACTIVE) {
             conflict("Selected route is not active");
+        }
+        if (route.getTripType() != TripType.OUT_OF_VALLEY) {
+            conflict("Only out-of-valley routes support scheduled seat booking");
         }
 
         Bus bus = busRepository.findLockedByIdAndOperator(busId, operator)

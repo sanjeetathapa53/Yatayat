@@ -5,6 +5,7 @@ public record RouteEligibilityResponse(
         String code,
         String name,
         String origin,
-        String destination
+        String destination,
+        String tripType
 ) {
 }

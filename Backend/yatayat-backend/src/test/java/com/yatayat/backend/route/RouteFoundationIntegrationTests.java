@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -78,6 +79,7 @@ class RouteFoundationIntegrationTests {
                         .content(validRequest("KTM-PKR-01")))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.code").value("KTM-PKR-01"))
+                .andExpect(jsonPath("$.tripType").value("OUT_OF_VALLEY"))
                 .andExpect(jsonPath("$.status").value("ACTIVE"));
     }
 
@@ -111,6 +113,78 @@ class RouteFoundationIntegrationTests {
                                 }
                                 """))
                 .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanCreateLocalRouteAndReceiveLocalType() throws Exception {
+        when(routeRepository.existsByCodeIgnoreCase("KTM-LAL-01")).thenReturn(false);
+        when(routeRepository.saveAndFlush(any(Route.class))).thenAnswer(invocation -> {
+            Route route = invocation.getArgument(0);
+            route.setId(2L);
+            return route;
+        });
+
+        mockMvc.perform(post("/api/admin/routes")
+                        .contentType("application/json")
+                        .content(validRequest("KTM-LAL-01", "LOCAL")))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.tripType").value("LOCAL"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanUpdateOutsideValleyRouteToLocal() throws Exception {
+        Route route = route(3L, "KTM-PKR-01", RouteStatus.ACTIVE);
+        route.setTripType(TripType.OUT_OF_VALLEY);
+        prepareUpdate(route);
+
+        mockMvc.perform(put("/api/admin/routes/3")
+                        .contentType("application/json")
+                        .content(validRequest("KTM-PKR-01", "LOCAL")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tripType").value("LOCAL"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanUpdateLocalRouteToOutsideValley() throws Exception {
+        Route route = route(4L, "KTM-BKT-01", RouteStatus.ACTIVE);
+        route.setTripType(TripType.LOCAL);
+        prepareUpdate(route);
+
+        mockMvc.perform(put("/api/admin/routes/4")
+                        .contentType("application/json")
+                        .content(validRequest("KTM-BKT-01", "OUT_OF_VALLEY")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tripType").value("OUT_OF_VALLEY"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void updatingLocalRouteWithoutChangingTypeKeepsLocal() throws Exception {
+        Route route = route(5L, "KTM-KIR-01", RouteStatus.ACTIVE);
+        route.setTripType(TripType.LOCAL);
+        prepareUpdate(route);
+
+        mockMvc.perform(put("/api/admin/routes/5")
+                        .contentType("application/json")
+                        .content(validRequest("KTM-KIR-01", "LOCAL")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tripType").value("LOCAL"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void tripTypeIsRequiredWhenCreatingRoute() throws Exception {
+        mockMvc.perform(post("/api/admin/routes")
+                        .contentType("application/json")
+                        .content("""
+                                {"code":"KTM-LAL-01","name":"Local Route","origin":"Kathmandu",
+                                 "destination":"Lalitpur","distanceKm":12,"estimatedDurationMinutes":45}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Trip type is required"));
     }
 
     @Test
@@ -167,6 +241,10 @@ class RouteFoundationIntegrationTests {
     }
 
     private String validRequest(String code) {
+        return validRequest(code, "OUT_OF_VALLEY");
+    }
+
+    private String validRequest(String code, String tripType) {
         return """
                 {
                   "code":"%s",
@@ -175,9 +253,17 @@ class RouteFoundationIntegrationTests {
                   "destination":"Pokhara",
                   "distanceKm":200.50,
                   "estimatedDurationMinutes":420,
+                  "tripType":"%s",
                   "status":"ACTIVE"
                 }
-                """.formatted(code);
+                """.formatted(code, tripType);
+    }
+
+    private void prepareUpdate(Route route) {
+        when(routeRepository.findById(route.getId())).thenReturn(Optional.of(route));
+        when(routeRepository.existsByCodeIgnoreCaseAndIdNot(eq(route.getCode()), eq(route.getId())))
+                .thenReturn(false);
+        when(routeRepository.saveAndFlush(route)).thenReturn(route);
     }
 
     private Route route(Long id, String code, RouteStatus status) {

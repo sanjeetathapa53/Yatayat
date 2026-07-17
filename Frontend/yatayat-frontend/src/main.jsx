@@ -5,12 +5,15 @@ import App from "./App.jsx";
 import "./index.css";
 import { LanguageProvider } from "./context/LanguageContext.jsx";
 import "leaflet/dist/leaflet.css";
+import { AuthProvider } from "./context/AuthContext.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <LanguageProvider>
-        <App />
+        <AuthProvider>
+          <App />
+        </AuthProvider>
       </LanguageProvider>
     </BrowserRouter>
   </React.StrictMode>

@@ -8,5 +8,5 @@ public record PassengerTripSearchResponse(
         String origin, String destination, LocalDateTime departureAt,
         LocalDateTime estimatedArrivalAt, BigDecimal fare, Integer seatCapacity,
         String status, String operatorName, String busNumber, String busName,
-        Integer estimatedDurationMinutes
+        Integer estimatedDurationMinutes, String tripType
 ) {}

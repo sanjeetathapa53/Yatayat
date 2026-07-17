@@ -90,7 +90,8 @@ public class PassengerTripService {
                 trip.getEstimatedArrivalAt(), trip.getFare(),
                 trip.getSeatCapacitySnapshot(), trip.getStatus().name(),
                 trip.getOperator().getName(), trip.getBus().getBusNumber(),
-                trip.getBus().getBusName(), trip.getRoute().getEstimatedDurationMinutes()
+                trip.getBus().getBusName(), trip.getRoute().getEstimatedDurationMinutes(),
+                trip.getRoute().getTripType().name()
         );
     }
 
@@ -102,6 +103,7 @@ public class PassengerTripService {
                 summary.departureAt(), summary.estimatedArrivalAt(), summary.fare(),
                 summary.seatCapacity(), summary.status(), summary.operatorName(),
                 summary.busNumber(), summary.busName(), summary.estimatedDurationMinutes(),
+                summary.tripType(),
                 trip.getBoardingNotes()
         );
     }

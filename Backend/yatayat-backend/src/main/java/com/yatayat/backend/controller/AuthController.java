@@ -173,7 +173,13 @@ public class AuthController {
         SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
-        httpRequest.getSession(true).setAttribute(
+        HttpSession registrationSession = httpRequest.getSession(false);
+        if (registrationSession == null) {
+            registrationSession = httpRequest.getSession(true);
+        } else {
+            httpRequest.changeSessionId();
+        }
+        registrationSession.setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 securityContext
         );
@@ -216,7 +222,13 @@ public class AuthController {
                 SecurityContextHolder.createEmptyContext();
         securityContext.setAuthentication(authentication);
         SecurityContextHolder.setContext(securityContext);
-        httpRequest.getSession(true).setAttribute(
+        HttpSession session = httpRequest.getSession(false);
+        if (session == null) {
+            session = httpRequest.getSession(true);
+        } else {
+            httpRequest.changeSessionId();
+        }
+        session.setAttribute(
                 HttpSessionSecurityContextRepository
                         .SPRING_SECURITY_CONTEXT_KEY,
                 securityContext
@@ -229,6 +241,23 @@ public class AuthController {
         response.put("phone", user.getPhone());
         response.put("role", user.getRole());
 
+        return response;
+    }
+
+    @GetMapping("/me")
+    public Map<String, Object> currentUser(Authentication authentication) {
+        User user = userRepository.findByEmailIgnoreCase(authentication.getName())
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.UNAUTHORIZED,
+                        "Authenticated user not found"
+                ));
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("id", user.getId());
+        response.put("fullName", user.getFullName());
+        response.put("email", user.getEmail());
+        response.put("phone", user.getPhone());
+        response.put("role", user.getRole());
         return response;
     }
 

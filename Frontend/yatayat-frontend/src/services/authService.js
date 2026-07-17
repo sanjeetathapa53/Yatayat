@@ -26,5 +26,6 @@ export async function logoutUser({ admin = false } = {}) {
     return { ok: false, status: 0, error };
   } finally {
     AUTH_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key));
+    window.dispatchEvent(new Event("yatayat-auth-cleared"));
   }
 }

@@ -12,15 +12,18 @@ import {
 } from "lucide-react";
 import AuthLayout from "../../components/auth/AuthLayout";
 import { apiFetch } from "../../utils/api";
+import { consumeAdminLoginMessage } from "../../utils/adminSession";
+import { useAuth } from "../../context/AuthContext";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
+  const { setAuthenticatedUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(consumeAdminLoginMessage);
 
   const handleAdminLogin = async (event) => {
     event.preventDefault();
@@ -55,12 +58,7 @@ export default function AdminLoginPage() {
         return;
       }
 
-      localStorage.setItem(
-        "yatayatAdmin",
-        JSON.stringify(data.admin)
-      );
-
-      localStorage.setItem("adminAuthenticated", "true");
+      setAuthenticatedUser(data.admin);
 
       navigate("/admin/dashboard", { replace: true });
     } catch (loginError) {

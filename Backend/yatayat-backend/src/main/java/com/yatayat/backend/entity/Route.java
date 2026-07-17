@@ -38,6 +38,10 @@ public class Route {
     private Integer estimatedDurationMinutes;
 
     @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    private TripType tripType;
+
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private RouteStatus status = RouteStatus.ACTIVE;
 
@@ -67,6 +71,7 @@ public class Route {
     public String getDestination() { return destination; }
     public BigDecimal getDistanceKm() { return distanceKm; }
     public Integer getEstimatedDurationMinutes() { return estimatedDurationMinutes; }
+    public TripType getTripType() { return tripType == null ? TripType.OUT_OF_VALLEY : tripType; }
     public RouteStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
@@ -78,6 +83,7 @@ public class Route {
     public void setDestination(String destination) { this.destination = clean(destination); }
     public void setDistanceKm(BigDecimal distanceKm) { this.distanceKm = distanceKm; }
     public void setEstimatedDurationMinutes(Integer estimatedDurationMinutes) { this.estimatedDurationMinutes = estimatedDurationMinutes; }
+    public void setTripType(TripType tripType) { this.tripType = tripType; }
     public void setStatus(RouteStatus status) { this.status = status; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

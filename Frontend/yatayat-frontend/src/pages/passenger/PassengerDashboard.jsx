@@ -80,35 +80,60 @@ useEffect(() => {
   balance={walletBalance}
   onWallet={() => navigate("/wallet")}
 />
+          </div>
+
+          <section>
+            <div className="mb-3">
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Local transport</p>
+              <h3 className="text-xl font-black text-slate-900 sm:text-2xl">Travel Inside the Valley</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <ActionCard
+              icon={<Map size={26} />}
+              title="Find Local Route"
+              desc="Origin to destination"
+              onClick={() => navigate("/passenger/local-routes")}
+            />
 
             <ActionCard
               icon={<Map size={26} />}
-              title="Track Bus"
-              desc="Real-time GPS"
-              onClick={() => navigate("/track-bus")}
+              title="Track Local Bus"
+              desc="Coming Soon"
+              disabled
             />
 
             <ActionCard
               icon={<QrCode size={26} />}
-              title="Fare Pass"
+              title="Local Fare"
               desc="Local QR Fare"
               onClick={() => navigate("/fare-pass")}
             />
 
             <ActionCard
-              icon={<Bus size={26} />}
-              title="Book Ticket"
-              desc="Out-of-Valley"
-              onClick={() => navigate("/passenger/trips")}
-            />
-
-            <ActionCard
               icon={<BadgeCheck size={26} />}
-              title="Quick Scan"
-              desc="Show QR Pass"
+              title="My Local Tickets"
+              desc="Fare passes"
               onClick={() => navigate("/fare-pass")}
             />
-          </div>
+            </div>
+          </section>
+
+          <section>
+            <div className="mb-3">
+              <p className="text-xs font-black uppercase tracking-widest text-violet-700">Out-of-Valley transport</p>
+              <h3 className="text-xl font-black text-slate-900 sm:text-2xl">Intercity Travel</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            <ActionCard
+              icon={<Bus size={26} />}
+              title="Book Out-of-Valley Bus"
+              desc="Scheduled intercity trips"
+              onClick={() => navigate("/passenger/out-of-valley")}
+            />
+            <ActionCard icon={<BadgeCheck size={26} />} title="My Bookings" desc="View and cancel bookings" onClick={() => navigate("/passenger/bookings")} />
+            <ActionCard icon={<QrCode size={26} />} title="Travel Tickets" desc="Booking confirmations" onClick={() => navigate("/passenger/bookings")} />
+            </div>
+          </section>
 
           <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-4">
@@ -145,7 +170,7 @@ useEffect(() => {
               </h3>
 
               <button
-                onClick={() => navigate("/my-bookings")}
+                onClick={() => navigate("/passenger/bookings")}
                 className="text-xs font-black uppercase tracking-wider text-emerald-700 hover:underline"
               >
                 View all →
@@ -153,7 +178,7 @@ useEffect(() => {
             </div>
 
             <button
-              onClick={() => navigate("/my-bookings")}
+              onClick={() => navigate("/passenger/bookings")}
               className="flex w-full flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex items-center gap-4">
@@ -233,10 +258,10 @@ useEffect(() => {
             </div>
 
             <button
-              onClick={() => navigate("/passenger/trips")}
+              onClick={() => navigate("/passenger/local-routes")}
               className="mt-6 w-full rounded-xl border-2 border-[#08264a] py-3 text-sm font-black uppercase transition hover:bg-[#08264a] hover:text-white"
             >
-              Plan New Journey
+              Find Local Route
             </button>
           </div>
         </aside>
@@ -296,11 +321,12 @@ function WalletCard({ balance, onWallet }) {
   );
 }
 
-function ActionCard({ icon, title, desc, onClick }) {
+function ActionCard({ icon, title, desc, onClick, disabled = false }) {
   return (
     <button
       onClick={onClick}
-      className="flex min-h-37.5 flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+      disabled={disabled}
+      className="flex min-h-37.5 flex-col items-center justify-center rounded-xl border border-slate-200 bg-white p-5 text-center shadow-sm transition enabled:hover:-translate-y-1 enabled:hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-65"
     >
       <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
         {icon}

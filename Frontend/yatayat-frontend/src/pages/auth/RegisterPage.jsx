@@ -20,11 +20,13 @@ import { toast } from "react-toastify";
 import AuthLayout from "../../components/auth/AuthLayout";
 import OtpModal from "../../components/auth/OtpModal";
 import RoleTabs from "../../components/auth/RoleTabs";
+import { useAuth } from "../../context/AuthContext";
 
 const API_BASE_URL = "http://localhost:8080";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { restoreSession } = useAuth();
 
   const [role, setRole] = useState("passenger");
   const [showPassword, setShowPassword] =
@@ -217,6 +219,7 @@ export default function RegisterPage() {
       );
 
       if (pendingUserData.role === "DRIVER") {
+        await restoreSession();
         navigate("/driver/application", {
           replace: true,
           state: {
