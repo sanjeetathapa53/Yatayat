@@ -20,6 +20,7 @@ import SettingsPage from "./pages/passenger/SettingsPage";
 import PassengerTripSearchPage from "./pages/passenger/PassengerTripSearchPage";
 import PassengerTripDetailsPage from "./pages/passenger/PassengerTripDetailsPage";
 import CreatePassengerBookingPage from "./pages/passenger/CreatePassengerBookingPage";
+import PassengerSeatSelectionPage from "./pages/passenger/PassengerSeatSelectionPage";
 import PassengerBookingsPage from "./pages/passenger/PassengerBookingsPage";
 import PassengerBookingDetailsPage from "./pages/passenger/PassengerBookingDetailsPage";
 import PassengerLocalRoutesPage from "./pages/passenger/PassengerLocalRoutesPage";
@@ -147,6 +148,7 @@ export default function App() {
         <Route path="/passenger/local-routes" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerLocalRoutesPage /></ProtectedRoute>} />
         <Route path="/passenger/local-routes/:routeId" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerLocalRouteDetailsPage /></ProtectedRoute>} />
         <Route path="/passenger/trips/:tripId" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerTripDetailsPage /></ProtectedRoute>} />
+        <Route path="/passenger/trips/:tripId/seats" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerSeatSelectionPage /></ProtectedRoute>} />
         <Route path="/passenger/trips/:tripId/book" element={<ProtectedRoute allowedRole="PASSENGER"><CreatePassengerBookingPage /></ProtectedRoute>} />
         <Route path="/passenger/bookings" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerBookingsPage /></ProtectedRoute>} />
         <Route path="/passenger/bookings/:bookingReference" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerBookingDetailsPage /></ProtectedRoute>} />

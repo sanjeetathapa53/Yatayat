@@ -4,6 +4,7 @@ import com.yatayat.backend.dto.*;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,13 +26,19 @@ public class PassengerBookingService {
     private final UserRepository userRepository;
     private final ScheduledTripRepository tripRepository;
     private final PassengerTripBookingRepository bookingRepository;
+    private final BookingSeatRepository seatRepository;
+    private final long paymentWindowMinutes;
 
     public PassengerBookingService(UserRepository userRepository,
                                    ScheduledTripRepository tripRepository,
-                                   PassengerTripBookingRepository bookingRepository) {
+                                   PassengerTripBookingRepository bookingRepository,
+                                   BookingSeatRepository seatRepository,
+                                   @Value("${yatayat.booking.payment-window-minutes:10}") long paymentWindowMinutes) {
         this.userRepository = userRepository;
         this.tripRepository = tripRepository;
         this.bookingRepository = bookingRepository;
+        this.seatRepository = seatRepository;
+        this.paymentWindowMinutes = Math.max(1, paymentWindowMinutes);
     }
 
     @Transactional
@@ -48,11 +55,19 @@ public class PassengerBookingService {
                     "Local trips do not support seat reservations.");
         }
 
-        long confirmedSeats = bookingRepository.sumConfirmedSeatsByTrip(trip);
-        long remaining = (long) trip.getSeatCapacitySnapshot() - confirmedSeats;
-        if (request.numberOfSeats() > remaining) {
+        LocalDateTime now = LocalDateTime.now();
+        seatRepository.releaseExpired(trip, now);
+        List<String> requestedSeats = request.seatNumbers().stream()
+                .map(value -> value.trim().toUpperCase()).sorted().toList();
+        List<BookingSeat> holds = seatRepository
+                .findByScheduledTripAndPassengerAndStatusOrderBySeatNumberAsc(
+                        trip, passenger, BookingSeatStatus.HELD).stream()
+                .filter(seat -> seat.getActiveSeatNumber() != null && seat.getHoldExpiresAt().isAfter(now))
+                .toList();
+        List<String> heldSeats = holds.stream().map(BookingSeat::getSeatNumber).sorted().toList();
+        if (!heldSeats.equals(requestedSeats)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Not enough seats are available for this trip.");
+                    "An active seat hold is required for every selected seat.");
         }
 
         PassengerTripBooking booking = new PassengerTripBooking();
@@ -61,10 +76,13 @@ public class PassengerBookingService {
         booking.setScheduledTrip(trip);
         booking.setPassengerName(request.passengerName());
         booking.setPassengerPhone(request.passengerPhone());
-        booking.setNumberOfSeats(request.numberOfSeats());
+        booking.setNumberOfSeats(requestedSeats.size());
         booking.setFarePerSeat(trip.getFare());
-        booking.setTotalFare(trip.getFare().multiply(BigDecimal.valueOf(request.numberOfSeats())));
-        booking.setStatus(BookingStatus.CONFIRMED);
+        booking.setTotalFare(trip.getFare().multiply(BigDecimal.valueOf(requestedSeats.size())));
+        booking.setStatus(BookingStatus.PENDING_PAYMENT);
+        LocalDateTime paymentExpiry = now.plusMinutes(paymentWindowMinutes);
+        holds.forEach(seat -> { seat.setBooking(booking); seat.setHoldExpiresAt(paymentExpiry); });
+        booking.setSeats(holds);
         try {
             return toDetails(bookingRepository.saveAndFlush(booking));
         } catch (DataIntegrityViolationException exception) {
@@ -99,6 +117,10 @@ public class PassengerBookingService {
         }
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancelledAt(LocalDateTime.now());
+        List<BookingSeat> seats = seatRepository.findByBookingOrderBySeatNumberAsc(booking);
+        seats.stream().filter(seat -> seat.getActiveSeatNumber() != null)
+                .forEach(seat -> seat.release(BookingSeatStatus.CANCELLED));
+        seatRepository.saveAll(seats);
         return toDetails(bookingRepository.saveAndFlush(booking));
     }
 
@@ -121,8 +143,16 @@ public class PassengerBookingService {
 
     private void validateRequest(CreatePassengerBookingRequest request) {
         if (request == null || request.tripId() == null) badRequest("Trip is required.");
-        if (request.numberOfSeats() == null || request.numberOfSeats() <= 0)
-            badRequest("Number of seats must be greater than zero.");
+        if (request.seatNumbers() == null || request.seatNumbers().isEmpty())
+            badRequest("Selected seats are required.");
+        if (request.seatNumbers().size() > 6) badRequest("A maximum of 6 seats can be booked at once.");
+        List<String> normalized = request.seatNumbers().stream()
+                .map(value -> value == null ? "" : value.trim().toUpperCase()).toList();
+        if (normalized.stream().anyMatch(String::isBlank)) badRequest("Seat numbers cannot be blank.");
+        if (new java.util.HashSet<>(normalized).size() != normalized.size())
+            badRequest("Duplicate seat numbers are not allowed.");
+        if (request.numberOfSeats() != null && request.numberOfSeats() != normalized.size())
+            badRequest("Passenger quantity must match the selected seats.");
         String name = request.passengerName();
         if (name == null || name.trim().length() < 2 || name.trim().length() > 120)
             badRequest("Passenger name must be between 2 and 120 characters.");
@@ -166,6 +196,7 @@ public class PassengerBookingService {
                 trip.getRoute().getTripType().name(), trip.getRoute().getOrigin(),
                 trip.getRoute().getDestination(), trip.getDepartureAt(), trip.getEstimatedArrivalAt(),
                 trip.getOperator().getName(), trip.getBus().getBusNumber(), booking.getNumberOfSeats(),
+                seatNumbers(booking),
                 booking.getFarePerSeat(), booking.getTotalFare(), booking.getBookedAt(), booking.getCancelledAt()
         );
     }
@@ -177,7 +208,7 @@ public class PassengerBookingService {
                 maskPhone(booking.getPassengerPhone()), summary.tripId(), summary.routeCode(),
                 summary.routeName(), summary.tripType(), summary.origin(), summary.destination(), summary.operatorName(),
                 summary.busNumber(), summary.departureAt(), summary.estimatedArrivalAt(),
-                summary.numberOfSeats(), summary.farePerSeat(), summary.totalFare(),
+                summary.numberOfSeats(), summary.seatNumbers(), summary.farePerSeat(), summary.totalFare(),
                 summary.bookedAt(), summary.cancelledAt(), booking.getScheduledTrip().getBoardingNotes()
         );
     }
@@ -185,6 +216,10 @@ public class PassengerBookingService {
     private String maskPhone(String phone) {
         if (phone == null || phone.length() <= 4) return phone;
         return "*".repeat(phone.length() - 4) + phone.substring(phone.length() - 4);
+    }
+    private List<String> seatNumbers(PassengerTripBooking booking) {
+        if (booking.getSeats() == null || booking.getSeats().isEmpty()) return List.of();
+        return booking.getSeats().stream().map(BookingSeat::getSeatNumber).sorted().toList();
     }
     private void badRequest(String message) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message); }
     private ResponseStatusException tripNotFound() { return new ResponseStatusException(HttpStatus.NOT_FOUND, "This trip is no longer available for booking."); }

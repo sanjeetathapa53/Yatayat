@@ -60,7 +60,7 @@ export default function OperatorBusesPage() {
         </div>
 
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
-        {loading ? <div className="flex min-h-[300px] items-center justify-center"><Loader2 className="animate-spin" size={40} /></div> : buses.length === 0 ? (
+        {loading ? <div className="flex min-h-75 items-center justify-center"><Loader2 className="animate-spin" size={40} /></div> : buses.length === 0 ? (
           <div className="rounded-3xl border border-slate-200 bg-white px-6 py-16 text-center"><Bus className="mx-auto text-slate-300" size={48} /><h2 className="mt-5 text-xl font-black">No buses registered yet. Register your first bus to continue.</h2></div>
         ) : (
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

@@ -33,6 +33,7 @@ class PassengerBookingIntegrationTests {
     @MockitoBean private UserRepository userRepository;
     @MockitoBean private ScheduledTripRepository tripRepository;
     @MockitoBean private PassengerTripBookingRepository bookingRepository;
+    @MockitoBean private BookingSeatRepository seatRepository;
 
     private User passengerA;
     private User passengerB;
@@ -61,12 +62,13 @@ class PassengerBookingIntegrationTests {
     @Test
     @WithMockUser(username = "a@example.com", roles = "PASSENGER")
     void authenticatedPassengerCreatesBookingWithServerCalculatedFare() throws Exception {
-        prepareCapacity(0L);
+        prepareHolds(2);
         mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
                         .content(validRequest(2)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.bookingReference").value(org.hamcrest.Matchers.matchesPattern("YAT-\\d{8}-[A-F0-9]{6}")))
-                .andExpect(jsonPath("$.bookingStatus").value("CONFIRMED"))
+                .andExpect(jsonPath("$.bookingStatus").value("PENDING_PAYMENT"))
+                .andExpect(jsonPath("$.seatNumbers[0]").value("1A"))
                 .andExpect(jsonPath("$.farePerSeat").value(500.00))
                 .andExpect(jsonPath("$.totalFare").value(1000.00))
                 .andExpect(jsonPath("$.passengerPhone").value("******0001"))
@@ -79,7 +81,7 @@ class PassengerBookingIntegrationTests {
     @WithMockUser(username = "a@example.com", roles = "PASSENGER")
     void exactRemainingCapacitySucceeds() throws Exception {
         trip.setSeatCapacitySnapshot(4);
-        prepareCapacity(2L);
+        prepareHolds(2);
         mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
                 .content(validRequest(2))).andExpect(status().isCreated());
     }
@@ -88,32 +90,32 @@ class PassengerBookingIntegrationTests {
     @WithMockUser(username = "a@example.com", roles = "PASSENGER")
     void localTripSeatBookingIsRejectedWithoutSaving() throws Exception {
         trip.getRoute().setTripType(TripType.LOCAL);
-        prepareCapacity(0L);
+        prepareHolds(1);
 
         mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
                         .content(validRequest(1)))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Local trips do not support seat reservations."));
 
-        verify(bookingRepository, never()).sumConfirmedSeatsByTrip(any());
+        verify(seatRepository, never()).findByScheduledTripAndPassengerAndStatusOrderBySeatNumberAsc(any(), any(), any());
         verify(bookingRepository, never()).saveAndFlush(any());
     }
 
     @Test
     @WithMockUser(username = "a@example.com", roles = "PASSENGER")
-    void requestBeyondRemainingCapacityReturnsConflict() throws Exception {
-        trip.setSeatCapacitySnapshot(4);
-        prepareCapacity(3L);
+    void bookingWithoutMatchingHoldReturnsConflict() throws Exception {
+        when(tripRepository.findPassengerVisibleByIdForUpdate(eq(10L), any(), anyList()))
+                .thenReturn(Optional.of(trip));
         mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
                         .content(validRequest(2))).andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Not enough seats are available for this trip."));
+                .andExpect(jsonPath("$.message").value("An active seat hold is required for every selected seat."));
     }
 
     @Test
     @WithMockUser(username = "a@example.com", roles = "PASSENGER")
     void cancelledBookingsReleaseCapacityThroughConfirmedSeatAggregate() throws Exception {
         trip.setSeatCapacitySnapshot(2);
-        prepareCapacity(0L);
+        prepareHolds(2);
         mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
                 .content(validRequest(2))).andExpect(status().isCreated());
     }
@@ -121,12 +123,14 @@ class PassengerBookingIntegrationTests {
     @Test
     @WithMockUser(username = "a@example.com", roles = "PASSENGER")
     void tripLockIsAcquiredBeforeCapacityIsCalculated() throws Exception {
-        prepareCapacity(0L);
+        prepareHolds(1);
         mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
                 .content(validRequest(1))).andExpect(status().isCreated());
-        var order = inOrder(tripRepository, bookingRepository);
+        var order = inOrder(tripRepository, seatRepository, bookingRepository);
         order.verify(tripRepository).findPassengerVisibleByIdForUpdate(eq(10L), any(), anyList());
-        order.verify(bookingRepository).sumConfirmedSeatsByTrip(trip);
+        order.verify(seatRepository).releaseExpired(eq(trip), any());
+        order.verify(seatRepository).findByScheduledTripAndPassengerAndStatusOrderBySeatNumberAsc(
+                trip, passengerA, BookingSeatStatus.HELD);
         order.verify(bookingRepository).saveAndFlush(any());
     }
 
@@ -136,7 +140,7 @@ class PassengerBookingIntegrationTests {
         mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
                 .content(validRequest(0))).andExpect(status().isBadRequest());
         mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
-                .content("{\"tripId\":10,\"passengerName\":\"X\",\"passengerPhone\":\"bad\",\"numberOfSeats\":1}"))
+                .content("{\"tripId\":10,\"passengerName\":\"X\",\"passengerPhone\":\"bad\",\"numberOfSeats\":1,\"seatNumbers\":[\"1A\"]}"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -247,14 +251,26 @@ class PassengerBookingIntegrationTests {
         mockMvc.perform(post("/api/passenger/bookings").contentType("application/json")
                 .content(validRequest(1))).andExpect(status().isNotFound());
     }
-    private void prepareCapacity(long booked) {
+    private void prepareHolds(int count) {
         when(tripRepository.findPassengerVisibleByIdForUpdate(eq(10L), any(), anyList()))
                 .thenReturn(Optional.of(trip));
-        when(bookingRepository.sumConfirmedSeatsByTrip(trip)).thenReturn(booked);
+        List<BookingSeat> holds = new java.util.ArrayList<>();
+        for (int index = 0; index < count; index++) {
+            BookingSeat seat = new BookingSeat(); String number = "1" + (char) ('A' + index);
+            seat.setScheduledTrip(trip); seat.setPassenger(passengerA); seat.setSeatNumber(number);
+            seat.setActiveSeatNumber(number); seat.setStatus(BookingSeatStatus.HELD);
+            seat.setHeldAt(LocalDateTime.now()); seat.setHoldExpiresAt(LocalDateTime.now().plusMinutes(5));
+            holds.add(seat);
+        }
+        when(seatRepository.findByScheduledTripAndPassengerAndStatusOrderBySeatNumberAsc(
+                trip, passengerA, BookingSeatStatus.HELD)).thenReturn(holds);
     }
     private String validRequest(int seats) { return validRequestForTrip(10L, seats); }
     private String validRequestForTrip(long tripId, int seats) {
-        return "{\"tripId\":%d,\"passengerName\":\"Passenger A\",\"passengerPhone\":\"9800000001\",\"numberOfSeats\":%d,\"totalFare\":1}".formatted(tripId, seats);
+        String selected = java.util.stream.IntStream.range(0, Math.max(0, seats))
+                .mapToObj(index -> "\"1" + (char) ('A' + index) + "\"")
+                .collect(java.util.stream.Collectors.joining(","));
+        return "{\"tripId\":%d,\"passengerName\":\"Passenger A\",\"passengerPhone\":\"9800000001\",\"numberOfSeats\":%d,\"seatNumbers\":[%s],\"totalFare\":1}".formatted(tripId, seats, selected);
     }
     private PassengerTripBooking confirmedBooking(User owner, String reference) {
         PassengerTripBooking result = new PassengerTripBooking(); result.setId(50L);
