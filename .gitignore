@@ -28,3 +28,4 @@ application-secrets.yaml
 # OS
 .DS_Store
 Thumbs.db
+Backend/uploads/
