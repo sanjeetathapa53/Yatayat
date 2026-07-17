@@ -7,12 +7,13 @@ import { apiFetch } from "../../utils/api";
 export default function OperatorDashboard() {
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
+  const [tripCounts, setTripCounts] = useState({ upcoming: 0, active: 0 });
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
 
-    apiFetch("/api/operator/dashboard").then(async (response) => {
+    Promise.all([apiFetch("/api/operator/dashboard"), apiFetch("/api/operator/trips")]).then(async ([response, tripsResponse]) => {
       if (response.status === 401) {
         navigate("/login", { replace: true });
         return null;
@@ -22,9 +23,18 @@ export default function OperatorDashboard() {
         return null;
       }
       if (!response.ok) throw new Error("Unable to load operator dashboard.");
-      return response.json();
+      if (!tripsResponse.ok) throw new Error("Unable to load operator trips.");
+      return Promise.all([response.json(), tripsResponse.json()]);
     }).then((data) => {
-      if (active && data) setDashboard(data);
+      if (active && data) {
+        const [dashboardData, trips] = data;
+        const now = new Date();
+        setDashboard(dashboardData);
+        setTripCounts({
+          upcoming: trips.filter((trip) => ["SCHEDULED", "BOARDING"].includes(trip.status) && new Date(trip.departureAt) > now).length,
+          active: trips.filter((trip) => ["BOARDING", "IN_PROGRESS"].includes(trip.status)).length,
+        });
+      }
     }).catch((loadError) => {
       if (active) setError(loadError.message);
     });
@@ -57,8 +67,8 @@ export default function OperatorDashboard() {
             <Stat label="Total Buses" value={dashboard.totalBuses} icon={<Bus />} />
             <Stat label="Pending Buses" value={dashboard.pendingBuses} icon={<Building2 />} />
             <Stat label="Associated Drivers" value={dashboard.totalAssociatedDrivers} icon={<Users />} />
-            <Stat label="Upcoming Trips" value={dashboard.upcomingTrips} icon={<CalendarDays />} />
-            <Stat label="Active Trips" value={dashboard.activeTrips} icon={<CheckCircle2 />} />
+            <Stat label="Upcoming Trips" value={tripCounts.upcoming} icon={<CalendarDays />} />
+            <Stat label="Active Trips" value={tripCounts.active} icon={<CheckCircle2 />} />
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -68,8 +78,8 @@ export default function OperatorDashboard() {
                 { label: "Register Bus", path: "/operator/buses/register" },
                 { label: "Manage Buses", path: "/operator/buses" },
                 { label: "Manage Drivers", path: "/operator/drivers" },
-                { label: "Create Scheduled Trip" },
-                { label: "View Active Trips" },
+                { label: "Create Scheduled Trip", path: "/operator/trips/create" },
+                { label: "View Active Trips", path: "/operator/trips" },
               ].map((action) => (
                 <button key={action.label} type="button" disabled={!action.path} onClick={() => action.path && navigate(action.path)} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left disabled:opacity-70">
                   <p className="font-black text-slate-700">{action.label}</p>

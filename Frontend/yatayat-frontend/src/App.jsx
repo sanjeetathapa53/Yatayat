@@ -42,6 +42,9 @@ import OperatorBusesPage from "./pages/operator/OperatorBusesPage";
 import OperatorBusRegistrationPage from "./pages/operator/OperatorBusRegistrationPage";
 import OperatorBusDetailsPage from "./pages/operator/OperatorBusDetailsPage";
 import OperatorDriversPage from "./pages/operator/OperatorDriversPage";
+import OperatorTripsPage from "./pages/operator/OperatorTripsPage";
+import CreateOperatorTripPage from "./pages/operator/CreateOperatorTripPage";
+import OperatorTripDetailsPage from "./pages/operator/OperatorTripDetailsPage";
 
 
 import RoutesPage from "./pages/routes/RoutesPage";
@@ -343,6 +346,9 @@ export default function App() {
   ["/operator/buses/register", <OperatorBusRegistrationPage />],
   ["/operator/buses/:id", <OperatorBusDetailsPage />],
   ["/operator/drivers", <OperatorDriversPage />],
+  ["/operator/trips", <OperatorTripsPage />],
+  ["/operator/trips/create", <CreateOperatorTripPage />],
+  ["/operator/trips/:tripId", <OperatorTripDetailsPage />],
 ].map(([path, page]) => (
   <Route key={path} path={path} element={<ProtectedRoute allowedRole="OPERATOR">{page}</ProtectedRoute>} />
 ))}

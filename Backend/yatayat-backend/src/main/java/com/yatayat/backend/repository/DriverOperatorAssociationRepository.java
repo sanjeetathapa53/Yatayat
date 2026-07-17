@@ -13,6 +13,11 @@ public interface DriverOperatorAssociationRepository
             TransportOperator operator
     );
 
+    List<DriverOperatorAssociation> findByOperatorAndStatusOrderByInvitedAtDesc(
+            TransportOperator operator,
+            DriverOperatorAssociationStatus status
+    );
+
     List<DriverOperatorAssociation> findByDriverAndStatusOrderByInvitedAtDesc(
             DriverProfile driver,
             DriverOperatorAssociationStatus status
