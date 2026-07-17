@@ -1,4 +1,4 @@
-import { Building2, Bus, LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
+import { Building2, Bus, CalendarDays, LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../services/authService";
@@ -39,6 +39,7 @@ export default function OperatorLayout({ children }) {
           <NavItem icon={<LayoutDashboard size={19} />} label="Dashboard" path="/operator/dashboard" active={location.pathname === "/operator/dashboard"} navigate={navigate} />
           <NavItem icon={<Bus size={19} />} label="Buses" path="/operator/buses" active={location.pathname.startsWith("/operator/buses")} navigate={navigate} />
           <NavItem icon={<Users size={19} />} label="Drivers" path="/operator/drivers" active={location.pathname.startsWith("/operator/drivers")} navigate={navigate} />
+          <NavItem icon={<CalendarDays size={19} />} label="Trips" path="/operator/trips" active={location.pathname.startsWith("/operator/trips")} navigate={navigate} />
         </nav>
 
         <div className="border-t border-slate-200 p-5">

@@ -6,6 +6,8 @@ import com.yatayat.backend.entity.DriverProfile;
 import com.yatayat.backend.entity.TransportOperator;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
@@ -52,5 +54,12 @@ public interface BusRepository
     Optional<Bus> findByIdAndOperator(
             Long id,
             TransportOperator operator
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select bus from Bus bus where bus.id = :id and bus.operator = :operator")
+    Optional<Bus> findLockedByIdAndOperator(
+            @Param("id") Long id,
+            @Param("operator") TransportOperator operator
     );
 }
