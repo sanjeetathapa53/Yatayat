@@ -1,7 +1,8 @@
 package com.yatayat.backend.entity;
 
-public enum BookingStatus {
-    PENDING_PAYMENT,
+public enum BookingSeatStatus {
+    HELD,
     CONFIRMED,
+    RELEASED,
     CANCELLED
 }

@@ -3,6 +3,8 @@ package com.yatayat.backend.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "passenger_trip_bookings", uniqueConstraints =
@@ -40,6 +42,9 @@ public class PassengerTripBooking {
     @Column(nullable = false) private LocalDateTime createdAt;
     @Column(nullable = false) private LocalDateTime updatedAt;
     @Version private Long version;
+    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL)
+    @OrderBy("seatNumber asc")
+    private List<BookingSeat> seats = new ArrayList<>();
 
     @PrePersist void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -64,6 +69,7 @@ public class PassengerTripBooking {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public Long getVersion() { return version; }
+    public List<BookingSeat> getSeats() { return seats; }
     public void setId(Long value) { id = value; }
     public void setBookingReference(String value) { bookingReference = value; }
     public void setPassenger(User value) { passenger = value; }
@@ -78,5 +84,6 @@ public class PassengerTripBooking {
     public void setCancelledAt(LocalDateTime value) { cancelledAt = value; }
     public void setCreatedAt(LocalDateTime value) { createdAt = value; }
     public void setUpdatedAt(LocalDateTime value) { updatedAt = value; }
+    public void setSeats(List<BookingSeat> value) { seats = value == null ? new ArrayList<>() : value; }
     private String clean(String value) { return value == null ? null : value.trim(); }
 }

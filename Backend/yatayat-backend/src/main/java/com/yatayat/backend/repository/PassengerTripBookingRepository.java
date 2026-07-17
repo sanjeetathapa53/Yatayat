@@ -9,10 +9,10 @@ import java.util.Optional;
 public interface PassengerTripBookingRepository extends JpaRepository<PassengerTripBooking, Long> {
     boolean existsByBookingReference(String bookingReference);
 
-    @EntityGraph(attributePaths = {"scheduledTrip", "scheduledTrip.route", "scheduledTrip.operator", "scheduledTrip.bus"})
+    @EntityGraph(attributePaths = {"scheduledTrip", "scheduledTrip.route", "scheduledTrip.operator", "scheduledTrip.bus", "seats"})
     List<PassengerTripBooking> findByPassengerOrderByBookedAtDesc(User passenger);
 
-    @EntityGraph(attributePaths = {"scheduledTrip", "scheduledTrip.route", "scheduledTrip.operator", "scheduledTrip.bus"})
+    @EntityGraph(attributePaths = {"scheduledTrip", "scheduledTrip.route", "scheduledTrip.operator", "scheduledTrip.bus", "seats"})
     Optional<PassengerTripBooking> findByBookingReferenceAndPassenger(String reference, User passenger);
 
     @Query("""
