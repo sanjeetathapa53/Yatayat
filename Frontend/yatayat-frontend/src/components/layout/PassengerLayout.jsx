@@ -52,9 +52,9 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
       path: "/passenger/dashboard",
     },
     {
-      label: "Routes",
+      label: "Find Trips",
       icon: <Route size={20} />,
-      path: "/routes",
+      path: "/passenger/trips",
     },
     {
       label: "Wallet",
@@ -64,7 +64,7 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
     {
       label: "Out-of-Valley",
       icon: <Bus size={20} />,
-      path: "/book-ticket",
+      path: "/passenger/trips",
     },
     {
       label: "My Bookings",

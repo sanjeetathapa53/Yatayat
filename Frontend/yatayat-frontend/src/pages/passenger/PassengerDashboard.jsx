@@ -99,7 +99,7 @@ useEffect(() => {
               icon={<Bus size={26} />}
               title="Book Ticket"
               desc="Out-of-Valley"
-              onClick={() => navigate("/book-ticket")}
+              onClick={() => navigate("/passenger/trips")}
             />
 
             <ActionCard
@@ -233,7 +233,7 @@ useEffect(() => {
             </div>
 
             <button
-              onClick={() => navigate("/routes")}
+              onClick={() => navigate("/passenger/trips")}
               className="mt-6 w-full rounded-xl border-2 border-[#08264a] py-3 text-sm font-black uppercase transition hover:bg-[#08264a] hover:text-white"
             >
               Plan New Journey
