@@ -11,7 +11,6 @@ import FarePassPage from "./pages/passenger/FarePassPage";
 import WalletPage from "./pages/passenger/WalletPage";
 import NotificationsPage from "./pages/passenger/NotificationsPage";
 import ProfilePage from "./pages/passenger/ProfilePage";
-import BookTicketPage from "./pages/passenger/ookTicketPage";
 import SeatSelectionPage from "./pages/passenger/SeatSelectionPage";
 import BookingSummaryPage from "./pages/passenger/BookingSummaryPage";
 import PaymentPage from "./pages/passenger/PaymentPage";
@@ -19,6 +18,8 @@ import TicketPage from "./pages/passenger/TicketPage";
 import MyBookingsPage from "./pages/passenger/MyBookingsPage";
 import HistoryPage from "./pages/passenger/HistoryPage";
 import SettingsPage from "./pages/passenger/SettingsPage";
+import PassengerTripSearchPage from "./pages/passenger/PassengerTripSearchPage";
+import PassengerTripDetailsPage from "./pages/passenger/PassengerTripDetailsPage";
 
 import DriverApplicationPage from "./pages/driver/DriverApplicationPage";
 import DriverApplicationStatusPage from "./pages/driver/DriverApplicationStatusPage";
@@ -133,10 +134,13 @@ export default function App() {
           path="/book-ticket"
           element={
             <ProtectedRoute allowedRole="PASSENGER">
-              <BookTicketPage />
+              <PassengerTripSearchPage />
             </ProtectedRoute>
           }
         />
+
+        <Route path="/passenger/trips" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerTripSearchPage /></ProtectedRoute>} />
+        <Route path="/passenger/trips/:tripId" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerTripDetailsPage /></ProtectedRoute>} />
 
         <Route
           path="/seat-selection"
