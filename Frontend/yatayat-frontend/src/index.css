@@ -5,6 +5,81 @@
 
 body {
   font-family: "Inter", sans-serif;
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
+  text-size-adjust: 100%;
+}
+
+#root {
+  min-width: 0;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+  min-width: 0;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+.responsive-shell,
+.responsive-shell * {
+  min-width: 0;
+}
+
+.safe-wrap {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.tap-target {
+  min-height: 44px;
+}
+
+.responsive-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.responsive-modal-backdrop {
+  align-items: flex-start;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.responsive-modal-panel {
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.qr-responsive svg {
+  height: auto;
+  width: min(100%, 230px);
+}
+
+#driver-qr-reader,
+#driver-qr-reader video,
+#driver-qr-reader canvas {
+  max-width: 100% !important;
+  border-radius: 1rem;
 }
 
 html[lang="ne"] body {
@@ -86,6 +161,18 @@ html[lang="ne"] body {
 }
 
 @media (max-width: 640px) {
+  h1 {
+    line-height: 1.12;
+  }
+
+  .mobile-action-stack {
+    flex-direction: column;
+  }
+
+  .mobile-action-stack > * {
+    width: 100%;
+  }
+
   .yatayat-modal-panel {
     animation: yatayat-sheet-in 220ms ease-out;
     max-height: 92vh;

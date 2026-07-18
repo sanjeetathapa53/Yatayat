@@ -177,8 +177,8 @@ export default function DriverScannerPage() {
             </div>
 
             <div className="p-5">
-              <div className="min-h-80 overflow-hidden rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 p-4">
-                <div id={scannerRegionId} className="overflow-hidden rounded-2xl" />
+              <div className="min-h-72 overflow-hidden rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 p-3 sm:min-h-80 sm:p-4">
+                <div id={scannerRegionId} className="mx-auto max-w-full overflow-hidden rounded-2xl" />
                 {cameraState !== "scanning" && (
                   <div className="flex min-h-72 flex-col items-center justify-center text-center">
                     {cameraState === "permission" || cameraState === "validating" ? (
@@ -244,7 +244,7 @@ export default function DriverScannerPage() {
                     if (manualError) setManualError("");
                   }}
                   rows={7}
-                  className="mt-4 w-full rounded-2xl border border-slate-300 bg-slate-50 p-4 text-sm font-semibold text-slate-700 outline-none transition focus:border-[#08264a] focus:bg-white focus:ring-4 focus:ring-blue-100"
+                  className="mt-4 min-h-40 w-full resize-y rounded-2xl border border-slate-300 bg-slate-50 p-4 font-mono text-sm font-semibold text-slate-700 outline-none transition focus:border-[#08264a] focus:bg-white focus:ring-4 focus:ring-blue-100"
                   placeholder={`{
   "version": 1,
   "ticketNumber": "YT-TKT-20260718-53024F",
@@ -359,7 +359,7 @@ function RecentScans({ scans }) {
         ) : scans.map((scan, index) => (
           <div key={`${scan.time}-${index}`} className="rounded-2xl bg-slate-50 p-4">
             <div className="flex items-center justify-between gap-3">
-              <p className="font-black text-slate-900">{scan.ticketNumber || readableResult(scan.result)}</p>
+              <p className="safe-wrap font-black text-slate-900">{scan.ticketNumber || readableResult(scan.result)}</p>
               <span className={`text-xs font-black ${scan.result === "VALID" ? "text-emerald-700" : "text-red-600"}`}>{scan.result}</span>
             </div>
             <p className="mt-1 text-xs text-slate-500">{scan.time} · {scan.source}</p>

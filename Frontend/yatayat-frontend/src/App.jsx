@@ -70,8 +70,8 @@ import "react-toastify/dist/ReactToastify.css";
 
 function Page({ title }) {
   return (
-    <div className="min-h-screen bg-slate-100 pt-28 text-center">
-      <h1 className="text-4xl font-black text-[#08264a]">{title}</h1>
+    <div className="min-h-screen bg-slate-100 px-4 pt-28 text-center">
+      <h1 className="safe-wrap text-3xl font-black text-[#08264a] sm:text-4xl">{title}</h1>
     </div>
   );
 }

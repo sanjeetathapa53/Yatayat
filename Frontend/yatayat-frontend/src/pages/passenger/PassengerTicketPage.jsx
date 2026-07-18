@@ -73,19 +73,19 @@ export default function PassengerTicketPage() {
     <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm font-black text-[#08264a]"><ArrowLeft size={17} /> Back</button>
     {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin text-[#08264a]" size={42} /></div> : error ? <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center"><h1 className="text-2xl font-black text-red-800">Unable to load your ticket.</h1><p className="mt-2 font-semibold text-red-600">{error}</p><button onClick={() => navigate("/passenger/bookings")} className="mt-5 rounded-xl bg-[#08264a] px-6 py-3 font-black text-white">My Bookings</button></div> : ticket && <>
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-blue-950/10">
-        <div className="bg-[#08264a] p-7 text-white">
+        <div className="bg-[#08264a] p-5 text-white sm:p-7">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.25em] text-blue-200">Yatayat</p>
-              <h1 className="mt-2 text-3xl font-black">Electronic Bus Ticket</h1>
+              <h1 className="mt-2 text-2xl font-black sm:text-3xl">Electronic Bus Ticket</h1>
               <p className="mt-2 text-blue-100">Present this QR code to the driver before boarding.</p>
             </div>
             <span className="rounded-full bg-emerald-400/20 px-4 py-2 text-xs font-black text-emerald-100">{ticket.ticketStatus}</span>
           </div>
         </div>
-        <div className="grid gap-8 p-6 lg:grid-cols-[0.95fr_1.25fr]">
-          <div className="rounded-[1.75rem] border border-slate-100 bg-slate-50 p-6 text-center">
-            <div className="mx-auto inline-block rounded-3xl bg-white p-4 shadow-xl shadow-slate-950/10">
+        <div className="grid gap-6 p-4 sm:p-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.25fr)] lg:gap-8">
+          <div className="rounded-[1.75rem] border border-slate-100 bg-slate-50 p-4 text-center sm:p-6">
+            <div className="qr-responsive mx-auto inline-block rounded-3xl bg-white p-3 shadow-xl shadow-slate-950/10 sm:p-4">
               <QRCodeSVG value={ticket.qrPayload || ""} size={230} level="M" includeMargin />
             </div>
             <p className="mt-5 text-xs font-black uppercase tracking-wide text-slate-500">Ticket Number</p>
@@ -131,5 +131,5 @@ function TicketInfo({ icon, label, value }) {
 }
 
 function ActionButton({ icon, children, ...props }) {
-  return <button {...props} className="flex items-center justify-center gap-2 rounded-2xl bg-[#08264a] px-5 py-3 font-black text-white shadow-lg shadow-blue-950/10 transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60">{icon}{children}</button>;
+  return <button {...props} className="tap-target flex items-center justify-center gap-2 rounded-2xl bg-[#08264a] px-5 py-3 text-center font-black text-white shadow-lg shadow-blue-950/10 transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60">{icon}{children}</button>;
 }

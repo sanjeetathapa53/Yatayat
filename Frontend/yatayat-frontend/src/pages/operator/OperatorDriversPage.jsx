@@ -51,8 +51,14 @@ export default function OperatorDriversPage() {
     return () => { active = false; };
   }, [navigate]);
 
-  const activeDrivers = useMemo(() => associations.filter((item) => item.associationStatus === "ACTIVE"), [associations]);
-  const invitations = useMemo(() => associations.filter((item) => item.associationStatus !== "ACTIVE"), [associations]);
+  const activeDrivers = useMemo(
+    () => associations.filter((item) => item.associationStatus === "ACTIVE"),
+    [associations]
+  );
+  const invitations = useMemo(
+    () => associations.filter((item) => item.associationStatus !== "ACTIVE"),
+    [associations]
+  );
 
   const searchDrivers = async (event) => {
     event?.preventDefault();
@@ -90,26 +96,147 @@ export default function OperatorDriversPage() {
     }
   };
 
-  return <OperatorLayout><div className="space-y-7">
-    <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><h1 className="text-3xl font-black">Manage Drivers</h1><p className="mt-1 text-sm text-slate-500">Invite approved drivers and view current associations.</p></div><button type="button" onClick={() => setShowSearch(true)} className="flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 font-black text-white"><UserPlus size={18} /> Find Driver</button></div>
-    {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
-    {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 size={40} className="animate-spin" /></div> : <>
-      <Section title="Associated Drivers" icon={<Users />} empty="No active drivers are associated with your organization.">{activeDrivers.map((item) => <DriverCard key={item.associationId} item={item} />)}</Section>
-      <Section title="Invitation History" icon={<Mail />} empty="No driver invitations have been sent.">{invitations.map((item) => <DriverCard key={item.associationId} item={item} />)}</Section>
-      <button type="button" onClick={loadAssociations} className="flex items-center gap-2 text-sm font-black"><RefreshCw size={16} /> Refresh</button>
-    </>}
-  </div>
+  return (
+    <OperatorLayout>
+      <div className="space-y-7">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-black sm:text-3xl">Manage Drivers</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Invite approved drivers and view current associations.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowSearch(true)}
+            className="tap-target flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 font-black text-white"
+          >
+            <UserPlus size={18} /> Find Driver
+          </button>
+        </div>
 
-  {showSearch && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl"><div className="flex items-center justify-between"><div><h2 className="text-2xl font-black">Find approved driver</h2><p className="mt-1 text-sm text-slate-500">Search by name, email, phone or licence number.</p></div><button type="button" onClick={() => setShowSearch(false)} className="rounded-lg p-2 hover:bg-slate-100"><X /></button></div><form onSubmit={searchDrivers} className="mt-5 flex gap-3"><div className="flex flex-1 items-center gap-2 rounded-xl border border-slate-300 px-4"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} className="w-full py-3 outline-none" placeholder="Search drivers" /></div><button type="submit" disabled={searching} className="rounded-xl bg-[#08264a] px-5 font-black text-white">{searching ? <Loader2 className="animate-spin" /> : "Search"}</button></form><div className="mt-5 space-y-3">{results.length === 0 ? <p className="rounded-xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">Search to find approved, available drivers.</p> : results.map((driver) => <div key={driver.driverId} className="flex flex-col justify-between gap-3 rounded-2xl border border-slate-200 p-4 sm:flex-row sm:items-center"><div><p className="font-black">{driver.fullName}</p><p className="mt-1 text-sm text-slate-500">{driver.email} · {driver.licenseNumber}</p></div><button type="button" disabled={inviting === driver.driverId} onClick={() => invite(driver)} className="flex items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 py-2 font-black text-[#08264a] disabled:opacity-50">{inviting === driver.driverId && <Loader2 size={16} className="animate-spin" />} Invite</button></div>)}</div></div></div>}
-  </OperatorLayout>;
+        {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
+
+        {loading ? (
+          <div className="flex min-h-72 items-center justify-center"><Loader2 size={40} className="animate-spin" /></div>
+        ) : (
+          <>
+            <Section title="Associated Drivers" icon={<Users />} empty="No active drivers are associated with your organization.">
+              {activeDrivers.map((item) => <DriverCard key={item.associationId} item={item} />)}
+            </Section>
+            <Section title="Invitation History" icon={<Mail />} empty="No driver invitations have been sent.">
+              {invitations.map((item) => <DriverCard key={item.associationId} item={item} />)}
+            </Section>
+            <button type="button" onClick={loadAssociations} className="tap-target flex items-center gap-2 text-sm font-black">
+              <RefreshCw size={16} /> Refresh
+            </button>
+          </>
+        )}
+      </div>
+
+      {showSearch && (
+        <DriverSearchModal
+          query={query}
+          setQuery={setQuery}
+          results={results}
+          searching={searching}
+          inviting={inviting}
+          onSearch={searchDrivers}
+          onInvite={invite}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+    </OperatorLayout>
+  );
+}
+
+function DriverSearchModal({ query, setQuery, results, searching, inviting, onSearch, onInvite, onClose }) {
+  return (
+    <div className="responsive-modal-backdrop fixed inset-0 z-50 flex justify-center bg-black/50 sm:items-center">
+      <div className="responsive-modal-panel w-full max-w-2xl rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <h2 className="text-xl font-black sm:text-2xl">Find approved driver</h2>
+            <p className="mt-1 text-sm text-slate-500">Search by name, email, phone or licence number.</p>
+          </div>
+          <button type="button" aria-label="Close driver search" onClick={onClose} className="rounded-lg p-2 hover:bg-slate-100">
+            <X />
+          </button>
+        </div>
+        <form onSubmit={onSearch} className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <div className="flex flex-1 items-center gap-2 rounded-xl border border-slate-300 px-4">
+            <Search size={18} />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              className="w-full min-w-0 py-3 outline-none"
+              placeholder="Search drivers"
+            />
+          </div>
+          <button type="submit" disabled={searching} className="tap-target rounded-xl bg-[#08264a] px-5 font-black text-white">
+            {searching ? <Loader2 className="animate-spin" /> : "Search"}
+          </button>
+        </form>
+        <div className="mt-5 space-y-3">
+          {results.length === 0 ? (
+            <p className="rounded-xl bg-slate-50 p-6 text-center text-sm font-bold text-slate-500">
+              Search to find approved, available drivers.
+            </p>
+          ) : results.map((driver) => (
+            <div key={driver.driverId} className="flex flex-col justify-between gap-3 rounded-2xl border border-slate-200 p-4 sm:flex-row sm:items-center">
+              <div className="min-w-0">
+                <p className="safe-wrap font-black">{driver.fullName}</p>
+                <p className="safe-wrap mt-1 text-sm text-slate-500">{driver.email} · {driver.licenseNumber}</p>
+              </div>
+              <button
+                type="button"
+                disabled={inviting === driver.driverId}
+                onClick={() => onInvite(driver)}
+                className="tap-target flex items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 py-2 font-black text-[#08264a] disabled:opacity-50"
+              >
+                {inviting === driver.driverId && <Loader2 size={16} className="animate-spin" />}
+                Invite
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function Section({ title, icon, empty, children }) {
   const items = Array.isArray(children) ? children : [children].filter(Boolean);
-  return <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-center gap-3"><span className="text-[#08264a]">{icon}</span><h2 className="text-xl font-black">{title}</h2></div><div className="mt-5 grid gap-4 lg:grid-cols-2">{items.length ? items : <p className="rounded-2xl bg-slate-50 p-8 text-center font-bold text-slate-500 lg:col-span-2">{empty}</p>}</div></section>;
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex items-center gap-3">
+        <span className="text-[#08264a]">{icon}</span>
+        <h2 className="text-xl font-black">{title}</h2>
+      </div>
+      <div className="mt-5 grid gap-4 lg:grid-cols-2">
+        {items.length ? items : <p className="rounded-2xl bg-slate-50 p-8 text-center font-bold text-slate-500 lg:col-span-2">{empty}</p>}
+      </div>
+    </section>
+  );
 }
 
 function DriverCard({ item }) {
   const tones = { ACTIVE: "bg-emerald-100 text-emerald-700", PENDING: "bg-amber-100 text-amber-700", REJECTED: "bg-red-100 text-red-700" };
-  return <article className="rounded-2xl border border-slate-200 p-5"><div className="flex items-start justify-between gap-3"><div><h3 className="font-black text-slate-900">{item.driverName}</h3><p className="mt-1 text-sm text-slate-500">{item.driverEmail}</p></div><span className={`rounded-full px-3 py-1 text-xs font-black ${tones[item.associationStatus]}`}>{item.associationStatus}</span></div><div className="mt-4 grid grid-cols-2 gap-2 text-sm"><p>Licence: <b>{item.licenseNumber}</b></p><p>Invited: <b>{new Date(item.invitedAt).toLocaleDateString()}</b></p></div></article>;
+  return (
+    <article className="rounded-2xl border border-slate-200 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="safe-wrap font-black text-slate-900">{item.driverName}</h3>
+          <p className="safe-wrap mt-1 text-sm text-slate-500">{item.driverEmail}</p>
+        </div>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${tones[item.associationStatus]}`}>
+          {item.associationStatus}
+        </span>
+      </div>
+      <div className="mt-4 grid gap-2 text-sm sm:grid-cols-2">
+        <p className="safe-wrap">Licence: <b>{item.licenseNumber}</b></p>
+        <p>Invited: <b>{new Date(item.invitedAt).toLocaleDateString()}</b></p>
+      </div>
+    </article>
+  );
 }
