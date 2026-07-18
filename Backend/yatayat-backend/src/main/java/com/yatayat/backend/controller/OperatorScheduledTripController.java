@@ -3,6 +3,7 @@ package com.yatayat.backend.controller;
 import com.yatayat.backend.dto.*;
 import com.yatayat.backend.entity.TripStatus;
 import com.yatayat.backend.service.ScheduledTripService;
+import com.yatayat.backend.service.TripOperationService;
 import org.springframework.http.*;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.core.Authentication;
@@ -18,14 +19,27 @@ import java.util.Map;
 public class OperatorScheduledTripController {
 
     private final ScheduledTripService tripService;
+    private final TripOperationService tripOperationService;
 
-    public OperatorScheduledTripController(ScheduledTripService tripService) {
+    public OperatorScheduledTripController(ScheduledTripService tripService,
+                                           TripOperationService tripOperationService) {
         this.tripService = tripService;
+        this.tripOperationService = tripOperationService;
     }
 
     @GetMapping("/eligibility")
     public TripEligibilityResponse eligibility(Authentication authentication) {
         return tripService.getEligibility(authentication.getName());
+    }
+
+    @GetMapping("/eligible-buses")
+    public List<BusEligibilityResponse> eligibleBuses(Authentication authentication) {
+        return tripService.getEligibleBuses(authentication.getName());
+    }
+
+    @GetMapping("/eligible-drivers")
+    public List<DriverEligibilityResponse> eligibleDrivers(Authentication authentication) {
+        return tripService.getEligibleDrivers(authentication.getName());
     }
 
     @PostMapping
@@ -47,6 +61,11 @@ public class OperatorScheduledTripController {
         return tripService.list(authentication.getName(), status, from, to);
     }
 
+    @GetMapping("/live")
+    public List<OperatorLiveTripResponse> live(Authentication authentication) {
+        return tripOperationService.operatorLiveTrips(authentication.getName());
+    }
+
     @GetMapping("/{tripId}")
     public TripResponse get(Authentication authentication, @PathVariable Long tripId) {
         return tripService.get(authentication.getName(), tripId);
@@ -59,6 +78,15 @@ public class OperatorScheduledTripController {
             @RequestBody TripUpdateRequest request
     ) {
         return tripService.update(authentication.getName(), tripId, request);
+    }
+
+    @PutMapping("/{tripId}/assignment")
+    public TripResponse assignment(
+            Authentication authentication,
+            @PathVariable Long tripId,
+            @RequestBody TripAssignmentRequest request
+    ) {
+        return tripService.assign(authentication.getName(), tripId, request);
     }
 
     @PostMapping("/{tripId}/cancel")

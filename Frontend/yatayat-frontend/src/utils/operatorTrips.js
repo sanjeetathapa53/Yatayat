@@ -14,6 +14,18 @@ export async function tripRequest(path, options = {}) {
   return data;
 }
 
+export const getOperatorLiveTrips = () => tripRequest("/api/operator/trips/live");
+
+export const assignOperatorTrip = (tripId, assignment) =>
+  tripRequest(`/api/operator/trips/${tripId}/assignment`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      busId: Number(assignment.busId),
+      driverId: Number(assignment.driverId),
+    }),
+  });
+
 export function handleOperatorAccess(error, navigate) {
   if (error.status === 401) {
     navigate("/login", { replace: true });

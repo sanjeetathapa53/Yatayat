@@ -53,6 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         AdminOperatorController.class,
         AdminAuthController.class,
         DriverTicketController.class,
+        DriverTripOperationController.class,
         AuthController.class
 })
 @Import({SecurityConfig.class, AuthenticatedUserService.class, SessionLogoutService.class})
@@ -84,6 +85,8 @@ class EndpointSecurityIntegrationTests {
     private DriverOperatorAssociationService associationService;
     @MockitoBean
     private DriverTicketValidationService driverTicketValidationService;
+    @MockitoBean
+    private TripOperationService tripOperationService;
     @MockitoBean
     private OperatorApplicationService operatorApplicationService;
     @MockitoBean
@@ -276,6 +279,13 @@ class EndpointSecurityIntegrationTests {
     }
 
     @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotStartDriverTrip() throws Exception {
+        mockMvc.perform(post("/api/driver/trips/50/start"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "OPERATOR")
     void operatorCannotValidateDriverTicket() throws Exception {
         mockMvc.perform(post("/api/driver/tickets/validate")
@@ -285,11 +295,25 @@ class EndpointSecurityIntegrationTests {
     }
 
     @Test
+    @WithMockUser(roles = "OPERATOR")
+    void operatorCannotStartDriverTrip() throws Exception {
+        mockMvc.perform(post("/api/driver/trips/50/start"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void adminCannotValidateDriverTicket() throws Exception {
         mockMvc.perform(post("/api/driver/tickets/validate")
                         .contentType("application/json")
                         .content("{\"qrPayload\":\"{}\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCannotStartDriverTrip() throws Exception {
+        mockMvc.perform(post("/api/driver/trips/50/start"))
                 .andExpect(status().isForbidden());
     }
 
@@ -304,6 +328,12 @@ class EndpointSecurityIntegrationTests {
         mockMvc.perform(post("/api/driver/tickets/validate")
                         .contentType("application/json")
                         .content("{\"qrPayload\":\"{}\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void anonymousUserIsDeniedFromDriverTripStartEndpoint() throws Exception {
+        mockMvc.perform(post("/api/driver/trips/50/start"))
                 .andExpect(status().isUnauthorized());
     }
 

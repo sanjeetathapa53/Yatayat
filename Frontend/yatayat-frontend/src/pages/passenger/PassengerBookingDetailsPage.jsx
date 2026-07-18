@@ -28,6 +28,7 @@ import {
   payPassengerBookingWithWallet,
 } from "../../utils/passengerBookings";
 import { getTicketByBooking } from "../../utils/passengerTickets";
+import { tripStatusLabel, tripStatusTone } from "../../utils/driverTrips";
 
 const PAYMENT_STEPS = {
   SUMMARY: "summary",
@@ -141,6 +142,7 @@ export default function PassengerBookingDetailsPage() {
     ["Phone", booking.passengerPhone],
     ["Route", `${booking.routeCode} - ${booking.routeName}`],
     ["Trip type", booking.tripType === "LOCAL" ? "Local" : "Outside Valley"],
+    ["Trip status", tripStatusLabel(booking.tripStatus)],
     ["Journey", `${booking.origin} to ${booking.destination}`],
     ["Operator", booking.operatorName],
     ["Bus", booking.busNumber],
@@ -157,6 +159,8 @@ export default function PassengerBookingDetailsPage() {
     ["Booked at", formatBookingDate(booking.bookedAt)],
     ["Cancelled at", booking.cancelledAt ? formatBookingDate(booking.cancelledAt) : "Not cancelled"],
     ["Boarding notes", booking.boardingNotes || "No boarding notes provided"],
+    ["Trip started at", formatBookingDate(booking.actualDepartureAt)],
+    ["Trip completed at", formatBookingDate(booking.actualArrivalAt)],
   ] : [];
 
   const closePaymentFlow = () => {
@@ -232,6 +236,15 @@ export default function PassengerBookingDetailsPage() {
           <Status value={booking.bookingStatus} />
         </div>
       </header>
+      {booking.tripStatus && <div className="flex flex-col gap-3 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Trip Status</p>
+          <p className="mt-1 text-lg font-black text-slate-900">{tripStatusLabel(booking.tripStatus)}</p>
+        </div>
+        <span className={`self-start rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${tripStatusTone(booking.tripStatus)}`}>
+          {booking.tripStatus === "COMPLETED" ? "Trip Completed" : tripStatusLabel(booking.tripStatus)}
+        </span>
+      </div>}
       {pendingPayment && <PaymentPanel booking={booking} walletBalance={walletBalance} walletError={walletError} pinStatus={pinStatus} remainingSeconds={remainingSeconds} insufficientBalance={insufficientBalance} paying={paying} onPay={openSummary} />}
       {booking.bookingStatus === "CONFIRMED" && <div className="flex flex-col gap-4 rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5 text-emerald-900 shadow-sm sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2 font-black"><CheckCircle2 size={20} /> Booking confirmed</div><p className="mt-2 text-sm">Wallet payment is recorded and your selected seats are confirmed.</p></div><button disabled={ticketLoading || !ticketNumber} onClick={() => navigate(`/passenger/tickets/${ticketNumber}`)} className="rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-600/20 disabled:cursor-not-allowed disabled:opacity-60">{ticketLoading ? "Preparing Ticket..." : "View Ticket"}</button></div>}
       <section className="grid grid-cols-1 gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">{rows.map(([label, value]) => <div key={label} className="rounded-2xl bg-slate-50 p-4 transition hover:bg-slate-100"><p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><p className="mt-2 break-words font-bold text-slate-800">{value}</p></div>)}</section>

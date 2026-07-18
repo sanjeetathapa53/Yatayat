@@ -14,6 +14,38 @@ public interface ScheduledTripRepository extends JpaRepository<ScheduledTrip, Lo
     List<ScheduledTrip> findByOperatorOrderByDepartureAtDesc(TransportOperator operator);
     Optional<ScheduledTrip> findByIdAndOperator(Long id, TransportOperator operator);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
+    @Query("""
+            select trip from ScheduledTrip trip
+            where trip.id = :tripId
+            """)
+    Optional<ScheduledTrip> findByIdForOperation(@Param("tripId") Long tripId);
+
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
+    @Query("""
+            select trip from ScheduledTrip trip
+            where trip.driver = :driver
+              and trip.status in :statuses
+            order by trip.departureAt asc
+            """)
+    List<ScheduledTrip> findDriverOperationalTrips(
+            @Param("driver") DriverProfile driver,
+            @Param("statuses") List<TripStatus> statuses
+    );
+
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
+    @Query("""
+            select trip from ScheduledTrip trip
+            where trip.operator = :operator
+              and trip.status in :statuses
+            order by trip.departureAt asc
+            """)
+    List<ScheduledTrip> findOperatorLiveTrips(
+            @Param("operator") TransportOperator operator,
+            @Param("statuses") List<TripStatus> statuses
+    );
+
     @EntityGraph(attributePaths = {"route", "operator", "bus", "driver"})
     @Query("""
             select distinct trip from ScheduledTrip trip
@@ -86,7 +118,11 @@ public interface ScheduledTripRepository extends JpaRepository<ScheduledTrip, Lo
     @Query("""
             select trip from ScheduledTrip trip
             where trip.bus = :bus
-              and trip.status <> com.yatayat.backend.entity.TripStatus.CANCELLED
+              and trip.status in (
+                  com.yatayat.backend.entity.TripStatus.SCHEDULED,
+                  com.yatayat.backend.entity.TripStatus.BOARDING,
+                  com.yatayat.backend.entity.TripStatus.IN_PROGRESS
+              )
               and trip.departureAt < :arrival
               and trip.estimatedArrivalAt > :departure
               and (:excludedId is null or trip.id <> :excludedId)
@@ -102,7 +138,11 @@ public interface ScheduledTripRepository extends JpaRepository<ScheduledTrip, Lo
     @Query("""
             select trip from ScheduledTrip trip
             where trip.driver = :driver
-              and trip.status <> com.yatayat.backend.entity.TripStatus.CANCELLED
+              and trip.status in (
+                  com.yatayat.backend.entity.TripStatus.SCHEDULED,
+                  com.yatayat.backend.entity.TripStatus.BOARDING,
+                  com.yatayat.backend.entity.TripStatus.IN_PROGRESS
+              )
               and trip.departureAt < :arrival
               and trip.estimatedArrivalAt > :departure
               and (:excludedId is null or trip.id <> :excludedId)

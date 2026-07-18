@@ -25,6 +25,9 @@ public record TripResponse(
         String boardingNotes,
         String cancellationReason,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        long confirmedPassengers,
+        long boardedPassengers,
+        boolean assignmentComplete
 ) {
 }

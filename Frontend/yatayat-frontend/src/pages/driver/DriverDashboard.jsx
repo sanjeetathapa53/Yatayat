@@ -17,10 +17,12 @@ import {
   RefreshCw,
   ShieldCheck,
   ContactRound,
+  Users,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import DriverLayout from "../../components/layout/DriverLayout";
 import { apiFetch } from "../../utils/api";
+import { finishDriverTrip, getCurrentDriverTrip, startDriverTrip, tripStatusLabel, tripStatusTone } from "../../utils/driverTrips";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -41,6 +43,8 @@ export default function DriverProfilePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
   const [operatorAssociation, setOperatorAssociation] = useState(null);
+  const [currentTrip, setCurrentTrip] = useState(null);
+  const [operatingTrip, setOperatingTrip] = useState(false);
 
   const fetchDriverProfile = async (manualRefresh = false) => {
     if (!loggedInUser?.id) {
@@ -81,6 +85,8 @@ export default function DriverProfilePage() {
       } else if (associationResponse.status === 204) {
         setOperatorAssociation(null);
       }
+
+      setCurrentTrip(await getCurrentDriverTrip());
 
       localStorage.setItem(
         "yatayatUser",
@@ -178,6 +184,24 @@ export default function DriverProfilePage() {
 
   const isApproved = verificationStatus === "APPROVED";
 
+  const operateTrip = async (action) => {
+    if (!currentTrip?.scheduledTripId || operatingTrip) return;
+    setOperatingTrip(true);
+    setError("");
+    try {
+      const updated = action === "start"
+        ? await startDriverTrip(currentTrip.scheduledTripId)
+        : await finishDriverTrip(currentTrip.scheduledTripId);
+      setCurrentTrip(updated);
+      toast.success(action === "start" ? "Trip started." : "Trip completed.");
+    } catch (operationError) {
+      setError(operationError.message || "Trip operation could not be completed.");
+      toast.error(operationError.message || "Trip operation could not be completed.");
+    } finally {
+      setOperatingTrip(false);
+    }
+  };
+
   return (
     <DriverLayout activePage="Profile">
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -220,6 +244,53 @@ export default function DriverProfilePage() {
       <section className={`mb-6 rounded-3xl border p-6 ${operatorAssociation ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white"}`}>
         <div className="flex items-center gap-3"><Briefcase size={22} /><h2 className="text-xl font-black">Associated Operator</h2></div>
         {operatorAssociation ? <><p className="mt-4 text-2xl font-black text-slate-900">{operatorAssociation.operatorName}</p><p className="mt-1 text-sm text-slate-600">{operatorAssociation.operatorEmail} · {operatorAssociation.operatorPhone}</p></> : <p className="mt-4 text-sm font-bold text-slate-500">You do not have an active operator association.</p>}
+      </section>
+
+      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Live trip operations</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-900">
+              {currentTrip ? `${currentTrip.origin} to ${currentTrip.destination}` : "No active assignment"}
+            </h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">
+              {currentTrip ? `${currentTrip.busNumber} • ${currentTrip.operatorName}` : "Assigned scheduled trips will appear here."}
+            </p>
+          </div>
+          {currentTrip && (
+            <span className={`self-start rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${tripStatusTone(currentTrip.status)}`}>
+              {tripStatusLabel(currentTrip.status)}
+            </span>
+          )}
+        </div>
+        {currentTrip ? (
+          <>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <InformationCard icon={<CalendarDays size={19} />} label="Departure" value={formatDateTime(currentTrip.departureAt)} />
+              <InformationCard icon={<MapPin size={19} />} label="Estimated arrival" value={formatDateTime(currentTrip.estimatedArrivalAt)} />
+              <InformationCard icon={<CheckCircle2 size={19} />} label="Boarded" value={`${currentTrip.boardedPassengers || 0}/${currentTrip.confirmedPassengers || 0}`} />
+              <InformationCard icon={<Users size={19} />} label="Remaining" value={`${currentTrip.remainingPassengers || 0} passenger(s)`} />
+              <InformationCard icon={<CalendarDays size={19} />} label="Started at" value={formatDateTime(currentTrip.startedAt)} />
+              <InformationCard icon={<CalendarDays size={19} />} label="Ended at" value={formatDateTime(currentTrip.endedAt)} />
+            </div>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              {currentTrip.status === "SCHEDULED" && (
+                <button type="button" disabled={operatingTrip} onClick={() => operateTrip("start")} className="rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-600/20 disabled:cursor-not-allowed disabled:opacity-60">
+                  {operatingTrip ? "Starting..." : "Start Trip"}
+                </button>
+              )}
+              {["BOARDING", "IN_PROGRESS"].includes(currentTrip.status) && (
+                <button type="button" disabled={operatingTrip} onClick={() => operateTrip("finish")} className="rounded-2xl bg-[#08264a] px-5 py-3 font-black text-white shadow-lg shadow-blue-950/20 disabled:cursor-not-allowed disabled:opacity-60">
+                  {operatingTrip ? "Finishing..." : "Finish Trip"}
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="mt-5 rounded-2xl bg-slate-50 p-5 text-sm font-bold text-slate-500">
+            No scheduled, boarding, or on-the-way trip is currently assigned to you.
+          </p>
+        )}
       </section>
 
       {/* PROFILE HEADER */}
@@ -700,6 +771,13 @@ function formatDate(value) {
     month: "short",
     day: "numeric",
   });
+}
+
+function formatDateTime(value) {
+  if (!value) return "Not available";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("en-NP", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 function formatVerificationStatus(status) {

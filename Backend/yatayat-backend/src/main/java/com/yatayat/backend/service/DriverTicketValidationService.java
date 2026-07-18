@@ -19,7 +19,7 @@ import java.util.List;
 @Service
 public class DriverTicketValidationService {
     private static final List<TripStatus> BOARDABLE_TRIP_STATUSES =
-            List.of(TripStatus.SCHEDULED, TripStatus.BOARDING);
+            List.of(TripStatus.SCHEDULED, TripStatus.BOARDING, TripStatus.IN_PROGRESS);
 
     private final ObjectMapper objectMapper;
     private final UserRepository userRepository;

@@ -22,6 +22,8 @@ public class ScheduledTripService {
     private final DriverProfileRepository driverRepository;
     private final DriverOperatorAssociationRepository associationRepository;
     private final ScheduledTripRepository tripRepository;
+    private final PassengerTripBookingRepository bookingRepository;
+    private final TicketRepository ticketRepository;
 
     public ScheduledTripService(
             UserRepository userRepository,
@@ -30,7 +32,9 @@ public class ScheduledTripService {
             BusRepository busRepository,
             DriverProfileRepository driverRepository,
             DriverOperatorAssociationRepository associationRepository,
-            ScheduledTripRepository tripRepository
+            ScheduledTripRepository tripRepository,
+            PassengerTripBookingRepository bookingRepository,
+            TicketRepository ticketRepository
     ) {
         this.userRepository = userRepository;
         this.operatorRepository = operatorRepository;
@@ -39,6 +43,8 @@ public class ScheduledTripService {
         this.driverRepository = driverRepository;
         this.associationRepository = associationRepository;
         this.tripRepository = tripRepository;
+        this.bookingRepository = bookingRepository;
+        this.ticketRepository = ticketRepository;
     }
 
     public TripEligibilityResponse getEligibility(String email) {
@@ -53,28 +59,18 @@ public class ScheduledTripService {
                         route.getOrigin(), route.getDestination(), route.getTripType().name()
                 )).toList();
 
-        List<BusEligibilityResponse> buses = busRepository
-                .findByOperatorOrderByCreatedAtDesc(operator).stream()
-                .filter(Bus::isOperationallyValid)
-                .map(bus -> new BusEligibilityResponse(
-                        bus.getId(), bus.getBusNumber(), bus.getBusName(),
-                        bus.getBusType(), bus.getSeatCapacity()
-                )).toList();
-
-        List<DriverEligibilityResponse> drivers = associationRepository
-                .findByOperatorAndStatusOrderByInvitedAtDesc(
-                        operator, DriverOperatorAssociationStatus.ACTIVE
-                ).stream()
-                .map(DriverOperatorAssociation::getDriver)
-                .filter(DriverProfile::isApproved)
-                .filter(driver -> driver.getLicenseExpiryDate() != null &&
-                        !driver.getLicenseExpiryDate().isBefore(today))
-                .map(driver -> new DriverEligibilityResponse(
-                        driver.getId(), driver.getUser().getFullName(),
-                        driver.getLicenseNumber(), driver.getLicenseCategory()
-                )).toList();
+        List<BusEligibilityResponse> buses = eligibleBuses(operator, today);
+        List<DriverEligibilityResponse> drivers = eligibleDrivers(operator, today);
 
         return new TripEligibilityResponse(routes, buses, drivers);
+    }
+
+    public List<BusEligibilityResponse> getEligibleBuses(String email) {
+        return eligibleBuses(approvedOperator(email), LocalDate.now());
+    }
+
+    public List<DriverEligibilityResponse> getEligibleDrivers(String email) {
+        return eligibleDrivers(approvedOperator(email), LocalDate.now());
     }
 
     @Transactional
@@ -130,6 +126,7 @@ public class ScheduledTripService {
         if (trip.getStatus() != TripStatus.SCHEDULED) {
             conflict("Only scheduled trips can be edited");
         }
+        ensureNoConfirmedBookingsForEdit(trip);
         validateRequest(request == null ? null : request.routeId(),
                 request == null ? null : request.busId(),
                 request == null ? null : request.driverId(),
@@ -150,12 +147,47 @@ public class ScheduledTripService {
     }
 
     @Transactional
+    public TripResponse assign(String email, Long tripId, TripAssignmentRequest request) {
+        TransportOperator operator = approvedOperator(email);
+        ScheduledTrip trip = ownedTrip(operator, tripId);
+        if (trip.getStatus() == TripStatus.IN_PROGRESS ||
+                trip.getStatus() == TripStatus.COMPLETED ||
+                trip.getStatus() == TripStatus.CANCELLED) {
+            conflict("Assignment can be changed only before the trip is active or completed");
+        }
+        if (!trip.getDepartureAt().isAfter(LocalDateTime.now())) {
+            conflict("Assignment cannot be changed after departure time");
+        }
+        if (request == null || request.busId() == null || request.driverId() == null) {
+            badRequest("Bus and driver are required");
+        }
+
+        EligibleResources resources = eligibleResources(
+                operator, trip.getRoute().getId(), request.busId(), request.driverId(),
+                trip.getDepartureAt()
+        );
+        long confirmedSeats = confirmedSeats(trip);
+        if (resources.bus().getSeatCapacity() < confirmedSeats) {
+            conflict("Selected bus capacity is below the confirmed passenger count");
+        }
+        ensureNoOverlap(resources.bus(), resources.driver(), trip.getDepartureAt(),
+                trip.getEstimatedArrivalAt(), trip.getId());
+        trip.setBus(resources.bus());
+        trip.setDriver(resources.driver());
+        trip.setSeatCapacitySnapshot(resources.bus().getSeatCapacity());
+        return toResponse(tripRepository.saveAndFlush(trip));
+    }
+
+    @Transactional
     public TripResponse cancel(String email, Long tripId, TripCancellationRequest request) {
         TransportOperator operator = approvedOperator(email);
         ScheduledTrip trip = ownedTrip(operator, tripId);
         if (trip.getStatus() != TripStatus.SCHEDULED &&
                 trip.getStatus() != TripStatus.BOARDING) {
             conflict("Only scheduled or boarding trips can be cancelled");
+        }
+        if (confirmedSeats(trip) > 0) {
+            conflict("Trips with confirmed bookings cannot be cancelled from this screen");
         }
         String reason = request == null ? null : request.reason();
         if (reason != null && reason.trim().length() > 1000) {
@@ -164,6 +196,35 @@ public class ScheduledTripService {
         trip.setStatus(TripStatus.CANCELLED);
         trip.setCancellationReason(reason);
         return toResponse(tripRepository.saveAndFlush(trip));
+    }
+
+    private List<BusEligibilityResponse> eligibleBuses(TransportOperator operator, LocalDate tripDate) {
+        return busRepository
+                .findByOperatorOrderByCreatedAtDesc(operator).stream()
+                .filter(bus -> bus.getStatus() == BusStatus.APPROVED)
+                .filter(bus -> bus.getPermitExpiryDate() != null &&
+                        !bus.getPermitExpiryDate().isBefore(tripDate))
+                .filter(bus -> bus.getInsuranceExpiryDate() != null &&
+                        !bus.getInsuranceExpiryDate().isBefore(tripDate))
+                .map(bus -> new BusEligibilityResponse(
+                        bus.getId(), bus.getBusNumber(), bus.getBusName(),
+                        bus.getBusType(), bus.getSeatCapacity()
+                )).toList();
+    }
+
+    private List<DriverEligibilityResponse> eligibleDrivers(TransportOperator operator, LocalDate tripDate) {
+        return associationRepository
+                .findByOperatorAndStatusOrderByInvitedAtDesc(
+                        operator, DriverOperatorAssociationStatus.ACTIVE
+                ).stream()
+                .map(DriverOperatorAssociation::getDriver)
+                .filter(DriverProfile::isApproved)
+                .filter(driver -> driver.getLicenseExpiryDate() != null &&
+                        !driver.getLicenseExpiryDate().isBefore(tripDate))
+                .map(driver -> new DriverEligibilityResponse(
+                        driver.getId(), driver.getUser().getFullName(),
+                        driver.getLicenseNumber(), driver.getLicenseCategory()
+                )).toList();
     }
 
     private EligibleResources eligibleResources(
@@ -185,11 +246,11 @@ public class ScheduledTripService {
             conflict("Selected bus is not approved");
         }
         LocalDate tripDate = departureAt.toLocalDate();
-        if (bus.getPermitExpiryDate() != null &&
+        if (bus.getPermitExpiryDate() == null ||
                 bus.getPermitExpiryDate().isBefore(tripDate)) {
             conflict("Selected bus permit is not valid for the trip date");
         }
-        if (bus.getInsuranceExpiryDate() != null &&
+        if (bus.getInsuranceExpiryDate() == null ||
                 bus.getInsuranceExpiryDate().isBefore(tripDate)) {
             conflict("Selected bus insurance is not valid for the trip date");
         }
@@ -216,13 +277,15 @@ public class ScheduledTripService {
             Bus bus, DriverProfile driver, LocalDateTime departure,
             LocalDateTime arrival, Long excludedId
     ) {
-        if (!tripRepository.findBusConflictsForUpdate(
-                bus, departure, arrival, excludedId).isEmpty()) {
-            conflict("Selected bus is already scheduled during this time");
+        List<ScheduledTrip> busConflicts = tripRepository.findBusConflictsForUpdate(
+                bus, departure, arrival, excludedId);
+        if (!busConflicts.isEmpty()) {
+            conflict("BUS_SCHEDULE_CONFLICT: " + conflictSummary(busConflicts.get(0)));
         }
-        if (!tripRepository.findDriverConflictsForUpdate(
-                driver, departure, arrival, excludedId).isEmpty()) {
-            conflict("Selected driver is already scheduled during this time");
+        List<ScheduledTrip> driverConflicts = tripRepository.findDriverConflictsForUpdate(
+                driver, departure, arrival, excludedId);
+        if (!driverConflicts.isEmpty()) {
+            conflict("DRIVER_SCHEDULE_CONFLICT: " + conflictSummary(driverConflicts.get(0)));
         }
     }
 
@@ -293,7 +356,8 @@ public class ScheduledTripService {
                 trip.getRoute().getOrigin(), trip.getRoute().getDestination(),
                 trip.getBus().getBusNumber(), trip.getDriver().getUser().getFullName(),
                 trip.getDepartureAt(), trip.getEstimatedArrivalAt(), trip.getFare(),
-                trip.getSeatCapacitySnapshot(), trip.getStatus().name()
+                trip.getSeatCapacitySnapshot(), trip.getStatus().name(),
+                confirmedSeats(trip), boardedTickets(trip), assignmentComplete(trip)
         );
     }
 
@@ -308,8 +372,35 @@ public class ScheduledTripService {
                 trip.getActualDepartureAt(), trip.getActualArrivalAt(), trip.getFare(),
                 trip.getSeatCapacitySnapshot(), trip.getStatus().name(),
                 trip.getBoardingNotes(), trip.getCancellationReason(),
-                trip.getCreatedAt(), trip.getUpdatedAt()
+                trip.getCreatedAt(), trip.getUpdatedAt(),
+                confirmedSeats(trip), boardedTickets(trip), assignmentComplete(trip)
         );
+    }
+
+    private void ensureNoConfirmedBookingsForEdit(ScheduledTrip trip) {
+        if (bookingRepository.existsByScheduledTripAndStatus(trip, BookingStatus.CONFIRMED)) {
+            conflict("Trips with confirmed bookings cannot be edited");
+        }
+    }
+
+    private long confirmedSeats(ScheduledTrip trip) {
+        Long count = bookingRepository.sumConfirmedSeatsByTrip(trip);
+        return count == null ? 0 : count;
+    }
+
+    private long boardedTickets(ScheduledTrip trip) {
+        return ticketRepository.countByBookingScheduledTripAndStatus(trip, TicketStatus.USED);
+    }
+
+    private boolean assignmentComplete(ScheduledTrip trip) {
+        return trip.getBus() != null && trip.getDriver() != null;
+    }
+
+    private String conflictSummary(ScheduledTrip trip) {
+        return "%s from %s to %s conflicts with %s - %s"
+                .formatted(trip.getRoute().getName(), trip.getDepartureAt(),
+                        trip.getEstimatedArrivalAt(), trip.getRoute().getOrigin(),
+                        trip.getRoute().getDestination());
     }
 
     private ResponseStatusException notFound(String message) {

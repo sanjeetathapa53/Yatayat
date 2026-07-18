@@ -3,17 +3,19 @@ import { Building2, Bus, CalendarDays, CheckCircle2, Loader2, Users } from "luci
 import { useNavigate } from "react-router-dom";
 import OperatorLayout from "../../components/layout/OperatorLayout";
 import { apiFetch } from "../../utils/api";
+import { formatTripDate, getOperatorLiveTrips, statusLabel, statusTone } from "../../utils/operatorTrips";
 
 export default function OperatorDashboard() {
   const navigate = useNavigate();
   const [dashboard, setDashboard] = useState(null);
   const [tripCounts, setTripCounts] = useState({ upcoming: 0, active: 0 });
+  const [liveTrips, setLiveTrips] = useState([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
 
-    Promise.all([apiFetch("/api/operator/dashboard"), apiFetch("/api/operator/trips")]).then(async ([response, tripsResponse]) => {
+    Promise.all([apiFetch("/api/operator/dashboard"), apiFetch("/api/operator/trips"), getOperatorLiveTrips()]).then(async ([response, tripsResponse, live]) => {
       if (response.status === 401) {
         navigate("/login", { replace: true });
         return null;
@@ -24,12 +26,13 @@ export default function OperatorDashboard() {
       }
       if (!response.ok) throw new Error("Unable to load operator dashboard.");
       if (!tripsResponse.ok) throw new Error("Unable to load operator trips.");
-      return Promise.all([response.json(), tripsResponse.json()]);
+      return Promise.all([response.json(), tripsResponse.json(), live]);
     }).then((data) => {
       if (active && data) {
-        const [dashboardData, trips] = data;
+        const [dashboardData, trips, live] = data;
         const now = new Date();
         setDashboard(dashboardData);
+        setLiveTrips(live || []);
         setTripCounts({
           upcoming: trips.filter((trip) => ["SCHEDULED", "BOARDING"].includes(trip.status) && new Date(trip.departureAt) > now).length,
           active: trips.filter((trip) => ["BOARDING", "IN_PROGRESS"].includes(trip.status)).length,
@@ -72,6 +75,37 @@ export default function OperatorDashboard() {
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+              <div>
+                <h2 className="text-xl font-black">Live Trip Monitoring</h2>
+                <p className="mt-1 text-sm text-slate-500">Boarding, on-the-way, and recently completed trips.</p>
+              </div>
+              <button type="button" onClick={() => navigate("/operator/trips")} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-700">All trips</button>
+            </div>
+            <div className="mt-5 space-y-3">
+              {liveTrips.length === 0 ? (
+                <p className="rounded-2xl bg-slate-50 p-5 text-sm font-bold text-slate-500">No live trips to monitor right now.</p>
+              ) : liveTrips.map((trip) => (
+                <article key={trip.scheduledTripId} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                    <div>
+                      <p className="font-black text-slate-900">{trip.origin} → {trip.destination}</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-500">{trip.busNumber} • {trip.driverName}</p>
+                      <p className="mt-1 text-xs font-bold text-slate-400">Departure {formatTripDate(trip.departureAt)}</p>
+                    </div>
+                    <span className={`self-start rounded-full px-3 py-1 text-xs font-black ${statusTone(trip.status)}`}>{statusLabel(trip.status)}</span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                    <MiniStat label="Passengers" value={trip.passengerCount} />
+                    <MiniStat label="Boarded" value={trip.boardedCount} />
+                    <MiniStat label="Started" value={formatTripDate(trip.startedAt)} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
             <h2 className="text-xl font-black">Quick Actions</h2>
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
               {[
@@ -108,5 +142,14 @@ function Stat({ label, value, icon }) {
       <p className="mt-4 text-xs font-black uppercase tracking-wider text-slate-500">{label}</p>
       <p className="mt-2 text-3xl font-black">{value}</p>
     </article>
+  );
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div className="rounded-2xl bg-white p-3">
+      <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-black text-slate-800">{value || "—"}</p>
+    </div>
   );
 }

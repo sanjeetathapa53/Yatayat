@@ -5,6 +5,7 @@ import com.yatayat.backend.controller.OperatorScheduledTripController;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.ScheduledTripService;
+import com.yatayat.backend.service.TripOperationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +23,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -38,6 +40,9 @@ class ScheduledTripIntegrationTests {
     @MockitoBean private DriverProfileRepository driverRepository;
     @MockitoBean private DriverOperatorAssociationRepository associationRepository;
     @MockitoBean private ScheduledTripRepository tripRepository;
+    @MockitoBean private PassengerTripBookingRepository bookingRepository;
+    @MockitoBean private TicketRepository ticketRepository;
+    @MockitoBean private TripOperationService tripOperationService;
 
     private User operatorUser;
     private TransportOperator operator;
@@ -332,7 +337,7 @@ class ScheduledTripIntegrationTests {
                 .thenReturn(List.of(trip(50L, TripStatus.SCHEDULED)));
         mockMvc.perform(post("/api/operator/trips").contentType("application/json").content(validRequest()))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Selected bus is already scheduled during this time"));
+                .andExpect(jsonPath("$.message").value(containsString("BUS_SCHEDULE_CONFLICT")));
     }
 
     @Test
@@ -343,7 +348,7 @@ class ScheduledTripIntegrationTests {
                 .thenReturn(List.of(trip(51L, TripStatus.SCHEDULED)));
         mockMvc.perform(post("/api/operator/trips").contentType("application/json").content(validRequest()))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").value("Selected driver is already scheduled during this time"));
+                .andExpect(jsonPath("$.message").value(containsString("DRIVER_SCHEDULE_CONFLICT")));
     }
 
     @Test
@@ -376,6 +381,48 @@ class ScheduledTripIntegrationTests {
 
     @Test
     @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void confirmedBookingsBlockSensitiveEdits() throws Exception {
+        ScheduledTrip scheduled = trip(71L, TripStatus.SCHEDULED);
+        when(tripRepository.findByIdAndOperator(71L, operator)).thenReturn(Optional.of(scheduled));
+        when(bookingRepository.existsByScheduledTripAndStatus(scheduled, BookingStatus.CONFIRMED))
+                .thenReturn(true);
+
+        mockMvc.perform(put("/api/operator/trips/71").contentType("application/json").content(validRequest()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Trips with confirmed bookings cannot be edited"));
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void operatorCanReassignBeforeDepartureWithEligibleResources() throws Exception {
+        ScheduledTrip scheduled = trip(72L, TripStatus.SCHEDULED);
+        when(tripRepository.findByIdAndOperator(72L, operator)).thenReturn(Optional.of(scheduled));
+        prepareEligibleResourcesForUpdate(72L);
+        when(tripRepository.saveAndFlush(scheduled)).thenReturn(scheduled);
+
+        mockMvc.perform(put("/api/operator/trips/72/assignment")
+                        .contentType("application/json")
+                        .content("{\"busId\":4,\"driverId\":6}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.busId").value(4))
+                .andExpect(jsonPath("$.driverId").value(6))
+                .andExpect(jsonPath("$.assignmentComplete").value(true));
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void inProgressTripCannotBeReassigned() throws Exception {
+        when(tripRepository.findByIdAndOperator(73L, operator))
+                .thenReturn(Optional.of(trip(73L, TripStatus.IN_PROGRESS)));
+
+        mockMvc.perform(put("/api/operator/trips/73/assignment")
+                        .contentType("application/json")
+                        .content("{\"busId\":4,\"driverId\":6}"))
+                .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
     void cancellationTransitionRulesWork() throws Exception {
         ScheduledTrip scheduled = trip(80L, TripStatus.SCHEDULED);
         when(tripRepository.findByIdAndOperator(80L, operator)).thenReturn(Optional.of(scheduled));
@@ -389,6 +436,19 @@ class ScheduledTripIntegrationTests {
         when(tripRepository.findByIdAndOperator(81L, operator)).thenReturn(Optional.of(completed));
         mockMvc.perform(post("/api/operator/trips/81/cancel").contentType("application/json").content("{}"))
                 .andExpect(status().isConflict());
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void confirmedBookingsBlockOperatorCancellation() throws Exception {
+        ScheduledTrip scheduled = trip(82L, TripStatus.SCHEDULED);
+        when(tripRepository.findByIdAndOperator(82L, operator)).thenReturn(Optional.of(scheduled));
+        when(bookingRepository.sumConfirmedSeatsByTrip(scheduled)).thenReturn(2L);
+
+        mockMvc.perform(post("/api/operator/trips/82/cancel").contentType("application/json").content("{}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message")
+                        .value("Trips with confirmed bookings cannot be cancelled from this screen"));
     }
 
     @Test
@@ -415,6 +475,14 @@ class ScheduledTripIntegrationTests {
         when(associationRepository.findByDriverAndOperator(driver, operator)).thenReturn(Optional.of(association));
         when(tripRepository.findBusConflictsForUpdate(bus, departure, arrival, null)).thenReturn(List.of());
         when(tripRepository.findDriverConflictsForUpdate(driver, departure, arrival, null)).thenReturn(List.of());
+    }
+
+    private void prepareEligibleResourcesForUpdate(Long excludedId) {
+        prepareRouteAndBus();
+        when(driverRepository.findLockedById(6L)).thenReturn(Optional.of(driver));
+        when(associationRepository.findByDriverAndOperator(driver, operator)).thenReturn(Optional.of(association));
+        when(tripRepository.findBusConflictsForUpdate(bus, departure, arrival, excludedId)).thenReturn(List.of());
+        when(tripRepository.findDriverConflictsForUpdate(driver, departure, arrival, excludedId)).thenReturn(List.of());
     }
 
     private String validRequest() { return request(departure, arrival, "850.00"); }

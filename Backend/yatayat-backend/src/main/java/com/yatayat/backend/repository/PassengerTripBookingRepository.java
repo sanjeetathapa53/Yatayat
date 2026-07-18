@@ -35,4 +35,9 @@ public interface PassengerTripBookingRepository extends JpaRepository<PassengerT
               and booking.status = com.yatayat.backend.entity.BookingStatus.CONFIRMED
             """)
     Long sumConfirmedSeatsByTrip(@Param("trip") ScheduledTrip trip);
+
+    boolean existsByScheduledTripAndStatus(
+            ScheduledTrip trip,
+            BookingStatus status
+    );
 }

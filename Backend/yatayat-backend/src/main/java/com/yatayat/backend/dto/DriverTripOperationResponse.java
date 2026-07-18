@@ -1,23 +1,23 @@
 package com.yatayat.backend.dto;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-public record TripSummaryResponse(
-        Long id,
+public record DriverTripOperationResponse(
+        Long scheduledTripId,
         String routeCode,
         String routeName,
         String origin,
         String destination,
+        String busName,
         String busNumber,
-        String driverName,
+        String operatorName,
         LocalDateTime departureAt,
         LocalDateTime estimatedArrivalAt,
-        BigDecimal fare,
-        Integer seatCapacity,
+        LocalDateTime startedAt,
+        LocalDateTime endedAt,
         String status,
-        long confirmedPassengers,
-        long boardedPassengers,
-        boolean assignmentComplete
+        Long confirmedPassengers,
+        Long boardedPassengers,
+        Long remainingPassengers
 ) {
 }

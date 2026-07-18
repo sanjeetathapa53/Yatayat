@@ -4,6 +4,7 @@ import com.yatayat.backend.entity.PassengerTripBooking;
 import com.yatayat.backend.entity.BookingStatus;
 import com.yatayat.backend.entity.ScheduledTrip;
 import com.yatayat.backend.entity.Ticket;
+import com.yatayat.backend.entity.TicketStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -37,6 +38,8 @@ public interface TicketRepository extends JpaRepository<Ticket, Long> {
             ScheduledTrip trip,
             BookingStatus status
     );
+
+    long countByBookingScheduledTripAndStatus(ScheduledTrip trip, TicketStatus status);
 
     @EntityGraph(attributePaths = {
             "booking", "booking.passenger", "booking.scheduledTrip", "booking.scheduledTrip.route",
