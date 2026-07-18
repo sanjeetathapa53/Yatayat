@@ -1,6 +1,7 @@
 package com.yatayat.backend.repository;
 
 import com.yatayat.backend.entity.*;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
@@ -11,6 +12,9 @@ public interface BookingSeatRepository extends JpaRepository<BookingSeat, Long> 
     List<BookingSeat> findByScheduledTripAndPassengerAndStatusOrderBySeatNumberAsc(
             ScheduledTrip trip, User passenger, BookingSeatStatus status);
     List<BookingSeat> findByBookingOrderBySeatNumberAsc(PassengerTripBooking booking);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<BookingSeat> findWithLockByBookingOrderBySeatNumberAsc(PassengerTripBooking booking);
 
     @Modifying(flushAutomatically = true)
     @Query("""

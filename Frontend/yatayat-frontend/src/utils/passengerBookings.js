@@ -18,6 +18,7 @@ export const createPassengerBooking = (payload) => bookingRequest("/api/passenge
 export const listPassengerBookings = () => bookingRequest("/api/passenger/bookings");
 export const getPassengerBooking = (reference) => bookingRequest(`/api/passenger/bookings/${encodeURIComponent(reference)}`);
 export const cancelPassengerBooking = (reference) => bookingRequest(`/api/passenger/bookings/${encodeURIComponent(reference)}/cancel`, { method: "POST" });
+export const payPassengerBookingWithWallet = (reference) => bookingRequest(`/api/passenger/bookings/${encodeURIComponent(reference)}/pay/wallet`, { method: "POST" });
 
 export function handleBookingSession(error, navigate) {
   if (error.status === 401) { navigate("/login", { replace: true }); return true; }
@@ -31,7 +32,7 @@ export function formatNpr(value) { return `NPR ${Number(value || 0).toLocaleStri
 function fallback(status) {
   if (status === 400) return "Please check the booking information.";
   if (status === 403) return "Passenger access is required.";
-  if (status === 404) return "The booking or scheduled trip was not found.";
+  if (status === 404) return "Booking not found.";
   if (status === 409) return "This booking request cannot be completed.";
   return "Unable to complete the request. Please try again.";
 }

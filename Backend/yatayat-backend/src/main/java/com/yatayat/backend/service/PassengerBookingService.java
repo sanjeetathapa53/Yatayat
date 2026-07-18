@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -27,17 +28,26 @@ public class PassengerBookingService {
     private final ScheduledTripRepository tripRepository;
     private final PassengerTripBookingRepository bookingRepository;
     private final BookingSeatRepository seatRepository;
+    private final WalletRepository walletRepository;
+    private final WalletTransactionRepository walletTransactionRepository;
+    private final PaymentRepository paymentRepository;
     private final long paymentWindowMinutes;
 
     public PassengerBookingService(UserRepository userRepository,
                                    ScheduledTripRepository tripRepository,
                                    PassengerTripBookingRepository bookingRepository,
                                    BookingSeatRepository seatRepository,
+                                   WalletRepository walletRepository,
+                                   WalletTransactionRepository walletTransactionRepository,
+                                   PaymentRepository paymentRepository,
                                    @Value("${yatayat.booking.payment-window-minutes:10}") long paymentWindowMinutes) {
         this.userRepository = userRepository;
         this.tripRepository = tripRepository;
         this.bookingRepository = bookingRepository;
         this.seatRepository = seatRepository;
+        this.walletRepository = walletRepository;
+        this.walletTransactionRepository = walletTransactionRepository;
+        this.paymentRepository = paymentRepository;
         this.paymentWindowMinutes = Math.max(1, paymentWindowMinutes);
     }
 
@@ -124,6 +134,115 @@ public class PassengerBookingService {
         return toDetails(bookingRepository.saveAndFlush(booking));
     }
 
+    @Transactional
+    public WalletBookingPaymentResponse payWithWallet(String email, String reference) {
+        User passenger = requirePassenger(email);
+        if (reference == null || reference.isBlank()) throw bookingNotFound();
+        PassengerTripBooking booking = bookingRepository
+                .findOwnedByReferenceForPayment(reference.trim(), passenger.getId())
+                .orElseThrow(this::bookingNotFound);
+
+        return paymentRepository.findFirstByBookingAndStatusOrderByCreatedAtDesc(
+                booking, PaymentStatus.SUCCESS).map(payment -> alreadyPaid(booking, payment, passenger))
+                .orElseGet(() -> completeWalletPayment(booking, passenger));
+    }
+
+    private WalletBookingPaymentResponse completeWalletPayment(PassengerTripBooking booking, User passenger) {
+        if (booking.getStatus() == BookingStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This booking has been cancelled.");
+        }
+        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This booking is not pending payment.");
+        }
+        if (booking.getScheduledTrip() == null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Booking is missing its scheduled trip.");
+        }
+        if (booking.getScheduledTrip().getRoute().getTripType() == TripType.LOCAL) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Local trips do not support seat reservations.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        List<BookingSeat> seats = seatRepository.findWithLockByBookingOrderBySeatNumberAsc(booking);
+        if (seats.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This booking has no selected seats.");
+        }
+        if (seats.stream().anyMatch(seat -> seat.getBooking() == null
+                || !booking.getId().equals(seat.getBooking().getId()))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Selected seats do not match this booking.");
+        }
+        if (seats.stream().anyMatch(seat -> seat.getStatus() != BookingSeatStatus.HELD
+                || seat.getActiveSeatNumber() == null)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Selected seats are no longer held.");
+        }
+        if (seats.stream().anyMatch(seat -> !seat.getHoldExpiresAt().isAfter(now))) {
+            seats.forEach(seat -> seat.release(BookingSeatStatus.RELEASED));
+            booking.setStatus(BookingStatus.CANCELLED);
+            booking.setCancelledAt(now);
+            seatRepository.saveAll(seats);
+            bookingRepository.saveAndFlush(booking);
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Your seat hold has expired. Please select seats again.");
+        }
+
+        BigDecimal total = booking.getFarePerSeat().multiply(BigDecimal.valueOf(seats.size()));
+        if (booking.getTotalFare() == null || booking.getTotalFare().compareTo(total) != 0
+                || !booking.getNumberOfSeats().equals(seats.size())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Booking total no longer matches the selected seats.");
+        }
+
+        Wallet wallet = walletRepository.findWithLockByUser(passenger)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Wallet is required before payment."));
+        double balance = wallet.getBalance() == null ? 0.0 : wallet.getBalance();
+        double amount = booking.getTotalFare().doubleValue();
+        if (BigDecimal.valueOf(balance).compareTo(booking.getTotalFare()) < 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Insufficient wallet balance.");
+        }
+
+        Payment payment = new Payment();
+        payment.setBooking(booking);
+        payment.setPassenger(passenger);
+        payment.setAmount(booking.getTotalFare());
+        payment.setPaymentMethod(PaymentMethod.WALLET);
+        payment.setStatus(PaymentStatus.SUCCESS);
+        payment.setTransactionReference(generatePaymentReference());
+        payment.setPaidAt(now);
+
+        wallet.setBalance(balance - amount);
+        WalletTransaction transaction = new WalletTransaction(
+                wallet, "TICKET_PAYMENT", amount, "SUCCESS", "WALLET");
+        booking.setStatus(BookingStatus.CONFIRMED);
+        seats.forEach(seat -> {
+            seat.setStatus(BookingSeatStatus.CONFIRMED);
+            seat.setHoldExpiresAt(now);
+        });
+
+        try {
+            paymentRepository.save(payment);
+            walletTransactionRepository.save(transaction);
+            walletRepository.save(wallet);
+            seatRepository.saveAll(seats);
+            bookingRepository.saveAndFlush(booking);
+        } catch (DataIntegrityViolationException exception) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Payment has already been completed for this booking.");
+        }
+
+        return paymentResponse(booking, payment, wallet, seats);
+    }
+
+    private WalletBookingPaymentResponse alreadyPaid(
+            PassengerTripBooking booking,
+            Payment payment,
+            User passenger
+    ) {
+        Wallet wallet = walletRepository.findByUser(passenger).orElse(null);
+        List<BookingSeat> seats = seatRepository.findByBookingOrderBySeatNumberAsc(booking);
+        return paymentResponse(booking, payment, wallet, seats);
+    }
+
     private PassengerTripBooking ownedBooking(User passenger, String reference) {
         if (reference == null || reference.isBlank()) throw bookingNotFound();
         return bookingRepository.findByBookingReferenceAndPassenger(reference.trim(), passenger)
@@ -190,14 +309,20 @@ public class PassengerBookingService {
 
     private PassengerBookingSummaryResponse toSummary(PassengerTripBooking booking) {
         ScheduledTrip trip = booking.getScheduledTrip();
+        Optional<Payment> payment = successfulPayment(booking);
         return new PassengerBookingSummaryResponse(
                 booking.getBookingReference(), booking.getStatus().name(), trip.getId(),
                 trip.getRoute().getCode(), trip.getRoute().getName(),
                 trip.getRoute().getTripType().name(), trip.getRoute().getOrigin(),
                 trip.getRoute().getDestination(), trip.getDepartureAt(), trip.getEstimatedArrivalAt(),
                 trip.getOperator().getName(), trip.getBus().getBusNumber(), booking.getNumberOfSeats(),
-                seatNumbers(booking),
-                booking.getFarePerSeat(), booking.getTotalFare(), booking.getBookedAt(), booking.getCancelledAt()
+                seatNumbers(booking), booking.getFarePerSeat(), booking.getTotalFare(),
+                payment.map(value -> value.getStatus().name()).orElse(null),
+                payment.map(value -> value.getPaymentMethod().name()).orElse(null),
+                payment.map(Payment::getAmount).orElse(null),
+                payment.map(Payment::getPaidAt).orElse(null),
+                payment.map(Payment::getTransactionReference).orElse(null),
+                booking.getBookedAt(), booking.getCancelledAt()
         );
     }
 
@@ -209,8 +334,39 @@ public class PassengerBookingService {
                 summary.routeName(), summary.tripType(), summary.origin(), summary.destination(), summary.operatorName(),
                 summary.busNumber(), summary.departureAt(), summary.estimatedArrivalAt(),
                 summary.numberOfSeats(), summary.seatNumbers(), summary.farePerSeat(), summary.totalFare(),
+                summary.paymentStatus(), summary.paymentMethod(), summary.paidAmount(),
+                summary.paidAt(), summary.transactionReference(), paymentHoldExpiresAt(booking),
                 summary.bookedAt(), summary.cancelledAt(), booking.getScheduledTrip().getBoardingNotes()
         );
+    }
+
+    private WalletBookingPaymentResponse paymentResponse(
+            PassengerTripBooking booking,
+            Payment payment,
+            Wallet wallet,
+            List<BookingSeat> seats
+    ) {
+        return new WalletBookingPaymentResponse(
+                booking.getBookingReference(), booking.getStatus().name(), payment.getStatus().name(),
+                payment.getPaymentMethod().name(), payment.getAmount(), payment.getPaidAt(),
+                payment.getTransactionReference(), wallet == null ? BigDecimal.ZERO : BigDecimal.valueOf(wallet.getBalance()),
+                seats.stream().map(BookingSeat::getSeatNumber).sorted().toList()
+        );
+    }
+
+    private Optional<Payment> successfulPayment(PassengerTripBooking booking) {
+        return paymentRepository.findFirstByBookingAndStatusOrderByCreatedAtDesc(
+                booking, PaymentStatus.SUCCESS);
+    }
+
+    private String generatePaymentReference() {
+        for (int attempt = 0; attempt < 8; attempt++) {
+            String reference = "PAY-" + LocalDate.now().format(REFERENCE_DATE) + "-"
+                    + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+            if (!paymentRepository.existsByTransactionReference(reference)) return reference;
+        }
+        throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "Payment reference could not be generated. Please try again.");
     }
 
     private String maskPhone(String phone) {
@@ -220,6 +376,12 @@ public class PassengerBookingService {
     private List<String> seatNumbers(PassengerTripBooking booking) {
         if (booking.getSeats() == null || booking.getSeats().isEmpty()) return List.of();
         return booking.getSeats().stream().map(BookingSeat::getSeatNumber).sorted().toList();
+    }
+    private LocalDateTime paymentHoldExpiresAt(PassengerTripBooking booking) {
+        if (booking.getSeats() == null || booking.getSeats().isEmpty()
+                || booking.getStatus() != BookingStatus.PENDING_PAYMENT) return null;
+        return booking.getSeats().stream().map(BookingSeat::getHoldExpiresAt)
+                .min(LocalDateTime::compareTo).orElse(null);
     }
     private void badRequest(String message) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message); }
     private ResponseStatusException tripNotFound() { return new ResponseStatusException(HttpStatus.NOT_FOUND, "This trip is no longer available for booking."); }

@@ -37,6 +37,11 @@ public class PassengerBookingController {
                                                    @PathVariable String bookingReference) {
         return bookingService.cancel(authentication.getName(), bookingReference);
     }
+    @PostMapping("/{bookingReference}/pay/wallet")
+    public WalletBookingPaymentResponse payWithWallet(Authentication authentication,
+                                                       @PathVariable String bookingReference) {
+        return bookingService.payWithWallet(authentication.getName(), bookingReference);
+    }
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleStatus(ResponseStatusException exception) {

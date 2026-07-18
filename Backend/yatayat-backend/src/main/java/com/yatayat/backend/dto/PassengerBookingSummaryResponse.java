@@ -10,5 +10,7 @@ public record PassengerBookingSummaryResponse(
         LocalDateTime departureAt, LocalDateTime estimatedArrivalAt,
         String operatorName, String busNumber, Integer numberOfSeats, List<String> seatNumbers,
         BigDecimal farePerSeat, BigDecimal totalFare,
+        String paymentStatus, String paymentMethod, BigDecimal paidAmount,
+        LocalDateTime paidAt, String transactionReference,
         LocalDateTime bookedAt, LocalDateTime cancelledAt
 ) {}

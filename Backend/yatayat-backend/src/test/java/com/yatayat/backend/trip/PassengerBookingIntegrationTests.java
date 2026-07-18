@@ -34,6 +34,9 @@ class PassengerBookingIntegrationTests {
     @MockitoBean private ScheduledTripRepository tripRepository;
     @MockitoBean private PassengerTripBookingRepository bookingRepository;
     @MockitoBean private BookingSeatRepository seatRepository;
+    @MockitoBean private WalletRepository walletRepository;
+    @MockitoBean private WalletTransactionRepository walletTransactionRepository;
+    @MockitoBean private PaymentRepository paymentRepository;
 
     private User passengerA;
     private User passengerB;
@@ -51,6 +54,9 @@ class PassengerBookingIntegrationTests {
         trip = validTrip();
         booking = confirmedBooking(passengerA, "YAT-20260717-ABC123");
         when(bookingRepository.existsByBookingReference(anyString())).thenReturn(false);
+        when(paymentRepository.existsByTransactionReference(anyString())).thenReturn(false);
+        when(paymentRepository.findFirstByBookingAndStatusOrderByCreatedAtDesc(any(), eq(PaymentStatus.SUCCESS)))
+                .thenReturn(Optional.empty());
         when(bookingRepository.saveAndFlush(any())).thenAnswer(invocation -> {
             PassengerTripBooking saved = invocation.getArgument(0);
             if (saved.getId() == null) saved.setId(50L);
@@ -230,8 +236,129 @@ class PassengerBookingIntegrationTests {
     }
 
     @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void pendingBookingCanBePaidWithWalletAndConfirmsSeats() throws Exception {
+        PassengerTripBooking pending = pendingBooking();
+        List<BookingSeat> seats = bookingSeats(pending, 2, LocalDateTime.now().plusMinutes(5));
+        Wallet wallet = wallet(1500.0);
+        when(bookingRepository.findOwnedByReferenceForPayment(pending.getBookingReference(), passengerA.getId()))
+                .thenReturn(Optional.of(pending));
+        when(seatRepository.findWithLockByBookingOrderBySeatNumberAsc(pending)).thenReturn(seats);
+        when(walletRepository.findWithLockByUser(passengerA)).thenReturn(Optional.of(wallet));
+        when(paymentRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(post("/api/passenger/bookings/" + pending.getBookingReference() + "/pay/wallet"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bookingStatus").value("CONFIRMED"))
+                .andExpect(jsonPath("$.paymentStatus").value("SUCCESS"))
+                .andExpect(jsonPath("$.paymentMethod").value("WALLET"))
+                .andExpect(jsonPath("$.paidAmount").value(1000.00))
+                .andExpect(jsonPath("$.walletBalance").value(500.00))
+                .andExpect(jsonPath("$.seatNumbers[0]").value("1A"));
+
+        verify(walletTransactionRepository).save(any(WalletTransaction.class));
+        verify(seatRepository).saveAll(seats);
+        org.assertj.core.api.Assertions.assertThat(wallet.getBalance()).isEqualTo(500.0);
+        org.assertj.core.api.Assertions.assertThat(seats).allMatch(seat -> seat.getStatus() == BookingSeatStatus.CONFIRMED);
+        org.assertj.core.api.Assertions.assertThat(pending.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void insufficientWalletBalanceDoesNotDeductOrConfirm() throws Exception {
+        PassengerTripBooking pending = pendingBooking();
+        List<BookingSeat> seats = bookingSeats(pending, 2, LocalDateTime.now().plusMinutes(5));
+        Wallet wallet = wallet(100.0);
+        when(bookingRepository.findOwnedByReferenceForPayment(pending.getBookingReference(), passengerA.getId()))
+                .thenReturn(Optional.of(pending));
+        when(seatRepository.findWithLockByBookingOrderBySeatNumberAsc(pending)).thenReturn(seats);
+        when(walletRepository.findWithLockByUser(passengerA)).thenReturn(Optional.of(wallet));
+
+        mockMvc.perform(post("/api/passenger/bookings/" + pending.getBookingReference() + "/pay/wallet"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Insufficient wallet balance."));
+
+        verify(paymentRepository, never()).save(any());
+        verify(walletTransactionRepository, never()).save(any());
+        org.assertj.core.api.Assertions.assertThat(wallet.getBalance()).isEqualTo(100.0);
+        org.assertj.core.api.Assertions.assertThat(pending.getStatus()).isEqualTo(BookingStatus.PENDING_PAYMENT);
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void expiredSeatHoldIsReleasedAndPaymentRejected() throws Exception {
+        PassengerTripBooking pending = pendingBooking();
+        List<BookingSeat> seats = bookingSeats(pending, 2, LocalDateTime.now().minusSeconds(1));
+        when(bookingRepository.findOwnedByReferenceForPayment(pending.getBookingReference(), passengerA.getId()))
+                .thenReturn(Optional.of(pending));
+        when(seatRepository.findWithLockByBookingOrderBySeatNumberAsc(pending)).thenReturn(seats);
+
+        mockMvc.perform(post("/api/passenger/bookings/" + pending.getBookingReference() + "/pay/wallet"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Your seat hold has expired. Please select seats again."));
+
+        verify(paymentRepository, never()).save(any());
+        verify(walletRepository, never()).findWithLockByUser(any());
+        org.assertj.core.api.Assertions.assertThat(pending.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        org.assertj.core.api.Assertions.assertThat(seats).allMatch(seat -> seat.getStatus() == BookingSeatStatus.RELEASED);
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void repeatedSuccessfulWalletPaymentDoesNotDeductAgain() throws Exception {
+        PassengerTripBooking confirmed = confirmedBooking(passengerA, "YAT-20260717-PAID01");
+        Payment payment = new Payment();
+        payment.setBooking(confirmed); payment.setPassenger(passengerA); payment.setAmount(confirmed.getTotalFare());
+        payment.setPaymentMethod(PaymentMethod.WALLET); payment.setStatus(PaymentStatus.SUCCESS);
+        payment.setPaidAt(LocalDateTime.now()); payment.setTransactionReference("PAY-20260718-ABC12345");
+        when(bookingRepository.findOwnedByReferenceForPayment(confirmed.getBookingReference(), passengerA.getId()))
+                .thenReturn(Optional.of(confirmed));
+        when(paymentRepository.findFirstByBookingAndStatusOrderByCreatedAtDesc(confirmed, PaymentStatus.SUCCESS))
+                .thenReturn(Optional.of(payment));
+        when(walletRepository.findByUser(passengerA)).thenReturn(Optional.of(wallet(700.0)));
+        when(seatRepository.findByBookingOrderBySeatNumberAsc(confirmed))
+                .thenReturn(bookingSeats(confirmed, 2, LocalDateTime.now()));
+
+        mockMvc.perform(post("/api/passenger/bookings/" + confirmed.getBookingReference() + "/pay/wallet"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.paymentStatus").value("SUCCESS"))
+                .andExpect(jsonPath("$.walletBalance").value(700.00));
+
+        verify(walletRepository, never()).findWithLockByUser(any());
+        verify(walletTransactionRepository, never()).save(any());
+        verify(paymentRepository, never()).save(any());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void missingScheduledTripRelationshipFailsClearlyWithoutWalletDeduction() throws Exception {
+        PassengerTripBooking pending = pendingBooking();
+        pending.setScheduledTrip(null);
+        when(bookingRepository.findOwnedByReferenceForPayment(pending.getBookingReference(), passengerA.getId()))
+                .thenReturn(Optional.of(pending));
+
+        mockMvc.perform(post("/api/passenger/bookings/" + pending.getBookingReference() + "/pay/wallet"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Booking is missing its scheduled trip."));
+
+        verify(walletRepository, never()).findWithLockByUser(any());
+        verify(walletTransactionRepository, never()).save(any());
+        verify(paymentRepository, never()).save(any());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void anotherPassengerCannotPayBooking() throws Exception {
+        mockMvc.perform(post("/api/passenger/bookings/" + booking.getBookingReference() + "/pay/wallet")
+                        .with(user("b@example.com").roles("PASSENGER")))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void anonymousIsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/passenger/bookings")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/passenger/bookings/YAT-20260717-PENDING/pay/wallet"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -241,6 +368,8 @@ class PassengerBookingIntegrationTests {
             User user = new User(role, "operator@example.com", "", "", role);
             when(userRepository.findByEmailIgnoreCase("operator@example.com")).thenReturn(Optional.of(user));
             mockMvc.perform(get("/api/passenger/bookings")).andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/passenger/bookings/YAT-20260717-PENDING/pay/wallet"))
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -279,6 +408,30 @@ class PassengerBookingIntegrationTests {
         result.setNumberOfSeats(2); result.setFarePerSeat(trip.getFare());
         result.setTotalFare(trip.getFare().multiply(BigDecimal.valueOf(2)));
         result.setStatus(BookingStatus.CONFIRMED); result.setBookedAt(LocalDateTime.now()); return result;
+    }
+    private PassengerTripBooking pendingBooking() {
+        PassengerTripBooking result = confirmedBooking(passengerA, "YAT-20260717-PENDING");
+        result.setStatus(BookingStatus.PENDING_PAYMENT);
+        return result;
+    }
+    private List<BookingSeat> bookingSeats(PassengerTripBooking owner, int count, LocalDateTime expiresAt) {
+        List<BookingSeat> seats = new java.util.ArrayList<>();
+        for (int index = 0; index < count; index++) {
+            BookingSeat seat = new BookingSeat();
+            String number = "1" + (char) ('A' + index);
+            seat.setBooking(owner); seat.setScheduledTrip(owner.getScheduledTrip());
+            seat.setPassenger(owner.getPassenger()); seat.setSeatNumber(number);
+            seat.setActiveSeatNumber(number); seat.setStatus(BookingSeatStatus.HELD);
+            seat.setHeldAt(LocalDateTime.now()); seat.setHoldExpiresAt(expiresAt);
+            seats.add(seat);
+        }
+        owner.setSeats(seats);
+        return seats;
+    }
+    private Wallet wallet(double balance) {
+        Wallet wallet = new Wallet(passengerA);
+        wallet.setBalance(balance);
+        return wallet;
     }
     private ScheduledTrip validTrip() {
         LocalDateTime departure = LocalDateTime.now().plusDays(3);
