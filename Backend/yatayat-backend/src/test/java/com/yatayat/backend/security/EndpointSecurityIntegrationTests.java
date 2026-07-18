@@ -3,6 +3,7 @@ package com.yatayat.backend.security;
 import com.yatayat.backend.config.SecurityConfig;
 import com.yatayat.backend.controller.*;
 import com.yatayat.backend.dto.DriverInvitationRequest;
+import com.yatayat.backend.dto.DriverTicketValidationResponse;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.entity.Wallet;
 import com.yatayat.backend.entity.WalletTransaction;
@@ -51,6 +52,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         AdminDriverController.class,
         AdminOperatorController.class,
         AdminAuthController.class,
+        DriverTicketController.class,
         AuthController.class
 })
 @Import({SecurityConfig.class, AuthenticatedUserService.class, SessionLogoutService.class})
@@ -80,6 +82,8 @@ class EndpointSecurityIntegrationTests {
     private DriverDashboardService driverDashboardService;
     @MockitoBean
     private DriverOperatorAssociationService associationService;
+    @MockitoBean
+    private DriverTicketValidationService driverTicketValidationService;
     @MockitoBean
     private OperatorApplicationService operatorApplicationService;
     @MockitoBean
@@ -263,8 +267,43 @@ class EndpointSecurityIntegrationTests {
     }
 
     @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotValidateDriverTicket() throws Exception {
+        mockMvc.perform(post("/api/driver/tickets/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"{}\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERATOR")
+    void operatorCannotValidateDriverTicket() throws Exception {
+        mockMvc.perform(post("/api/driver/tickets/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"{}\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCannotValidateDriverTicket() throws Exception {
+        mockMvc.perform(post("/api/driver/tickets/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"{}\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void anonymousUserIsDeniedFromDriverEndpoint() throws Exception {
         mockMvc.perform(get("/api/driver/operator-invitations"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void anonymousUserIsDeniedFromDriverTicketValidationEndpoint() throws Exception {
+        mockMvc.perform(post("/api/driver/tickets/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"{}\"}"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -540,6 +579,29 @@ class EndpointSecurityIntegrationTests {
 
         mockMvc.perform(post("/api/driver/operator-invitations/44/reject"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "driver-a@example.com", roles = "DRIVER")
+    void driverCanUseDriverTicketValidationEndpoint() throws Exception {
+        when(driverTicketValidationService.validate("driver-a@example.com", "{}"))
+                .thenReturn(new DriverTicketValidationResponse(
+                        "VALID",
+                        "Boarding confirmed.",
+                        "YT-TKT-20260718-ABC123",
+                        "Passenger A",
+                        new DriverTicketValidationResponse.RouteSummary("Kathmandu", "Pokhara"),
+                        List.of("1A"),
+                        java.time.LocalDateTime.of(2026, 7, 18, 18, 30),
+                        "TRIP-50"
+                ));
+
+        mockMvc.perform(post("/api/driver/tickets/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"{}\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("VALID"))
+                .andExpect(jsonPath("$.ticketNumber").value("YT-TKT-20260718-ABC123"));
     }
 
     private MockHttpSession loginPassenger() throws Exception {

@@ -37,6 +37,7 @@ import DriverNotificationsPage from "./pages/driver/DriverNotificationsPage";
 import DriverProfilePage from "./pages/driver/DriverProfilePage";
 import DriverSettingsPage from "./pages/driver/DriverSettingsPage";
 import TripSummaryPage from "./pages/driver/TripSummaryPage";
+import DriverTripManifestPage from "./pages/driver/DriverTripManifestPage";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import DriverApplicationsPage from "./pages/admin/DriverApplicationsPage";
@@ -255,6 +256,15 @@ export default function App() {
           element={
             <ProtectedRoute allowedRole="DRIVER">
               <DriverScannerPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/driver/trips/:scheduledTripId/manifest"
+          element={
+            <ProtectedRoute allowedRole="DRIVER">
+              <DriverTripManifestPage />
             </ProtectedRoute>
           }
         />

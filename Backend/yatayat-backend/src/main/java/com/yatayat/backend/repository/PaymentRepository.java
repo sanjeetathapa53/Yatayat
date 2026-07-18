@@ -12,4 +12,6 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     );
 
     boolean existsByTransactionReference(String transactionReference);
+
+    boolean existsByBookingAndStatus(PassengerTripBooking booking, PaymentStatus status);
 }

@@ -37,7 +37,11 @@ export async function downloadTicketPdf(ticketNumber) {
 
 export function handleTicketSession(error, navigate) {
   if (error.status === 401) {
-    navigate("/login", { replace: true });
+    window.dispatchEvent(new Event("yatayat-auth-cleared"));
+    navigate("/login", {
+      replace: true,
+      state: { message: "Session expired. Please log in again." },
+    });
     return true;
   }
   return false;

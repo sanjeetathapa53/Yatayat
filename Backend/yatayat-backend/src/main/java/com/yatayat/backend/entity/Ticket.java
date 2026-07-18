@@ -38,6 +38,14 @@ public class Ticket {
     @Column(nullable = false) private LocalDateTime validUntil;
     private LocalDateTime usedAt;
     private LocalDateTime cancelledAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "validated_by_driver_profile_id",
+            foreignKey = @ForeignKey(name = "fk_ticket_validated_driver"))
+    private DriverProfile validatedByDriverProfile;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "validated_trip_id",
+            foreignKey = @ForeignKey(name = "fk_ticket_validated_trip"))
+    private ScheduledTrip validatedTrip;
     @Enumerated(EnumType.STRING)
     @Column(name = "auto_email_status", nullable = false, length = 20)
     private TicketEmailStatus autoEmailStatus = TicketEmailStatus.PENDING;
@@ -67,6 +75,8 @@ public class Ticket {
     public LocalDateTime getValidUntil() { return validUntil; }
     public LocalDateTime getUsedAt() { return usedAt; }
     public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public DriverProfile getValidatedByDriverProfile() { return validatedByDriverProfile; }
+    public ScheduledTrip getValidatedTrip() { return validatedTrip; }
     public TicketEmailStatus getAutoEmailStatus() { return autoEmailStatus; }
     public LocalDateTime getAutoEmailSentAt() { return autoEmailSentAt; }
     public LocalDateTime getLastEmailAttemptAt() { return lastEmailAttemptAt; }
@@ -82,6 +92,8 @@ public class Ticket {
     public void setValidUntil(LocalDateTime validUntil) { this.validUntil = validUntil; }
     public void setUsedAt(LocalDateTime usedAt) { this.usedAt = usedAt; }
     public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+    public void setValidatedByDriverProfile(DriverProfile validatedByDriverProfile) { this.validatedByDriverProfile = validatedByDriverProfile; }
+    public void setValidatedTrip(ScheduledTrip validatedTrip) { this.validatedTrip = validatedTrip; }
     public void setAutoEmailStatus(TicketEmailStatus autoEmailStatus) { this.autoEmailStatus = autoEmailStatus; }
     public void setAutoEmailSentAt(LocalDateTime autoEmailSentAt) { this.autoEmailSentAt = autoEmailSentAt; }
     public void setLastEmailAttemptAt(LocalDateTime lastEmailAttemptAt) { this.lastEmailAttemptAt = lastEmailAttemptAt; }

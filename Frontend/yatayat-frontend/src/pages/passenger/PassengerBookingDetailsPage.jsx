@@ -306,7 +306,7 @@ function PaymentSummaryModal({ booking, walletBalance, onClose, onContinue }) {
 
 function WalletPinModal({ booking, walletPin, setWalletPin, paying, paymentError, pinVisible, setPinVisible, pinShake, inputRef, onClose, onConfirm }) {
   const digitRefs = useRef([]);
-  const digits = walletPin.padEnd(4, "").slice(0, 4).split("");
+  const digits = Array.from({ length: 4 }, (_, index) => walletPin[index] || "");
 
   useEffect(() => {
     digitRefs.current[0]?.focus();

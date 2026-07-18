@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, CalendarClock, Download, Loader2, Mail, MapPin, Ticket, Wallet } from "lucide-react";
+import { ArrowLeft, CalendarClock, Check, Copy, Download, Loader2, Mail, MapPin, Ticket, Wallet } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -15,6 +15,7 @@ export default function PassengerTicketPage() {
   const [error, setError] = useState("");
   const [downloading, setDownloading] = useState(false);
   const [emailing, setEmailing] = useState(false);
+  const [copiedPayload, setCopiedPayload] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -56,6 +57,18 @@ export default function PassengerTicketPage() {
     }
   };
 
+  const copyQrPayload = async () => {
+    if (!ticket?.qrPayload) return;
+    try {
+      await navigator.clipboard.writeText(ticket.qrPayload);
+      setCopiedPayload(true);
+      toast.success("QR payload copied for development testing.");
+      window.setTimeout(() => setCopiedPayload(false), 1800);
+    } catch {
+      toast.error("Unable to copy QR payload. Please copy it manually from DevTools.");
+    }
+  };
+
   return <PassengerLayout activePage="My Bookings"><div className="mx-auto max-w-5xl space-y-6">
     <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm font-black text-[#08264a]"><ArrowLeft size={17} /> Back</button>
     {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin text-[#08264a]" size={42} /></div> : error ? <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center"><h1 className="text-2xl font-black text-red-800">Unable to load your ticket.</h1><p className="mt-2 font-semibold text-red-600">{error}</p><button onClick={() => navigate("/passenger/bookings")} className="mt-5 rounded-xl bg-[#08264a] px-6 py-3 font-black text-white">My Bookings</button></div> : ticket && <>
@@ -73,7 +86,7 @@ export default function PassengerTicketPage() {
         <div className="grid gap-8 p-6 lg:grid-cols-[0.95fr_1.25fr]">
           <div className="rounded-[1.75rem] border border-slate-100 bg-slate-50 p-6 text-center">
             <div className="mx-auto inline-block rounded-3xl bg-white p-4 shadow-xl shadow-slate-950/10">
-              <QRCodeSVG value={ticket.qrPayload} size={230} level="M" includeMargin />
+              <QRCodeSVG value={ticket.qrPayload || ""} size={230} level="M" includeMargin />
             </div>
             <p className="mt-5 text-xs font-black uppercase tracking-wide text-slate-500">Ticket Number</p>
             <p className="mt-1 break-all text-xl font-black text-[#08264a]">{ticket.ticketNumber}</p>
@@ -102,6 +115,7 @@ export default function PassengerTicketPage() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <ActionButton icon={<Download size={18} />} disabled={downloading || emailing} onClick={download}>{downloading ? "Downloading..." : "Download PDF"}</ActionButton>
         <ActionButton icon={<Mail size={18} />} disabled={downloading || emailing} onClick={email}>{emailing ? "Sending..." : "Resend E-ticket"}</ActionButton>
+        {import.meta.env.DEV && <ActionButton icon={copiedPayload ? <Check size={18} /> : <Copy size={18} />} disabled={!ticket.qrPayload} onClick={copyQrPayload}>{copiedPayload ? "QR Payload Copied" : "Copy QR Payload (Development Only)"}</ActionButton>}
         <ActionButton onClick={() => navigate(`/passenger/bookings/${ticket.bookingReference}`)}>Back to Booking</ActionButton>
         <ActionButton onClick={() => navigate("/passenger/bookings")}>My Bookings</ActionButton>
       </div>
