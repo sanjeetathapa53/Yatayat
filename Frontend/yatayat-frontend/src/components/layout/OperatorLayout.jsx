@@ -24,10 +24,10 @@ export default function OperatorLayout({ children }) {
         />
       )}
 
-      <aside className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-slate-200 bg-white transition-transform lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <aside className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(19rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white transition-transform lg:h-screen lg:w-72 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
           <div>
-            <h1 className="text-2xl font-black">Yatayat Operator</h1>
+            <h1 className="text-xl font-black sm:text-2xl">Yatayat Operator</h1>
             <p className="mt-1 text-xs font-semibold text-slate-500">Operations Portal</p>
           </div>
           <button type="button" onClick={() => setSidebarOpen(false)} className="p-2 lg:hidden">
@@ -36,10 +36,10 @@ export default function OperatorLayout({ children }) {
         </div>
 
         <nav className="flex-1 space-y-2 p-4">
-          <NavItem icon={<LayoutDashboard size={19} />} label="Dashboard" path="/operator/dashboard" active={location.pathname === "/operator/dashboard"} navigate={navigate} />
-          <NavItem icon={<Bus size={19} />} label="Buses" path="/operator/buses" active={location.pathname.startsWith("/operator/buses")} navigate={navigate} />
-          <NavItem icon={<Users size={19} />} label="Drivers" path="/operator/drivers" active={location.pathname.startsWith("/operator/drivers")} navigate={navigate} />
-          <NavItem icon={<CalendarDays size={19} />} label="Trips" path="/operator/trips" active={location.pathname.startsWith("/operator/trips")} navigate={navigate} />
+          <NavItem icon={<LayoutDashboard size={19} />} label="Dashboard" path="/operator/dashboard" active={location.pathname === "/operator/dashboard"} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
+          <NavItem icon={<Bus size={19} />} label="Buses" path="/operator/buses" active={location.pathname.startsWith("/operator/buses")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
+          <NavItem icon={<Users size={19} />} label="Drivers" path="/operator/drivers" active={location.pathname.startsWith("/operator/drivers")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
+          <NavItem icon={<CalendarDays size={19} />} label="Trips" path="/operator/trips" active={location.pathname.startsWith("/operator/trips")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
         </nav>
 
         <div className="border-t border-slate-200 p-5">
@@ -51,21 +51,21 @@ export default function OperatorLayout({ children }) {
 
       <div className="min-h-screen lg:ml-72">
         <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 lg:px-8">
-          <button type="button" onClick={() => setSidebarOpen(true)} className="rounded-xl border border-slate-200 p-3 lg:hidden">
+          <button type="button" aria-label="Open operator menu" onClick={() => setSidebarOpen(true)} className="tap-target rounded-xl border border-slate-200 p-3 lg:hidden">
             <Menu size={20} />
           </button>
           <Building2 size={23} />
-          <h2 className="text-xl font-black">Operator Dashboard</h2>
+          <h2 className="truncate text-lg font-black sm:text-xl">Operator Dashboard</h2>
         </header>
-        <main className="px-4 py-6 sm:px-6 lg:px-8">{children}</main>
+        <main className="px-4 py-6 sm:px-6 lg:px-8"><div className="responsive-shell">{children}</div></main>
       </div>
     </div>
   );
 }
 
-function NavItem({ icon, label, path, active, navigate }) {
+function NavItem({ icon, label, path, active, onNavigate }) {
   return (
-    <button type="button" onClick={() => navigate(path)} className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-black ${active ? "bg-[#08264a] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+    <button type="button" onClick={() => onNavigate(path)} className={`tap-target flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-black ${active ? "bg-[#08264a] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
       {icon} {label}
     </button>
   );

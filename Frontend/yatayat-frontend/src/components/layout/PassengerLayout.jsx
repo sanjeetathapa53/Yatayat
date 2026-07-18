@@ -86,8 +86,10 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
   return (
     <div className="min-h-screen bg-[#f3f6fa] text-[#08264a]">
       <button
+        type="button"
         onClick={() => setMenuOpen(true)}
-        className="fixed left-4 top-4 z-50 rounded-xl bg-white p-3 shadow-md lg:hidden"
+        aria-label="Open passenger menu"
+        className="tap-target fixed left-4 top-4 z-50 rounded-xl bg-white p-3 shadow-md lg:hidden"
       >
         <Menu size={22} />
       </button>
@@ -100,7 +102,7 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen w-64 flex-col justify-between border-r border-slate-200 bg-white p-4 transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(18rem,calc(100vw-2rem))] flex-col justify-between overflow-y-auto border-r border-slate-200 bg-white p-4 transition-transform duration-300 lg:h-screen lg:w-64 lg:translate-x-0 ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -113,7 +115,7 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
               </p>
             </button>
 
-            <button onClick={() => setMenuOpen(false)} className="lg:hidden">
+            <button type="button" aria-label="Close passenger menu" onClick={() => setMenuOpen(false)} className="rounded-lg p-2 lg:hidden">
               <X size={22} />
             </button>
           </div>
@@ -121,6 +123,7 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
           <nav className="mt-8 space-y-2">
             {menuItems.map((item) => (
               <button
+                type="button"
                 key={item.label}
                 onClick={() => go(item.path)}
                 className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition ${
@@ -145,7 +148,7 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
               {initials}
             </div>
 
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-bold">{fullName}</p>
               <p className="text-[10px] uppercase text-slate-500">
                 {role}

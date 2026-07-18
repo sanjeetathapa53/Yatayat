@@ -179,8 +179,8 @@ export default function DriverLayout({
   return (
     <div className="min-h-screen bg-[#f3f6fa] text-[#08264a]">
       <header className="fixed left-0 top-0 z-40 h-16 w-full border-b border-slate-200 bg-white">
-        <div className="flex h-full items-center justify-between px-4 lg:px-6">
-          <div className="flex items-center gap-4">
+        <div className="flex h-full items-center justify-between gap-3 px-3 sm:px-4 lg:px-6">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4">
             <button
               type="button"
               onClick={() => setMenuOpen(true)}
@@ -195,7 +195,7 @@ export default function DriverLayout({
               onClick={() => go("/driver/dashboard")}
               className="text-left"
             >
-              <h1 className="text-2xl font-black text-[#08264a]">
+              <h1 className="truncate text-xl font-black text-[#08264a] sm:text-2xl">
                 Yatayat
               </h1>
             </button>
@@ -235,7 +235,7 @@ export default function DriverLayout({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <StatusBadge status={verificationStatus} />
 
             <button
@@ -276,7 +276,7 @@ export default function DriverLayout({
       )}
 
       <aside
-        className={`fixed left-0 top-16 z-50 flex h-[calc(100vh-64px)] w-64 flex-col justify-between overflow-y-auto border-r border-slate-200 bg-[#061a33] p-3 text-white transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed left-0 top-16 z-50 flex h-[calc(100dvh-64px)] w-[min(18rem,calc(100vw-2rem))] flex-col justify-between overflow-y-auto border-r border-slate-200 bg-[#061a33] p-3 text-white transition-transform duration-300 lg:h-[calc(100vh-64px)] lg:w-64 lg:translate-x-0 ${
           menuOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -372,7 +372,7 @@ export default function DriverLayout({
       </aside>
 
       <main className="min-h-screen px-4 pb-6 pt-20 sm:px-6 lg:ml-64 lg:px-7">
-        {children}
+        <div className="responsive-shell">{children}</div>
       </main>
     </div>
   );

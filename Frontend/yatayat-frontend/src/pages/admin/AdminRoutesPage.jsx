@@ -110,7 +110,7 @@ export default function AdminRoutesPage() {
     <AdminLayout title="Route Management" subtitle="Create and maintain platform routes available to approved operators.">
       <div className="space-y-6">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
+          <div className="min-w-0">
             <h1 className="text-2xl font-black text-slate-900">Platform Routes</h1>
             <p className="mt-1 text-sm text-slate-500">Inactive routes remain preserved but are hidden from operators.</p>
           </div>
@@ -134,17 +134,17 @@ export default function AdminRoutesPage() {
             {routes.map((route) => (
               <article key={route.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                 <div className="flex items-start justify-between gap-4">
-                  <div>
+                  <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-lg bg-blue-50 px-3 py-1 text-xs font-black text-[#08264a]">{route.code}</span>
                       <span className={`rounded-full px-3 py-1 text-xs font-black ${route.status === "ACTIVE" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"}`}>{route.status}</span>
                       <TripTypeBadge tripType={route.tripType} />
                     </div>
-                    <h2 className="mt-3 text-xl font-black text-slate-900">{route.name}</h2>
+                    <h2 className="safe-wrap mt-3 text-xl font-black text-slate-900">{route.name}</h2>
                   </div>
                   <button type="button" onClick={() => openEdit(route)} className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:bg-slate-50" title="Edit route"><Edit3 size={18} /></button>
                 </div>
-                <div className="mt-5 flex items-center gap-3 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
+                <div className="safe-wrap mt-5 flex items-start gap-3 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700">
                   <MapPin size={18} /> {route.origin} to {route.destination}
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -158,11 +158,11 @@ export default function AdminRoutesPage() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <form onSubmit={submit} className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="flex items-center justify-between">
-              <div><h2 className="text-2xl font-black">{editingId ? "Edit Route" : "Create Route"}</h2><p className="mt-1 text-sm text-slate-500">Routes are managed by administrators.</p></div>
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-xl p-2 hover:bg-slate-100"><X /></button>
+        <div className="responsive-modal-backdrop fixed inset-0 z-50 flex justify-center bg-black/50 sm:items-center">
+          <form onSubmit={submit} className="responsive-modal-panel w-full max-w-2xl rounded-3xl bg-white p-5 shadow-2xl sm:p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0"><h2 className="text-xl font-black sm:text-2xl">{editingId ? "Edit Route" : "Create Route"}</h2><p className="mt-1 text-sm text-slate-500">Routes are managed by administrators.</p></div>
+              <button type="button" aria-label="Close route form" onClick={() => setShowForm(false)} className="rounded-xl p-2 hover:bg-slate-100"><X /></button>
             </div>
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Route Code" value={form.code} onChange={(value) => setForm({ ...form, code: value })} />

@@ -134,7 +134,7 @@ export default function DriverPassengerListPage() {
 
       <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-slate-200 p-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex rounded-xl bg-slate-100 p-1">
+          <div className="responsive-scroll flex rounded-xl bg-slate-100 p-1">
             {["All", "Boarded", "Pending"].map((item) => (
               <button
                 key={item}
@@ -156,7 +156,7 @@ export default function DriverPassengerListPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by name, seat or Ticket ID..."
-              className="w-full bg-transparent text-sm outline-none"
+              className="w-full min-w-0 bg-transparent text-sm outline-none"
             />
           </div>
         </div>
@@ -248,7 +248,7 @@ export default function DriverPassengerListPage() {
             Showing 1-{filteredPassengers.length} of {total} passengers
           </p>
 
-          <div className="flex gap-2">
+          <div className="responsive-scroll flex gap-2">
             <button className="rounded-lg border border-slate-300 bg-white p-3 text-slate-500 hover:bg-slate-100">
               <ChevronLeft size={18} />
             </button>
@@ -351,7 +351,7 @@ function MobilePassengerCard({ passenger, onBoard }) {
         </div>
       </div>
 
-      <div className="mt-4 flex gap-2">
+      <div className="mt-4 grid gap-2 min-[360px]:grid-cols-3">
         <button className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-slate-300 py-3 text-sm font-black text-slate-600">
           <Eye size={17} />
           View

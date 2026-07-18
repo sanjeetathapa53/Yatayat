@@ -126,7 +126,7 @@ export default function AdminLayout({
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(19rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:h-screen lg:w-72 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -136,7 +136,7 @@ export default function AdminLayout({
             onClick={() => goTo("/admin/dashboard")}
             className="text-left"
           >
-            <h1 className="text-2xl font-black leading-tight text-[#08264a]">
+              <h1 className="text-xl font-black leading-tight text-[#08264a] sm:text-2xl">
               Yatayat Admin
             </h1>
             <p className="mt-1 text-xs font-semibold text-slate-500">
@@ -174,7 +174,7 @@ export default function AdminLayout({
                   }`}
                 >
                   <Icon size={19} />
-                  <span>{item.label}</span>
+                  <span className="truncate">{item.label}</span>
                 </button>
               );
             })}
@@ -215,7 +215,8 @@ export default function AdminLayout({
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
-              className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:bg-slate-100 lg:hidden"
+              aria-label="Open admin menu"
+              className="tap-target rounded-xl border border-slate-200 p-3 text-slate-600 hover:bg-slate-100 lg:hidden"
             >
               <Menu size={20} />
             </button>
@@ -255,7 +256,7 @@ export default function AdminLayout({
         </header>
 
         <main className="px-4 py-6 sm:px-6 lg:px-8">
-          {children}
+          <div className="responsive-shell">{children}</div>
         </main>
       </div>
     </div>

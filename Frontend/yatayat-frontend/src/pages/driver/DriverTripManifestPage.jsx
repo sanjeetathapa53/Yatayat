@@ -114,7 +114,7 @@ export default function DriverTripManifestPage() {
               className="w-full bg-transparent text-sm font-bold outline-none"
             />
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2 min-[360px]:grid-cols-3">
             {filters.map((item) => (
               <button
                 key={item}
@@ -156,7 +156,7 @@ function PassengerCard({ row }) {
               {boarded ? "BOARDED" : "NOT BOARDED"}
             </span>
           </div>
-          <p className="mt-1 text-sm font-semibold text-slate-500">{row.passengerPhone}</p>
+          <p className="safe-wrap mt-1 text-sm font-semibold text-slate-500">{row.passengerPhone}</p>
         </div>
         <div className="text-left md:text-right">
           <p className="text-sm font-black text-slate-900">{(row.seats || []).join(", ") || "No seats"}</p>

@@ -1,7 +1,7 @@
 export default function OtpModal({ otp, setOtp, onVerify, onClose }) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-xl">
+      <div className="responsive-modal-backdrop fixed inset-0 z-50 flex justify-center bg-black/40 sm:items-center">
+        <div className="responsive-modal-panel w-full max-w-sm rounded-3xl bg-white p-5 shadow-xl sm:p-6">
           <h2 className="text-2xl font-black text-[#08264a]">Verify OTP</h2>
   
           <p className="mt-2 text-sm text-slate-500">
