@@ -27,6 +27,7 @@ import {
   handleBookingSession,
   payPassengerBookingWithWallet,
 } from "../../utils/passengerBookings";
+import { getTicketByBooking } from "../../utils/passengerTickets";
 
 const PAYMENT_STEPS = {
   SUMMARY: "summary",
@@ -56,6 +57,8 @@ export default function PassengerBookingDetailsPage() {
   const [pinVisible, setPinVisible] = useState(false);
   const [pinShake, setPinShake] = useState(false);
   const [paymentResult, setPaymentResult] = useState(null);
+  const [ticketNumber, setTicketNumber] = useState("");
+  const [ticketLoading, setTicketLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [paying, setPaying] = useState(false);
   const [now, setNow] = useState(Date.now());
@@ -111,6 +114,17 @@ export default function PassengerBookingDetailsPage() {
     const timer = window.setTimeout(() => setPaymentStep(null), 6500);
     return () => window.clearTimeout(timer);
   }, [paymentStep]);
+
+  useEffect(() => {
+    if (booking?.bookingStatus !== "CONFIRMED" || ticketNumber) return undefined;
+    let active = true;
+    setTicketLoading(true);
+    getTicketByBooking(booking.bookingReference)
+      .then((ticket) => { if (active) setTicketNumber(ticket.ticketNumber); })
+      .catch(() => { if (active) setTicketNumber(""); })
+      .finally(() => { if (active) setTicketLoading(false); });
+    return () => { active = false; };
+  }, [booking, ticketNumber]);
 
   const remainingSeconds = Math.max(
     0,
@@ -182,6 +196,7 @@ export default function PassengerBookingDetailsPage() {
     try {
       const result = await payPassengerBookingWithWallet(bookingReference, walletPin);
       setPaymentResult(result);
+      if (result.ticketNumber) setTicketNumber(result.ticketNumber);
       await loadBooking();
       setWalletBalance(Number(result.walletBalance || 0));
       setWalletPin("");
@@ -218,14 +233,14 @@ export default function PassengerBookingDetailsPage() {
         </div>
       </header>
       {pendingPayment && <PaymentPanel booking={booking} walletBalance={walletBalance} walletError={walletError} pinStatus={pinStatus} remainingSeconds={remainingSeconds} insufficientBalance={insufficientBalance} paying={paying} onPay={openSummary} />}
-      {booking.bookingStatus === "CONFIRMED" && <div className="rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5 text-emerald-900 shadow-sm"><div className="flex items-center gap-2 font-black"><CheckCircle2 size={20} /> Booking confirmed</div><p className="mt-2 text-sm">Wallet payment is recorded and your selected seats are confirmed.</p></div>}
+      {booking.bookingStatus === "CONFIRMED" && <div className="flex flex-col gap-4 rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5 text-emerald-900 shadow-sm sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2 font-black"><CheckCircle2 size={20} /> Booking confirmed</div><p className="mt-2 text-sm">Wallet payment is recorded and your selected seats are confirmed.</p></div><button disabled={ticketLoading || !ticketNumber} onClick={() => navigate(`/passenger/tickets/${ticketNumber}`)} className="rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-600/20 disabled:cursor-not-allowed disabled:opacity-60">{ticketLoading ? "Preparing Ticket..." : "View Ticket"}</button></div>}
       <section className="grid grid-cols-1 gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">{rows.map(([label, value]) => <div key={label} className="rounded-2xl bg-slate-50 p-4 transition hover:bg-slate-100"><p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><p className="mt-2 break-words font-bold text-slate-800">{value}</p></div>)}</section>
       {cancellable && <div className="flex justify-end rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><button onClick={() => setShowCancel(true)} className="flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 font-black text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700"><XCircle size={17} /> Cancel Booking</button></div>}
     </>}
     {showCancel && <CancelModal cancelling={cancelling} onClose={() => setShowCancel(false)} onConfirm={cancel} />}
     {paymentStep === PAYMENT_STEPS.SUMMARY && booking && <PaymentSummaryModal booking={booking} walletBalance={walletBalance} onClose={closePaymentFlow} onContinue={() => setPaymentStep(PAYMENT_STEPS.PIN)} />}
     {paymentStep === PAYMENT_STEPS.PIN && booking && <WalletPinModal booking={booking} walletPin={walletPin} setWalletPin={setWalletPin} paying={paying} paymentError={paymentError} pinVisible={pinVisible} setPinVisible={setPinVisible} pinShake={pinShake} inputRef={pinInputRef} onClose={closePaymentFlow} onConfirm={pay} />}
-    {paymentStep === PAYMENT_STEPS.SUCCESS && booking && <PaymentSuccessModal booking={booking} paymentResult={paymentResult} onClose={() => setPaymentStep(null)} onBookings={() => navigate("/passenger/bookings")} />}
+    {paymentStep === PAYMENT_STEPS.SUCCESS && booking && <PaymentSuccessModal booking={booking} paymentResult={paymentResult} ticketNumber={ticketNumber} ticketLoading={ticketLoading} onClose={() => setPaymentStep(null)} onTicket={() => ticketNumber && navigate(`/passenger/tickets/${ticketNumber}`)} onBookings={() => navigate("/passenger/bookings")} />}
   </div></PassengerLayout>;
 }
 
@@ -425,7 +440,7 @@ function WalletPinModal({ booking, walletPin, setWalletPin, paying, paymentError
   </PremiumModal>;
 }
 
-function PaymentSuccessModal({ booking, paymentResult, onClose, onBookings }) {
+function PaymentSuccessModal({ booking, paymentResult, ticketNumber, ticketLoading, onClose, onTicket, onBookings }) {
   const paidAt = paymentResult?.paidAt || booking.paidAt || new Date().toISOString();
   return <PremiumModal title="Payment Successful" onClose={onClose}>
     <div className="text-center">
@@ -433,7 +448,7 @@ function PaymentSuccessModal({ booking, paymentResult, onClose, onBookings }) {
         <CheckCircle2 size={54} />
       </div>
       <h2 className="mt-5 text-3xl font-black text-slate-950">Payment Successful</h2>
-      <p className="mt-2 text-sm font-semibold text-slate-500">Your wallet payment has been recorded and your seats are confirmed.</p>
+      <p className="mt-2 text-sm font-semibold text-slate-500">{paymentResult?.ticketEmailMessage || "Payment successful. Your e-ticket will be sent to your registered email shortly."}</p>
     </div>
     <div className="mt-6 grid gap-3 rounded-3xl border border-emerald-100 bg-emerald-50 p-4">
       <SummaryRow label="Booking Reference" value={booking.bookingReference} />
@@ -444,7 +459,7 @@ function PaymentSuccessModal({ booking, paymentResult, onClose, onBookings }) {
     </div>
     <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
       <button onClick={onBookings} className="rounded-2xl border border-slate-200 px-5 py-3 font-black text-slate-700 transition hover:bg-slate-50">Back to My Bookings</button>
-      <button onClick={onClose} className="rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:bg-emerald-700">View Ticket</button>
+      <button disabled={ticketLoading || !ticketNumber} onClick={onTicket || onClose} className="rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:bg-emerald-700 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60">{ticketLoading ? "Preparing Ticket..." : "View Ticket"}</button>
     </div>
   </PremiumModal>;
 }

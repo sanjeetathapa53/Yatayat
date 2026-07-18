@@ -32,6 +32,7 @@ public class PassengerBookingService {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final PaymentRepository paymentRepository;
+    private final PassengerTicketService ticketService;
     private final PasswordEncoder passwordEncoder;
     private final long paymentWindowMinutes;
 
@@ -42,6 +43,7 @@ public class PassengerBookingService {
                                    WalletRepository walletRepository,
                                    WalletTransactionRepository walletTransactionRepository,
                                    PaymentRepository paymentRepository,
+                                   PassengerTicketService ticketService,
                                    PasswordEncoder passwordEncoder,
                                    @Value("${yatayat.booking.payment-window-minutes:10}") long paymentWindowMinutes) {
         this.userRepository = userRepository;
@@ -51,6 +53,7 @@ public class PassengerBookingService {
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.paymentRepository = paymentRepository;
+        this.ticketService = ticketService;
         this.passwordEncoder = passwordEncoder;
         this.paymentWindowMinutes = Math.max(1, paymentWindowMinutes);
     }
@@ -240,7 +243,9 @@ public class PassengerBookingService {
                     "Payment has already been completed for this booking.");
         }
 
-        return paymentResponse(booking, payment, wallet, seats);
+        Ticket ticket = ticketService.issueForConfirmedBooking(booking);
+        ticketService.scheduleAutomaticEmailAfterCommit(ticket.getTicketNumber());
+        return paymentResponse(booking, payment, wallet, seats, ticket);
     }
 
     private void verifyActiveWalletPin(Wallet wallet, String walletPin) {
@@ -266,7 +271,9 @@ public class PassengerBookingService {
     ) {
         Wallet wallet = walletRepository.findByUser(passenger).orElse(null);
         List<BookingSeat> seats = seatRepository.findByBookingOrderBySeatNumberAsc(booking);
-        return paymentResponse(booking, payment, wallet, seats);
+        Ticket ticket = booking.getStatus() == BookingStatus.CONFIRMED
+                ? ticketService.issueForConfirmedBooking(booking) : null;
+        return paymentResponse(booking, payment, wallet, seats, ticket);
     }
 
     private PassengerTripBooking ownedBooking(User passenger, String reference) {
@@ -370,13 +377,16 @@ public class PassengerBookingService {
             PassengerTripBooking booking,
             Payment payment,
             Wallet wallet,
-            List<BookingSeat> seats
+            List<BookingSeat> seats,
+            Ticket ticket
     ) {
         return new WalletBookingPaymentResponse(
                 booking.getBookingReference(), booking.getStatus().name(), payment.getStatus().name(),
                 payment.getPaymentMethod().name(), payment.getAmount(), payment.getPaidAt(),
                 payment.getTransactionReference(), wallet == null ? BigDecimal.ZERO : BigDecimal.valueOf(wallet.getBalance()),
-                seats.stream().map(BookingSeat::getSeatNumber).sorted().toList()
+                seats.stream().map(BookingSeat::getSeatNumber).sorted().toList(),
+                ticket == null ? null : ticket.getTicketNumber(),
+                ticket == null ? null : "Payment successful. Your e-ticket will be sent to your registered email shortly."
         );
     }
 
