@@ -7,6 +7,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -31,6 +32,7 @@ public class PassengerBookingService {
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final PaymentRepository paymentRepository;
+    private final PasswordEncoder passwordEncoder;
     private final long paymentWindowMinutes;
 
     public PassengerBookingService(UserRepository userRepository,
@@ -40,6 +42,7 @@ public class PassengerBookingService {
                                    WalletRepository walletRepository,
                                    WalletTransactionRepository walletTransactionRepository,
                                    PaymentRepository paymentRepository,
+                                   PasswordEncoder passwordEncoder,
                                    @Value("${yatayat.booking.payment-window-minutes:10}") long paymentWindowMinutes) {
         this.userRepository = userRepository;
         this.tripRepository = tripRepository;
@@ -48,6 +51,7 @@ public class PassengerBookingService {
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.paymentRepository = paymentRepository;
+        this.passwordEncoder = passwordEncoder;
         this.paymentWindowMinutes = Math.max(1, paymentWindowMinutes);
     }
 
@@ -135,7 +139,7 @@ public class PassengerBookingService {
     }
 
     @Transactional
-    public WalletBookingPaymentResponse payWithWallet(String email, String reference) {
+    public WalletBookingPaymentResponse payWithWallet(String email, String reference, String walletPin) {
         User passenger = requirePassenger(email);
         if (reference == null || reference.isBlank()) throw bookingNotFound();
         PassengerTripBooking booking = bookingRepository
@@ -144,10 +148,14 @@ public class PassengerBookingService {
 
         return paymentRepository.findFirstByBookingAndStatusOrderByCreatedAtDesc(
                 booking, PaymentStatus.SUCCESS).map(payment -> alreadyPaid(booking, payment, passenger))
-                .orElseGet(() -> completeWalletPayment(booking, passenger));
+                .orElseGet(() -> completeWalletPayment(booking, passenger, walletPin));
     }
 
-    private WalletBookingPaymentResponse completeWalletPayment(PassengerTripBooking booking, User passenger) {
+    private WalletBookingPaymentResponse completeWalletPayment(
+            PassengerTripBooking booking,
+            User passenger,
+            String walletPin
+    ) {
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This booking has been cancelled.");
         }
@@ -161,6 +169,11 @@ public class PassengerBookingService {
         if (booking.getScheduledTrip().getRoute().getTripType() == TripType.LOCAL) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Local trips do not support seat reservations.");
         }
+
+        Wallet wallet = walletRepository.findWithLockByUser(passenger)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Wallet is required before payment."));
+        verifyActiveWalletPin(wallet, walletPin);
 
         LocalDateTime now = LocalDateTime.now();
         List<BookingSeat> seats = seatRepository.findWithLockByBookingOrderBySeatNumberAsc(booking);
@@ -192,9 +205,6 @@ public class PassengerBookingService {
                     "Booking total no longer matches the selected seats.");
         }
 
-        Wallet wallet = walletRepository.findWithLockByUser(passenger)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Wallet is required before payment."));
         double balance = wallet.getBalance() == null ? 0.0 : wallet.getBalance();
         double amount = booking.getTotalFare().doubleValue();
         if (BigDecimal.valueOf(balance).compareTo(booking.getTotalFare()) < 0) {
@@ -231,6 +241,22 @@ public class PassengerBookingService {
         }
 
         return paymentResponse(booking, payment, wallet, seats);
+    }
+
+    private void verifyActiveWalletPin(Wallet wallet, String walletPin) {
+        if (wallet.getWalletPin() == null || wallet.getWalletPin().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Wallet is not active. Please activate your wallet first.");
+        }
+        if (walletPin == null || walletPin.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wallet PIN is required.");
+        }
+        if (!walletPin.matches("^\\d{4}$")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wallet PIN must be 4 digits.");
+        }
+        if (!passwordEncoder.matches(walletPin, wallet.getWalletPin())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Incorrect wallet PIN.");
+        }
     }
 
     private WalletBookingPaymentResponse alreadyPaid(
