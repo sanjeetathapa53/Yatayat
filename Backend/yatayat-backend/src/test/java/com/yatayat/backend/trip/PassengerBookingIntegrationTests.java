@@ -5,6 +5,7 @@ import com.yatayat.backend.controller.PassengerBookingController;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.PassengerBookingService;
+import com.yatayat.backend.service.PassengerTicketService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,7 @@ class PassengerBookingIntegrationTests {
     @MockitoBean private WalletRepository walletRepository;
     @MockitoBean private WalletTransactionRepository walletTransactionRepository;
     @MockitoBean private PaymentRepository paymentRepository;
+    @MockitoBean private PassengerTicketService passengerTicketService;
 
     private User passengerA;
     private User passengerB;
@@ -64,6 +66,18 @@ class PassengerBookingIntegrationTests {
             if (saved.getId() == null) saved.setId(50L);
             if (saved.getBookedAt() == null) saved.setBookedAt(LocalDateTime.now());
             return saved;
+        });
+        when(passengerTicketService.issueForConfirmedBooking(any())).thenAnswer(invocation -> {
+            PassengerTripBooking owner = invocation.getArgument(0);
+            Ticket ticket = new Ticket();
+            ticket.setTicketNumber("YT-TKT-20260718-ABC123");
+            ticket.setBooking(owner);
+            ticket.setStatus(TicketStatus.VALID);
+            ticket.setQrTokenHash("a".repeat(64));
+            ticket.setIssuedAt(LocalDateTime.now());
+            ticket.setValidFrom(LocalDateTime.now());
+            ticket.setValidUntil(owner.getScheduledTrip().getEstimatedArrivalAt().plusHours(2));
+            return ticket;
         });
     }
 
@@ -265,6 +279,8 @@ class PassengerBookingIntegrationTests {
         org.assertj.core.api.Assertions.assertThat(wallet.getBalance()).isEqualTo(500.0);
         org.assertj.core.api.Assertions.assertThat(seats).allMatch(seat -> seat.getStatus() == BookingSeatStatus.CONFIRMED);
         org.assertj.core.api.Assertions.assertThat(pending.getStatus()).isEqualTo(BookingStatus.CONFIRMED);
+        verify(passengerTicketService).issueForConfirmedBooking(pending);
+        verify(passengerTicketService).scheduleAutomaticEmailAfterCommit("YT-TKT-20260718-ABC123");
     }
 
     @Test
@@ -286,6 +302,7 @@ class PassengerBookingIntegrationTests {
 
         verify(paymentRepository, never()).save(any());
         verify(walletTransactionRepository, never()).save(any());
+        verify(passengerTicketService, never()).scheduleAutomaticEmailAfterCommit(anyString());
         org.assertj.core.api.Assertions.assertThat(wallet.getBalance()).isEqualTo(100.0);
         org.assertj.core.api.Assertions.assertThat(pending.getStatus()).isEqualTo(BookingStatus.PENDING_PAYMENT);
     }
@@ -309,6 +326,7 @@ class PassengerBookingIntegrationTests {
         verify(seatRepository, never()).findWithLockByBookingOrderBySeatNumberAsc(any());
         verify(paymentRepository, never()).save(any());
         verify(walletTransactionRepository, never()).save(any());
+        verify(passengerTicketService, never()).scheduleAutomaticEmailAfterCommit(anyString());
         org.assertj.core.api.Assertions.assertThat(wallet.getBalance()).isEqualTo(1500.0);
         org.assertj.core.api.Assertions.assertThat(pending.getStatus()).isEqualTo(BookingStatus.PENDING_PAYMENT);
         org.assertj.core.api.Assertions.assertThat(seats).allMatch(seat -> seat.getStatus() == BookingSeatStatus.HELD);
@@ -332,6 +350,7 @@ class PassengerBookingIntegrationTests {
         verify(seatRepository, never()).findWithLockByBookingOrderBySeatNumberAsc(any());
         verify(paymentRepository, never()).save(any());
         verify(walletTransactionRepository, never()).save(any());
+        verify(passengerTicketService, never()).scheduleAutomaticEmailAfterCommit(anyString());
         org.assertj.core.api.Assertions.assertThat(wallet.getBalance()).isEqualTo(1500.0);
     }
 
@@ -373,6 +392,7 @@ class PassengerBookingIntegrationTests {
 
         verify(paymentRepository, never()).save(any());
         verify(walletTransactionRepository, never()).save(any());
+        verify(passengerTicketService, never()).scheduleAutomaticEmailAfterCommit(anyString());
         org.assertj.core.api.Assertions.assertThat(wallet.getBalance()).isEqualTo(1500.0);
         org.assertj.core.api.Assertions.assertThat(pending.getStatus()).isEqualTo(BookingStatus.CANCELLED);
         org.assertj.core.api.Assertions.assertThat(seats).allMatch(seat -> seat.getStatus() == BookingSeatStatus.RELEASED);
@@ -402,6 +422,7 @@ class PassengerBookingIntegrationTests {
         verify(walletRepository, never()).findWithLockByUser(any());
         verify(walletTransactionRepository, never()).save(any());
         verify(paymentRepository, never()).save(any());
+        verify(passengerTicketService, never()).scheduleAutomaticEmailAfterCommit(anyString());
     }
 
     @Test
@@ -419,6 +440,7 @@ class PassengerBookingIntegrationTests {
         verify(walletRepository, never()).findWithLockByUser(any());
         verify(walletTransactionRepository, never()).save(any());
         verify(paymentRepository, never()).save(any());
+        verify(passengerTicketService, never()).scheduleAutomaticEmailAfterCommit(anyString());
     }
 
     @Test

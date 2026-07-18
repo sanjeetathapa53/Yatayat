@@ -13,5 +13,7 @@ public record WalletBookingPaymentResponse(
         LocalDateTime paidAt,
         String transactionReference,
         BigDecimal walletBalance,
-        List<String> seatNumbers
+        List<String> seatNumbers,
+        String ticketNumber,
+        String ticketEmailMessage
 ) {}

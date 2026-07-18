@@ -23,6 +23,7 @@ import CreatePassengerBookingPage from "./pages/passenger/CreatePassengerBooking
 import PassengerSeatSelectionPage from "./pages/passenger/PassengerSeatSelectionPage";
 import PassengerBookingsPage from "./pages/passenger/PassengerBookingsPage";
 import PassengerBookingDetailsPage from "./pages/passenger/PassengerBookingDetailsPage";
+import PassengerTicketPage from "./pages/passenger/PassengerTicketPage";
 import PassengerLocalRoutesPage from "./pages/passenger/PassengerLocalRoutesPage";
 import PassengerLocalRouteDetailsPage from "./pages/passenger/PassengerLocalRouteDetailsPage";
 
@@ -152,6 +153,7 @@ export default function App() {
         <Route path="/passenger/trips/:tripId/book" element={<ProtectedRoute allowedRole="PASSENGER"><CreatePassengerBookingPage /></ProtectedRoute>} />
         <Route path="/passenger/bookings" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerBookingsPage /></ProtectedRoute>} />
         <Route path="/passenger/bookings/:bookingReference" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerBookingDetailsPage /></ProtectedRoute>} />
+        <Route path="/passenger/tickets/:ticketNumber" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerTicketPage /></ProtectedRoute>} />
 
         <Route
           path="/seat-selection"
