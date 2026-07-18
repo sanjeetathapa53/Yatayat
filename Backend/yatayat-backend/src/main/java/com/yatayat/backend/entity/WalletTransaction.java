@@ -1,6 +1,7 @@
 package com.yatayat.backend.entity;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
 @Entity
@@ -23,6 +24,7 @@ public class WalletTransaction {
 
     @ManyToOne
     @JoinColumn(name = "wallet_id")
+    @JsonIgnore
     private Wallet wallet;
 
     public WalletTransaction() {

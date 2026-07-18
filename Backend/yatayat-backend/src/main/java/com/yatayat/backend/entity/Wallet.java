@@ -13,7 +13,7 @@ public class Wallet {
 
     private Double balance = 0.0;
 
-    // NEW
+    @JsonIgnore
     private String walletPin;
 
     @JsonIgnore

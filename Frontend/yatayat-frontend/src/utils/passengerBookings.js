@@ -18,7 +18,9 @@ export const createPassengerBooking = (payload) => bookingRequest("/api/passenge
 export const listPassengerBookings = () => bookingRequest("/api/passenger/bookings");
 export const getPassengerBooking = (reference) => bookingRequest(`/api/passenger/bookings/${encodeURIComponent(reference)}`);
 export const cancelPassengerBooking = (reference) => bookingRequest(`/api/passenger/bookings/${encodeURIComponent(reference)}/cancel`, { method: "POST" });
-export const payPassengerBookingWithWallet = (reference) => bookingRequest(`/api/passenger/bookings/${encodeURIComponent(reference)}/pay/wallet`, { method: "POST" });
+export const payPassengerBookingWithWallet = (reference, walletPin) => bookingRequest(`/api/passenger/bookings/${encodeURIComponent(reference)}/pay/wallet`, {
+  method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ walletPin }),
+});
 
 export function handleBookingSession(error, navigate) {
   if (error.status === 401) { navigate("/login", { replace: true }); return true; }

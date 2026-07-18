@@ -39,8 +39,10 @@ public class PassengerBookingController {
     }
     @PostMapping("/{bookingReference}/pay/wallet")
     public WalletBookingPaymentResponse payWithWallet(Authentication authentication,
-                                                       @PathVariable String bookingReference) {
-        return bookingService.payWithWallet(authentication.getName(), bookingReference);
+                                                       @PathVariable String bookingReference,
+                                                       @RequestBody(required = false) WalletPinRequest request) {
+        return bookingService.payWithWallet(authentication.getName(), bookingReference,
+                request == null ? null : request.getWalletPin());
     }
 
     @ExceptionHandler(ResponseStatusException.class)

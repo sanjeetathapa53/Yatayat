@@ -383,8 +383,11 @@ export default function App() {
       </Routes>
 
       <ToastContainer
-        position="top-right"
-        autoClose={2500}
+        position="bottom-right"
+        autoClose={2800}
+        newestOnTop
+        pauseOnHover
+        theme="colored"
       />
     </>
   );
