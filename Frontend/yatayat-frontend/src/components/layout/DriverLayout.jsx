@@ -143,6 +143,11 @@ export default function DriverLayout({
       path: "/driver/trip",
     },
     {
+      label: "Local Services",
+      icon: <Bus size={20} />,
+      path: "/driver/local-services",
+    },
+    {
       label: "Notifications",
       icon: <Bell size={20} />,
       path: "/driver/notifications",

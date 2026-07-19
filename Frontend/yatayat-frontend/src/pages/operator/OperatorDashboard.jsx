@@ -112,6 +112,7 @@ export default function OperatorDashboard() {
                 { label: "Register Bus", path: "/operator/buses/register" },
                 { label: "Manage Buses", path: "/operator/buses" },
                 { label: "Manage Drivers", path: "/operator/drivers" },
+                { label: "Plan Local Service", path: "/operator/local-services" },
                 { label: "Create Scheduled Trip", path: "/operator/trips/create" },
                 { label: "View Active Trips", path: "/operator/trips" },
               ].map((action) => (

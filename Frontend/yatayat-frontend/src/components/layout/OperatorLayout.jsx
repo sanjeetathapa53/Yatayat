@@ -39,6 +39,7 @@ export default function OperatorLayout({ children }) {
           <NavItem icon={<LayoutDashboard size={19} />} label="Dashboard" path="/operator/dashboard" active={location.pathname === "/operator/dashboard"} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
           <NavItem icon={<Bus size={19} />} label="Buses" path="/operator/buses" active={location.pathname.startsWith("/operator/buses")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
           <NavItem icon={<Users size={19} />} label="Drivers" path="/operator/drivers" active={location.pathname.startsWith("/operator/drivers")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
+          <NavItem icon={<CalendarDays size={19} />} label="Local Services" path="/operator/local-services" active={location.pathname.startsWith("/operator/local-services")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
           <NavItem icon={<CalendarDays size={19} />} label="Trips" path="/operator/trips" active={location.pathname.startsWith("/operator/trips")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
         </nav>
 
