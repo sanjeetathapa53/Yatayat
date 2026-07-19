@@ -65,9 +65,9 @@ export default function Navbar() {
 
             <button
               type="button"
-              onClick={() => setLanguage("np")}
+              onClick={() => setLanguage("ne")}
               className={`rounded-full px-3 py-1 transition ${
-                language === "np"
+                language === "ne"
                   ? "bg-[#08264a] text-white"
                   : "text-slate-500"
               }`}

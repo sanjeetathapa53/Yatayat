@@ -17,6 +17,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { logoutUser } from "../../services/authService";
+import { useLanguage } from "../../context/LanguageContext";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -26,6 +27,7 @@ export default function DriverLayout({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { language, setLanguage, t } = useLanguage();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [driver, setDriver] = useState(null);
@@ -61,7 +63,7 @@ export default function DriverLayout({
 
       if (!response.ok || !data.success) {
         throw new Error(
-          data.message || "Unable to load driver profile."
+          data.message || t("driver.layout.unableProfile")
         );
       }
 
@@ -89,8 +91,8 @@ export default function DriverLayout({
       // Use login response as a fallback so the layout still works.
       setDriver({
         userId: loggedInUser.id,
-        fullName:
-          loggedInUser.fullName || "Driver User",
+          fullName:
+          loggedInUser.fullName || t("driver.layout.driverUser"),
         email: loggedInUser.email || "",
         phone: loggedInUser.phone || "",
         role: loggedInUser.role || "DRIVER",
@@ -113,52 +115,60 @@ export default function DriverLayout({
   };
 
   const handleLogout = async () => {
-    if (!window.confirm("Are you sure you want to log out?")) return;
+    if (!window.confirm(t("driver.layout.logoutConfirm"))) return;
 
     setLoggingOut(true);
     await logoutUser();
-    toast.success("Logged out successfully");
+    toast.success(t("common.loggedOut"));
     navigate("/", { replace: true });
   };
 
   const menuItems = [
     {
-      label: "Dashboard",
+      label: t("driver.layout.dashboard"),
+      activeKey: "Dashboard",
       icon: <LayoutDashboard size={20} />,
       path: "/driver/dashboard",
     },
     {
-      label: "Scanner",
+      label: t("driver.layout.scanner"),
+      activeKey: "Scanner",
       icon: <QrCode size={20} />,
       path: "/driver/scanner",
     },
     {
-      label: "Passenger List",
+      label: t("driver.layout.passengerList"),
+      activeKey: "Passenger List",
       icon: <Users size={20} />,
       path: "/driver/passengers",
     },
     {
-      label: "Trip Management",
+      label: t("driver.layout.tripManagement"),
+      activeKey: "Trip Management",
       icon: <Route size={20} />,
       path: "/driver/trip",
     },
     {
-      label: "Local Services",
+      label: t("driver.layout.localServices"),
+      activeKey: "Local Services",
       icon: <Bus size={20} />,
       path: "/driver/local-services",
     },
     {
-      label: "Notifications",
+      label: t("common.notifications"),
+      activeKey: "Notifications",
       icon: <Bell size={20} />,
       path: "/driver/notifications",
     },
     {
-      label: "Profile",
+      label: t("common.profile"),
+      activeKey: "Profile",
       icon: <UserCircle size={20} />,
       path: "/driver/profile",
     },
     {
-      label: "Settings",
+      label: t("common.settings"),
+      activeKey: "Settings",
       icon: <Settings size={20} />,
       path: "/driver/settings",
     },
@@ -167,16 +177,16 @@ export default function DriverLayout({
   const currentDriverName =
     driver?.fullName ||
     loggedInUser?.fullName ||
-    "Driver User";
+    t("driver.layout.driverUser");
 
   const currentDriverEmail =
     driver?.email ||
     loggedInUser?.email ||
-    "No email available";
+    t("common.noEmail");
 
   const applicationCode = driver?.applicationId
     ? `DRV-${driver.applicationId}`
-    : "Application unavailable";
+    : t("common.applicationUnavailable");
 
   const verificationStatus =
     driver?.verificationStatus || "UNKNOWN";
@@ -190,7 +200,7 @@ export default function DriverLayout({
               type="button"
               onClick={() => setMenuOpen(true)}
               className="rounded-xl p-2 transition hover:bg-slate-100 lg:hidden"
-              aria-label="Open driver menu"
+              aria-label={t("driver.layout.openMenu")}
             >
               <Menu size={22} />
             </button>
@@ -215,7 +225,7 @@ export default function DriverLayout({
                     : "text-slate-500 transition hover:text-[#08264a]"
                 }
               >
-                Dashboard
+                {t("driver.layout.dashboard")}
               </button>
 
               <button
@@ -227,27 +237,33 @@ export default function DriverLayout({
                     : "text-slate-500 transition hover:text-[#08264a]"
                 }
               >
-                Current Trip
+                {t("driver.layout.currentTrip")}
               </button>
 
               <button
                 type="button"
                 className="cursor-not-allowed text-slate-400"
-                title="Performance reports will be connected later"
+                title={t("driver.layout.performanceTitle")}
               >
-                Performance
+                {t("driver.layout.performance")}
               </button>
             </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <StatusBadge status={verificationStatus} />
+            <LanguageToggle
+              language={language}
+              setLanguage={setLanguage}
+              label={t("common.changeLanguage")}
+            />
+
+            <StatusBadge status={verificationStatus} t={t} />
 
             <button
               type="button"
               onClick={() => go("/driver/notifications")}
               className="relative rounded-full p-2 transition hover:bg-slate-100"
-              aria-label="Open notifications"
+              aria-label={t("common.openNotifications")}
             >
               <Bell size={20} />
 
@@ -288,7 +304,7 @@ export default function DriverLayout({
         <div>
           <div className="mb-3 flex items-center justify-between lg:hidden">
             <h2 className="text-xl font-black">
-              Driver Menu
+              {t("driver.layout.menu")}
             </h2>
 
             <button
@@ -302,13 +318,13 @@ export default function DriverLayout({
           <nav className="space-y-1">
             {menuItems.map((item) => {
               const isActive =
-                activePage === item.label ||
+                activePage === item.activeKey ||
                 location.pathname === item.path;
 
               return (
                 <button
                   type="button"
-                  key={item.label}
+                  key={item.activeKey}
                   onClick={() => go(item.path)}
                   className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
                     isActive
@@ -341,7 +357,7 @@ export default function DriverLayout({
             <div className="min-w-0">
               <p className="truncate text-sm font-black">
                 {loadingDriver
-                  ? "Loading driver..."
+                  ? t("driver.layout.loadingDriver")
                   : currentDriverName}
               </p>
 
@@ -357,7 +373,7 @@ export default function DriverLayout({
 
           <div className="mb-2 flex items-center gap-2 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-300">
             <ShieldCheck size={15} />
-            {formatStatus(verificationStatus)}
+            {t(`status.${verificationStatus}`, { defaultValue: formatStatus(verificationStatus) })}
           </div>
 
           <button
@@ -371,7 +387,7 @@ export default function DriverLayout({
             ) : (
               <LogOut size={20} />
             )}
-            {loggingOut ? "Logging out..." : "Logout"}
+            {loggingOut ? t("driver.layout.loggingOut") : t("common.logout")}
           </button>
         </div>
       </aside>
@@ -383,7 +399,7 @@ export default function DriverLayout({
   );
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, t }) {
   const statusStyles = {
     APPROVED:
       "bg-emerald-100 text-emerald-700",
@@ -402,7 +418,7 @@ function StatusBadge({ status }) {
         "bg-slate-100 text-slate-600"
       }`}
     >
-      {formatStatus(status)}
+      {t(`status.${status}`)}
     </span>
   );
 }
@@ -414,6 +430,39 @@ function getInitials(name) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
+}
+
+function LanguageToggle({ language, setLanguage, label }) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className="flex rounded-full bg-slate-100 p-1 text-xs font-bold"
+    >
+      <button
+        type="button"
+        onClick={() => setLanguage("en")}
+        className={`rounded-full px-2.5 py-1 transition ${
+          language === "en"
+            ? "bg-[#08264a] text-white"
+            : "text-slate-600 hover:text-[#08264a]"
+        }`}
+      >
+        EN
+      </button>
+      <button
+        type="button"
+        onClick={() => setLanguage("ne")}
+        className={`rounded-full px-2.5 py-1 transition ${
+          language === "ne"
+            ? "bg-[#08264a] text-white"
+            : "text-slate-600 hover:text-[#08264a]"
+        }`}
+      >
+        नेपाली
+      </button>
+    </div>
+  );
 }
 
 function formatStatus(status) {

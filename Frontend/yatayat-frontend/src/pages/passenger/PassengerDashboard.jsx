@@ -12,10 +12,12 @@ import {
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import { useLanguage } from "../../context/LanguageContext";
 import { getFirstName } from "../../utils/authUser";
 
 export default function PassengerDashboard() {
   const navigate = useNavigate();
+  const { language, setLanguage, t } = useLanguage();
   const firstName = getFirstName();
   const user = JSON.parse(localStorage.getItem("yatayatUser"));
 
@@ -60,11 +62,35 @@ export default function PassengerDashboard() {
   Namaste, {firstName} 👋
 </h2>
         <div className="hidden items-center gap-4 lg:flex">
-          <div className="flex rounded-full bg-slate-200 p-1 text-xs font-bold">
-            <button className="rounded-full bg-[#08264a] px-3 py-1 text-white">
+          <div
+            role="group"
+            aria-label={t("common.changeLanguage")}
+            className="relative z-10 flex rounded-full bg-slate-200 p-1 text-xs font-bold"
+          >
+            <button
+              type="button"
+              aria-pressed={language === "en"}
+              onClick={() => setLanguage("en")}
+              className={`rounded-full px-3 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#08264a] focus:ring-offset-2 ${
+                language === "en"
+                  ? "bg-[#08264a] text-white"
+                  : "text-slate-600 hover:text-[#08264a]"
+              }`}
+            >
               EN
             </button>
-            <button className="px-3 py-1 text-slate-600">नेपाली</button>
+            <button
+              type="button"
+              aria-pressed={language === "ne"}
+              onClick={() => setLanguage("ne")}
+              className={`rounded-full px-3 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#08264a] focus:ring-offset-2 ${
+                language === "ne"
+                  ? "bg-[#08264a] text-white"
+                  : "text-slate-600 hover:text-[#08264a]"
+              }`}
+            >
+              नेपाली
+            </button>
           </div>
 
           <button
@@ -89,39 +115,40 @@ export default function PassengerDashboard() {
             balance={walletBalance}
             status={walletStatus}
             onWallet={() => navigate("/wallet")}
+            t={t}
           />
 
           <section>
             <div className="mb-3">
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Local transport</p>
-              <h3 className="text-xl font-black text-slate-900 sm:text-2xl">Travel Inside the Valley</h3>
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-700">{t("passenger.dashboard.localTransport")}</p>
+              <h3 className="text-xl font-black text-slate-900 sm:text-2xl">{t("passenger.dashboard.travelInsideValley")}</h3>
             </div>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
             <ActionCard
               icon={<Map size={26} />}
-              title="Find Local Route"
-              desc="Origin to destination"
+              title={t("passenger.layout.findLocalRoute")}
+              desc={t("passenger.dashboard.originToDestination")}
               onClick={() => navigate("/passenger/local-routes")}
             />
 
             <ActionCard
               icon={<Map size={26} />}
-              title="Track Local Bus"
-              desc="Coming Soon"
+              title={t("passenger.dashboard.trackLocalBus")}
+              desc={t("passenger.dashboard.comingSoon")}
               disabled
             />
 
             <ActionCard
               icon={<QrCode size={26} />}
-              title="Local Fare"
-              desc="Local QR Fare"
+              title={t("passenger.dashboard.localFare")}
+              desc={t("passenger.dashboard.localQrFare")}
               onClick={() => navigate("/fare-pass")}
             />
 
             <ActionCard
               icon={<BadgeCheck size={26} />}
-              title="My Local Tickets"
-              desc="Fare passes"
+              title={t("passenger.dashboard.myLocalTickets")}
+              desc={t("passenger.dashboard.farePasses")}
               onClick={() => navigate("/fare-pass")}
             />
             </div>
@@ -129,18 +156,18 @@ export default function PassengerDashboard() {
 
           <section>
             <div className="mb-3">
-              <p className="text-xs font-black uppercase tracking-widest text-violet-700">Out-of-Valley transport</p>
-              <h3 className="text-xl font-black text-slate-900 sm:text-2xl">Intercity Travel</h3>
+              <p className="text-xs font-black uppercase tracking-widest text-violet-700">{t("passenger.dashboard.outOfValleyTransport")}</p>
+              <h3 className="text-xl font-black text-slate-900 sm:text-2xl">{t("passenger.dashboard.intercityTravel")}</h3>
             </div>
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
             <ActionCard
               icon={<Bus size={26} />}
-              title="Book Out-of-Valley Bus"
-              desc="Scheduled intercity trips"
+              title={t("passenger.dashboard.bookOutOfValleyBus")}
+              desc={t("passenger.dashboard.scheduledIntercityTrips")}
               onClick={() => navigate("/passenger/out-of-valley")}
             />
-            <ActionCard icon={<BadgeCheck size={26} />} title="My Bookings" desc="View and cancel bookings" onClick={() => navigate("/passenger/bookings")} />
-            <ActionCard icon={<QrCode size={26} />} title="Travel Tickets" desc="Booking confirmations" onClick={() => navigate("/passenger/bookings")} />
+            <ActionCard icon={<BadgeCheck size={26} />} title={t("passenger.layout.myBookings")} desc={t("passenger.dashboard.viewCancelBookings")} onClick={() => navigate("/passenger/bookings")} />
+            <ActionCard icon={<QrCode size={26} />} title={t("passenger.dashboard.travelTickets")} desc={t("passenger.dashboard.bookingConfirmations")} onClick={() => navigate("/passenger/bookings")} />
             </div>
           </section>
 
@@ -152,13 +179,13 @@ export default function PassengerDashboard() {
 
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
-                  Active Fare Pass
+                  {t("passenger.dashboard.activeFarePass")}
                 </p>
                 <h3 className="text-lg font-black text-slate-900 sm:text-xl">
                   Route 14: Koteshwor → Kalanki
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Valid for 24 hours or until scanned once
+                  {t("passenger.dashboard.farePassValidity")}
                 </p>
               </div>
             </div>
@@ -168,14 +195,14 @@ export default function PassengerDashboard() {
               className="flex items-center justify-center gap-2 rounded-lg bg-[#08264a] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0d3566]"
             >
               <QrCode size={18} />
-              Show QR
+              {t("passenger.dashboard.showQr")}
             </button>
           </div>
 
           <section>
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-xl font-black text-slate-900 sm:text-2xl">
-                Out-of-Valley Bookings
+                {t("passenger.dashboard.outOfValleyBookings")}
               </h3>
 
               <button
@@ -197,7 +224,7 @@ export default function PassengerDashboard() {
 
                 <div>
                   <h4 className="font-black text-slate-900">
-                    Kathmandu to Pokhara
+                Kathmandu to Pokhara
                   </h4>
                   <p className="text-sm text-slate-500">
                     25 Oct • 07:30 AM • Seat B4, B5
@@ -216,7 +243,7 @@ export default function PassengerDashboard() {
 
           <section>
             <h3 className="mb-3 text-xl font-black text-slate-900 sm:text-2xl">
-              Favorite Routes
+              {t("passenger.dashboard.favoriteRoutes")}
             </h3>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -240,14 +267,14 @@ export default function PassengerDashboard() {
         <aside className="min-w-0">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="mb-4 text-xl font-black text-slate-900 sm:text-2xl">
-              Recent Map Search
+              {t("passenger.dashboard.recentMapSearch")}
             </h3>
 
             <button
               onClick={() => navigate("/track-bus")}
               className="relative flex h-56 w-full items-center justify-center overflow-hidden rounded-xl bg-[#1f2f46] text-slate-300 transition hover:scale-[1.01] sm:h-64"
             >
-              Map Preview
+              {t("passenger.dashboard.mapPreview")}
               <p className="absolute bottom-4 left-4 text-sm text-white">
                 📍 Current Location: Koteshwor
               </p>
@@ -256,12 +283,12 @@ export default function PassengerDashboard() {
             <div className="mt-5 space-y-4">
               <InfoRow
                 dot="bg-emerald-600"
-                left="Next bus arriving in 4 mins"
+                left={t("passenger.dashboard.nextBusArriving", { minutes: 4 })}
                 right="Route 14"
               />
               <InfoRow
                 dot="bg-slate-500"
-                left="Expected fare to Kalanki"
+                left={t("passenger.dashboard.expectedFareTo", { destination: "Kalanki" })}
                 right="NPR 25"
               />
             </div>
@@ -270,7 +297,7 @@ export default function PassengerDashboard() {
               onClick={() => navigate("/passenger/local-routes")}
               className="mt-6 w-full rounded-xl border-2 border-[#08264a] py-3 text-sm font-black uppercase transition hover:bg-[#08264a] hover:text-white"
             >
-              Find Local Route
+              {t("passenger.layout.findLocalRoute")}
             </button>
           </div>
         </aside>
@@ -295,14 +322,14 @@ export default function PassengerDashboard() {
   );
 }
 
-function WalletCard({ balance, status, onWallet }) {
+function WalletCard({ balance, status, onWallet, t }) {
   const isActive = status === "PIN_SET";
   const statusLabel =
     status === "PIN_SET"
-      ? "Active"
+      ? t("common.active")
       : status === "PIN_NOT_SET"
-        ? "Not Activated"
-        : "Checking";
+        ? t("common.inactive")
+        : t("common.loading");
 
   return (
     <div className="relative h-auto min-h-[220px] w-full min-w-0 overflow-hidden rounded-2xl bg-[#08264a] p-5 text-white shadow-lg shadow-slate-900/10 sm:p-6">
@@ -319,12 +346,12 @@ function WalletCard({ balance, status, onWallet }) {
       <div className="relative z-10 grid min-h-[172px] gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(230px,0.85fr)] lg:items-center">
         <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-100">
-            Yatayat Smart Wallet
+            {t("passenger.dashboard.walletTitle")}
           </p>
 
           <div className="mt-4">
             <p className="text-sm font-bold text-blue-100">
-              Available Balance
+              {t("passenger.dashboard.availableBalance")}
             </p>
             <h3 className="mt-1.5 break-words text-3xl font-black leading-tight sm:text-4xl xl:whitespace-nowrap xl:text-[46px]">
               NPR{" "}
@@ -342,7 +369,7 @@ function WalletCard({ balance, status, onWallet }) {
               className="flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-black text-[#08264a] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:ring-offset-2 focus:ring-offset-[#08264a]"
             >
               <PlusCircle size={17} />
-              Top Up
+              {t("common.topUp")}
             </button>
 
             <span
@@ -366,7 +393,7 @@ function WalletCard({ balance, status, onWallet }) {
               className="flex min-h-10 items-center justify-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#08264a]"
             >
               <RotateCcw size={18} />
-              History
+              {t("common.history")}
             </button>
           </div>
         </div>
