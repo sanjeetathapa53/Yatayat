@@ -13,16 +13,11 @@ import {
   Download,
 } from "lucide-react";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import { useLanguage } from "../../context/LanguageContext";
 import { apiFetch } from "../../utils/api";
 
-const paymentMethods = [
-  { id: "ESEWA", name: "eSewa", desc: "Digital wallet payment", icon: <Smartphone size={22} /> },
-  { id: "KHALTI", name: "Khalti", desc: "Digital wallet payment", icon: <Smartphone size={22} /> },
-  { id: "MOBILE_BANKING", name: "Mobile Banking", desc: "ConnectIPS / bank app", icon: <Building2 size={22} /> },
-  { id: "CARD", name: "Debit / Credit Card", desc: "Visa / Mastercard", icon: <CreditCard size={22} /> },
-];
-
 export default function WalletPage() {
+  const { t } = useLanguage();
   const user = JSON.parse(localStorage.getItem("yatayatUser"));
 
   const [selectedAmount, setSelectedAmount] = useState(500);
@@ -40,6 +35,7 @@ export default function WalletPage() {
   const [confirmPin, setConfirmPin] = useState("");
 
   const finalAmount = customAmount ? Number(customAmount) : selectedAmount;
+  const paymentMethods = getPaymentMethods(t);
 
   useEffect(() => {
     loadWallet();
@@ -50,29 +46,29 @@ export default function WalletPage() {
     try {
       setWalletError("");
       const balanceRes = await apiFetch(`/api/wallet/balance/${user.id}`);
-      if (!balanceRes.ok) throw new Error(walletErrorMessage(balanceRes.status));
+      if (!balanceRes.ok) throw new Error(walletErrorMessage(balanceRes.status, t));
       const balanceText = await balanceRes.text();
       setBalance(Number(balanceText) || 0);
 
       const historyRes = await apiFetch(`/api/wallet/history/${user.id}`);
-      if (!historyRes.ok) throw new Error(walletErrorMessage(historyRes.status));
+      if (!historyRes.ok) throw new Error(walletErrorMessage(historyRes.status, t));
       const historyData = await historyRes.json().catch(() => []);
       setTransactions(Array.isArray(historyData) ? historyData : []);
     } catch (error) {
       setBalance(0);
       setTransactions([]);
-      setWalletError(error.message || "Unable to load wallet information.");
+      setWalletError(error.message || t("passenger.wallet.loadError"));
     }
   };
 
   const checkPinStatus = async () => {
     try {
       const res = await apiFetch(`/api/wallet/pin-status/${user.id}`);
-      if (!res.ok) throw new Error(walletErrorMessage(res.status));
+      if (!res.ok) throw new Error(walletErrorMessage(res.status, t));
       setPinStatus(await res.text());
     } catch (error) {
       setPinStatus("");
-      setWalletError(error.message || "Unable to load wallet PIN status.");
+      setWalletError(error.message || t("passenger.wallet.pinStatusLoadError"));
     }
   };
 
@@ -145,23 +141,23 @@ export default function WalletPage() {
       <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            Yatayat Wallet
+            {t("passenger.wallet.pageTitle")}
           </h1>
           <p className="mt-1 text-sm text-slate-600">
-            Add balance, pay for tickets, and track your wallet activity.
+            {t("passenger.wallet.pageSubtitle")}
           </p>
         </div>
 
         <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black hover:bg-slate-50 sm:w-auto">
           <Download size={17} />
-          Export Statement
+          {t("passenger.wallet.exportStatement")}
         </button>
       </div>
 
       {success && (
         <div className="mb-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-bold text-emerald-700">
           <CheckCircle size={19} />
-          Wallet recharged successfully.
+          {t("passenger.wallet.rechargeSuccess")}
         </div>
       )}
 
@@ -177,7 +173,7 @@ export default function WalletPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-slate-300">
-                  Available Balance
+                  {t("passenger.wallet.availableBalance")}
                 </p>
 
                 <h2 className="mt-3 text-4xl font-black sm:text-5xl">
@@ -189,9 +185,9 @@ export default function WalletPage() {
                 </h2>
 
                 <p className="mt-3 text-sm text-slate-300">
-                  Wallet Status:{" "}
+                  {t("passenger.wallet.walletStatus")}:{" "}
                   <span className={pinStatus === "PIN_SET" ? "font-black text-emerald-300" : "font-black text-yellow-300"}>
-                    {pinStatus === "PIN_SET" ? "Active" : "Not Activated"}
+                    {pinStatus === "PIN_SET" ? t("common.active") : t("passenger.wallet.notActivated")}
                   </span>
                 </p>
               </div>
@@ -204,17 +200,17 @@ export default function WalletPage() {
             {pinStatus === "PIN_NOT_SET" && (
               <div className="mt-6 rounded-2xl bg-white/10 p-4">
                 <p className="text-sm font-bold">
-                  🔒 Create a 4-digit Wallet PIN to activate your wallet before your first recharge.
+                  {t("passenger.wallet.activationPrompt")}
                 </p>
               </div>
             )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <WalletStat label="Wallet Status" value={pinStatus === "PIN_SET" ? "Active" : "Inactive"} />
-            <WalletStat label="Transactions" value={(Array.isArray(transactions) ? transactions : []).length} />
+            <WalletStat label={t("passenger.wallet.walletStatus")} value={pinStatus === "PIN_SET" ? t("common.active") : t("common.inactive")} />
+            <WalletStat label={t("passenger.wallet.transactions")} value={(Array.isArray(transactions) ? transactions : []).length} />
             <WalletStat
-              label="Ticket Payments"
+              label={t("passenger.wallet.ticketPayments")}
               value={(Array.isArray(transactions) ? transactions : []).filter((t) => t.type === "TICKET_PAYMENT").length}
             />
           </div>
@@ -227,16 +223,16 @@ export default function WalletPage() {
 
               <div>
                 <h2 className="text-xl font-black text-slate-900">
-                  Recharge Wallet
+                  {t("passenger.wallet.rechargeWallet")}
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Add balance using mock eSewa/Khalti payment for now.
+                  {t("passenger.wallet.rechargeSubtitle")}
                 </p>
               </div>
             </div>
 
             <p className="mb-3 text-xs font-black uppercase tracking-widest text-slate-500">
-              Select Amount
+              {t("passenger.wallet.selectAmount")}
             </p>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -260,7 +256,7 @@ export default function WalletPage() {
 
             <input
               type="number"
-              placeholder="Enter custom amount"
+              placeholder={t("passenger.wallet.customAmountPlaceholder")}
               value={customAmount}
               onChange={(e) => setCustomAmount(e.target.value)}
               className="mt-4 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold outline-none focus:border-[#08264a]"
@@ -293,12 +289,12 @@ export default function WalletPage() {
 
             <div className="mt-5 rounded-xl bg-slate-50 p-4">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Recharge Amount</span>
+                <span className="text-slate-500">{t("passenger.wallet.rechargeAmount")}</span>
                 <span className="font-black">NPR {finalAmount || 0}</span>
               </div>
 
               <div className="mt-3 flex justify-between border-t border-slate-200 pt-3">
-                <span className="font-black">Total Payable</span>
+                <span className="font-black">{t("passenger.wallet.totalPayable")}</span>
                 <span className="font-black text-emerald-700">
                   NPR {finalAmount || 0}
                 </span>
@@ -310,7 +306,7 @@ export default function WalletPage() {
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
             >
               <PlusCircle size={18} />
-              {pinStatus === "PIN_NOT_SET" ? "Activate Wallet & Recharge" : "Recharge Wallet"}
+              {pinStatus === "PIN_NOT_SET" ? t("passenger.wallet.activateAndRecharge") : t("passenger.wallet.rechargeWallet")}
             </button>
           </div>
         </section>
@@ -318,20 +314,20 @@ export default function WalletPage() {
         <aside className="space-y-5 xl:col-span-5">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">
-              Recent Transactions
+              {t("passenger.wallet.recentTransactions")}
             </h2>
 
             <div className="mt-5 space-y-3">
               {(Array.isArray(transactions) ? transactions : []).length === 0 ? (
                 <div className="rounded-xl bg-slate-50 p-6 text-center">
-                  <p className="font-black text-slate-900">No transactions yet</p>
+                  <p className="font-black text-slate-900">{t("passenger.wallet.noTransactions")}</p>
                   <p className="mt-1 text-sm text-slate-500">
-                    Your recharge and ticket payments will appear here.
+                    {t("passenger.wallet.noTransactionsDesc")}
                   </p>
                 </div>
               ) : (
                 (Array.isArray(transactions) ? transactions : []).map((item) => (
-                  <Transaction key={item.id} item={item} />
+                  <Transaction key={item.id} item={item} t={t} />
                 ))
               )}
             </div>
@@ -343,9 +339,9 @@ export default function WalletPage() {
                 <ShieldCheck size={21} />
               </div>
               <div>
-                <h2 className="font-black text-slate-900">Secure Wallet</h2>
+                <h2 className="font-black text-slate-900">{t("passenger.wallet.secureWallet")}</h2>
                 <p className="mt-1 text-sm leading-6 text-slate-500">
-                  Your wallet PIN is encrypted using BCrypt and used to protect ticket payments.
+                  {t("passenger.wallet.secureWalletDesc")}
                 </p>
               </div>
             </div>
@@ -362,26 +358,26 @@ export default function WalletPage() {
               </div>
 
               <h2 className="mt-4 text-2xl font-black text-slate-900">
-                Activate Your Wallet
+                {t("passenger.wallet.activateWallet")}
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Create a secure 4-digit PIN before adding money or paying for tickets.
+                {t("passenger.wallet.activateWalletDesc")}
               </p>
             </div>
 
-            <PinInput label="Enter Wallet PIN" value={newPin} setValue={setNewPin} />
-            <PinInput label="Confirm Wallet PIN" value={confirmPin} setValue={setConfirmPin} />
+            <PinInput label={t("passenger.wallet.enterPin")} inputId="wallet-pin" value={newPin} setValue={setNewPin} />
+            <PinInput label={t("passenger.wallet.confirmPin")} inputId="confirm-wallet-pin" value={confirmPin} setValue={setConfirmPin} />
 
             {confirmPin.length === 4 && newPin !== confirmPin && (
               <p className="mt-3 text-center text-sm font-bold text-red-600">
-                PINs do not match
+                {t("passenger.wallet.pinMismatch")}
               </p>
             )}
 
             <div className="mt-5 rounded-xl bg-slate-50 p-4 text-xs font-bold text-slate-500">
-              ✓ PIN must be exactly 4 digits <br />
-              ✓ Used for wallet payments and ticket booking
+              {t("passenger.wallet.pinRules")} <br />
+              {t("passenger.wallet.pinUsage")}
             </div>
 
             <div className="mt-6 flex gap-3">
@@ -389,7 +385,7 @@ export default function WalletPage() {
                 onClick={() => setShowPinModal(false)}
                 className="flex-1 rounded-xl border border-slate-300 py-3 text-sm font-black text-slate-600 hover:bg-slate-50"
               >
-                Cancel
+                {t("common.cancel")}
               </button>
 
               <button
@@ -397,7 +393,7 @@ export default function WalletPage() {
                 disabled={newPin.length !== 4 || confirmPin.length !== 4 || newPin !== confirmPin}
                 className="flex-1 rounded-xl bg-[#08264a] py-3 text-sm font-black text-white hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:bg-slate-300"
               >
-                Activate Wallet
+                {t("passenger.wallet.activateWallet")}
               </button>
             </div>
           </div>
@@ -407,11 +403,20 @@ export default function WalletPage() {
   );
 }
 
-function walletErrorMessage(status) {
-  if (status === 401) return "Your session has expired. Please log in again.";
-  if (status === 403) return "Your account is not authorized to access this wallet.";
-  if (status === 404) return "Wallet information was not found for this account.";
-  return "Unable to load wallet information.";
+function getPaymentMethods(t) {
+  return [
+    { id: "ESEWA", name: "eSewa", desc: t("passenger.wallet.paymentMethodDesc"), icon: <Smartphone size={22} /> },
+    { id: "KHALTI", name: "Khalti", desc: t("passenger.wallet.paymentMethodDesc"), icon: <Smartphone size={22} /> },
+    { id: "MOBILE_BANKING", name: t("passenger.wallet.mobileBanking"), desc: t("passenger.wallet.mobileBankingDesc"), icon: <Building2 size={22} /> },
+    { id: "CARD", name: t("passenger.wallet.card"), desc: t("passenger.wallet.cardDesc"), icon: <CreditCard size={22} /> },
+  ];
+}
+
+function walletErrorMessage(status, t) {
+  if (status === 401) return t("passenger.wallet.sessionExpired");
+  if (status === 403) return t("passenger.wallet.unauthorized");
+  if (status === 404) return t("passenger.wallet.notFound");
+  return t("passenger.wallet.loadError");
 }
 
 function WalletStat({ label, value }) {
@@ -425,7 +430,7 @@ function WalletStat({ label, value }) {
   );
 }
 
-function Transaction({ item }) {
+function Transaction({ item, t }) {
   const isRecharge = item.type === "TOPUP";
 
   return (
@@ -441,7 +446,7 @@ function Transaction({ item }) {
 
         <div className="min-w-0">
           <p className="truncate text-sm font-black text-slate-900">
-            {isRecharge ? "Wallet Top-up" : "Ticket Payment"}
+            {isRecharge ? t("passenger.wallet.topUpTransaction") : t("passenger.wallet.ticketPaymentTransaction")}
           </p>
           <p className="truncate text-xs text-slate-500">{item.paymentMethod}</p>
           <p className="text-[11px] text-slate-400">
@@ -463,7 +468,7 @@ function Transaction({ item }) {
   );
 }
 
-function PinInput({ label, value, setValue }) {
+function PinInput({ label, inputId, value, setValue }) {
   const handleChange = (index, digit) => {
     if (!/^\d?$/.test(digit)) return;
 
@@ -474,13 +479,13 @@ function PinInput({ label, value, setValue }) {
     setValue(newPin);
 
     if (digit && index < 3) {
-      document.getElementById(`${label}-${index + 1}`)?.focus();
+      document.getElementById(`${inputId}-${index + 1}`)?.focus();
     }
   };
 
   const handleKeyDown = (index, e) => {
     if (e.key === "Backspace" && !value[index] && index > 0) {
-      document.getElementById(`${label}-${index - 1}`)?.focus();
+      document.getElementById(`${inputId}-${index - 1}`)?.focus();
     }
   };
 
@@ -494,7 +499,7 @@ function PinInput({ label, value, setValue }) {
         {[0, 1, 2, 3].map((index) => (
           <input
             key={index}
-            id={`${label}-${index}`}
+            id={`${inputId}-${index}`}
             type="password"
             inputMode="numeric"
             maxLength={1}
