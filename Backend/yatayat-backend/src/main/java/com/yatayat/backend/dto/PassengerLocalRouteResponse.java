@@ -7,5 +7,11 @@ public record PassengerLocalRouteResponse(
         Long routeId, String routeCode, String routeName,
         String origin, String destination, BigDecimal distanceKm,
         Integer estimatedDurationMinutes, String tripType,
-        List<String> stopSummary, String fareInformation
+        List<String> stopSummary, String fareInformation,
+        Long boardingStopId, String boardingStopName,
+        Long destinationStopId, String destinationStopName,
+        BigDecimal estimatedFare, Integer segmentDurationMinutes,
+        String operatingStartTime, String operatingEndTime,
+        Integer intermediateStopCount,
+        List<RouteStopResponse> orderedStops
 ) {}

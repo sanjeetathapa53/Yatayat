@@ -4,6 +4,7 @@ import com.yatayat.backend.config.SecurityConfig;
 import com.yatayat.backend.controller.PassengerLocalRouteController;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.RouteRepository;
+import com.yatayat.backend.repository.RouteStopRepository;
 import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.service.PassengerLocalRouteService;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,7 @@ class PassengerLocalRouteIntegrationTests {
     @Autowired MockMvc mockMvc;
     @MockitoBean UserRepository userRepository;
     @MockitoBean RouteRepository routeRepository;
+    @MockitoBean RouteStopRepository routeStopRepository;
 
     private User passenger;
     private Route local;
@@ -42,6 +44,8 @@ class PassengerLocalRouteIntegrationTests {
         when(userRepository.findByEmailIgnoreCase("passenger@example.com")).thenReturn(Optional.of(passenger));
         local = route(10L, "LOCAL-10", "Koteshwor", "Kalanki", TripType.LOCAL);
         outside = route(11L, "KTM-PKR", "Koteshwor", "Kalanki", TripType.OUT_OF_VALLEY);
+        when(routeStopRepository.findByRouteIdAndActiveTrueOrderByStopOrderAsc(10L)).thenReturn(List.of());
+        when(routeStopRepository.findByRouteIdAndActiveTrueOrderByStopOrderAsc(11L)).thenReturn(List.of());
     }
 
     @Test
@@ -67,6 +71,8 @@ class PassengerLocalRouteIntegrationTests {
         when(routeRepository.findByStatusAndTripTypeAndOriginIgnoreCaseAndDestinationIgnoreCaseOrderByCodeAsc(
                 RouteStatus.ACTIVE, TripType.LOCAL, "Koteshwor", "Kalanki"))
                 .thenReturn(List.of(local, outside));
+        when(routeRepository.findByStatusAndTripTypeOrderByCodeAsc(RouteStatus.ACTIVE, TripType.LOCAL))
+                .thenReturn(List.of(local, outside));
         mockMvc.perform(get("/api/passenger/local-routes/search")
                         .param("origin", "Koteshwor").param("destination", "Kalanki"))
                 .andExpect(status().isOk())
@@ -80,6 +86,8 @@ class PassengerLocalRouteIntegrationTests {
     void reversedEndpointOrderDoesNotMatch() throws Exception {
         when(routeRepository.findByStatusAndTripTypeAndOriginIgnoreCaseAndDestinationIgnoreCaseOrderByCodeAsc(
                 RouteStatus.ACTIVE, TripType.LOCAL, "Kalanki", "Koteshwor"))
+                .thenReturn(List.of());
+        when(routeRepository.findByStatusAndTripTypeOrderByCodeAsc(RouteStatus.ACTIVE, TripType.LOCAL))
                 .thenReturn(List.of());
         mockMvc.perform(get("/api/passenger/local-routes/search")
                         .param("origin", "Kalanki").param("destination", "Koteshwor"))

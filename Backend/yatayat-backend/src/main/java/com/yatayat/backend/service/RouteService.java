@@ -2,8 +2,12 @@ package com.yatayat.backend.service;
 
 import com.yatayat.backend.dto.RouteRequest;
 import com.yatayat.backend.dto.RouteResponse;
+import com.yatayat.backend.dto.RouteStopRequest;
+import com.yatayat.backend.dto.RouteStopResponse;
 import com.yatayat.backend.entity.*;
+import com.yatayat.backend.repository.BusStopRepository;
 import com.yatayat.backend.repository.RouteRepository;
+import com.yatayat.backend.repository.RouteStopRepository;
 import com.yatayat.backend.repository.TransportOperatorRepository;
 import com.yatayat.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -12,21 +16,32 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 public class RouteService {
 
     private final RouteRepository routeRepository;
+    private final BusStopRepository busStopRepository;
+    private final RouteStopRepository routeStopRepository;
     private final UserRepository userRepository;
     private final TransportOperatorRepository operatorRepository;
 
     public RouteService(
             RouteRepository routeRepository,
+            BusStopRepository busStopRepository,
+            RouteStopRepository routeStopRepository,
             UserRepository userRepository,
             TransportOperatorRepository operatorRepository
     ) {
         this.routeRepository = routeRepository;
+        this.busStopRepository = busStopRepository;
+        this.routeStopRepository = routeStopRepository;
         this.userRepository = userRepository;
         this.operatorRepository = operatorRepository;
     }
@@ -41,6 +56,12 @@ public class RouteService {
         return toResponse(findRoute(id));
     }
 
+    public List<RouteResponse> getLocalRoutes() {
+        return routeRepository.findByTripTypeOrderByCodeAsc(TripType.LOCAL).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public RouteResponse createRoute(RouteRequest request) {
         validate(request, true);
@@ -52,7 +73,11 @@ public class RouteService {
         Route route = new Route();
         apply(route, request);
         try {
-            return toResponse(routeRepository.saveAndFlush(route));
+            Route saved = routeRepository.saveAndFlush(route);
+            if (saved.getTripType() == TripType.LOCAL && request.stops() != null) {
+                replaceRouteStops(saved, request.stops());
+            }
+            return toResponse(saved);
         } catch (DataIntegrityViolationException exception) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -72,13 +97,48 @@ public class RouteService {
         }
         apply(route, request);
         try {
-            return toResponse(routeRepository.saveAndFlush(route));
+            Route saved = routeRepository.saveAndFlush(route);
+            if (saved.getTripType() == TripType.LOCAL && request.stops() != null) {
+                replaceRouteStops(saved, request.stops());
+            }
+            return toResponse(saved);
         } catch (DataIntegrityViolationException exception) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
                     "Route code is already registered"
             );
         }
+    }
+
+    @Transactional
+    public RouteResponse createLocalRoute(RouteRequest request) {
+        RouteRequest localRequest = new RouteRequest(
+                request.code(), request.name(), request.origin(), request.destination(), request.distanceKm(),
+                request.estimatedDurationMinutes(), request.operatingStartTime(), request.operatingEndTime(),
+                TripType.LOCAL, request.status(), request.stops()
+        );
+        if (localRequest.stops() == null || localRequest.stops().size() < 2) {
+            badRequest("Local route must include at least two ordered stops");
+        }
+        return createRoute(localRequest);
+    }
+
+    @Transactional
+    public RouteResponse replaceRouteStops(Long routeId, List<RouteStopRequest> stops) {
+        Route route = findRoute(routeId);
+        if (route.getTripType() != TripType.LOCAL) {
+            badRequest("Ordered stops can only be managed for local routes");
+        }
+        replaceRouteStops(route, stops);
+        return toResponse(route);
+    }
+
+    @Transactional
+    public RouteResponse setStatus(Long routeId, RouteStatus status) {
+        if (status == null) badRequest("Route status is required");
+        Route route = findRoute(routeId);
+        route.setStatus(status);
+        return toResponse(routeRepository.saveAndFlush(route));
     }
 
     public List<RouteResponse> getActiveRoutesForOperator(String email) {
@@ -124,6 +184,8 @@ public class RouteService {
         route.setDestination(request.destination());
         route.setDistanceKm(request.distanceKm());
         route.setEstimatedDurationMinutes(request.estimatedDurationMinutes());
+        route.setOperatingStartTime(request.operatingStartTime());
+        route.setOperatingEndTime(request.operatingEndTime());
         if (request.tripType() != null) route.setTripType(request.tripType());
         route.setStatus(request.status() == null ? RouteStatus.ACTIVE : request.status());
     }
@@ -151,6 +213,71 @@ public class RouteService {
         if (request.origin().trim().equalsIgnoreCase(request.destination().trim())) {
             badRequest("Origin and destination must be different");
         }
+        if ((request.operatingStartTime() == null) != (request.operatingEndTime() == null)) {
+            badRequest("Both operating start and end time are required when operating hours are set");
+        }
+    }
+
+    private void replaceRouteStops(Route route, List<RouteStopRequest> stops) {
+        List<RouteStopRequest> orderedStops = validateRouteStops(route, stops);
+        routeStopRepository.deleteByRouteId(route.getId());
+        routeStopRepository.flush();
+        List<RouteStop> entities = orderedStops.stream().map(stopRequest -> {
+            BusStop stop = busStopRepository.findById(stopRequest.busStopId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Bus stop not found"));
+            if (!stop.isActive()) {
+                badRequest("Inactive stops cannot be assigned to an active local route");
+            }
+            RouteStop routeStop = new RouteStop();
+            routeStop.setRoute(route);
+            routeStop.setBusStop(stop);
+            routeStop.setStopOrder(stopRequest.stopOrder());
+            routeStop.setEstimatedMinutesFromStart(stopRequest.estimatedMinutesFromStart());
+            routeStop.setCumulativeFare(stopRequest.cumulativeFare());
+            routeStop.setActive(true);
+            return routeStop;
+        }).toList();
+        routeStopRepository.saveAllAndFlush(entities);
+    }
+
+    private List<RouteStopRequest> validateRouteStops(Route route, List<RouteStopRequest> stops) {
+        if (route.getTripType() != TripType.LOCAL) {
+            badRequest("Ordered stops can only be managed for local routes");
+        }
+        if (stops == null || stops.size() < 2) {
+            badRequest("Local route must include at least two ordered stops");
+        }
+        Set<Integer> orders = new HashSet<>();
+        Set<Long> stopIds = new HashSet<>();
+        List<RouteStopRequest> ordered = stops.stream()
+                .sorted(Comparator.comparing(RouteStopRequest::stopOrder, Comparator.nullsLast(Integer::compareTo)))
+                .toList();
+        BigDecimal previousFare = null;
+        Integer previousMinutes = null;
+        for (int index = 0; index < ordered.size(); index++) {
+            RouteStopRequest stop = ordered.get(index);
+            if (stop.busStopId() == null) badRequest("Bus stop is required");
+            if (stop.stopOrder() == null || stop.stopOrder() != index + 1) {
+                badRequest("Route stop order must start at 1 and be consecutive");
+            }
+            if (!orders.add(stop.stopOrder())) badRequest("Duplicate stop order is not allowed");
+            if (!stopIds.add(stop.busStopId())) badRequest("Duplicate stops are not allowed on a local route");
+            if (stop.estimatedMinutesFromStart() == null || stop.estimatedMinutesFromStart() < 0) {
+                badRequest("Estimated minutes from start cannot be negative");
+            }
+            if (stop.cumulativeFare() == null || stop.cumulativeFare().signum() < 0) {
+                badRequest("Cumulative fare cannot be negative");
+            }
+            if (previousMinutes != null && stop.estimatedMinutesFromStart() < previousMinutes) {
+                badRequest("Estimated minutes must not decrease along the route");
+            }
+            if (previousFare != null && stop.cumulativeFare().compareTo(previousFare) < 0) {
+                badRequest("Cumulative fare must not decrease along the route");
+            }
+            previousMinutes = stop.estimatedMinutesFromStart();
+            previousFare = stop.cumulativeFare();
+        }
+        return ordered;
     }
 
     private void required(String value, String field) {
@@ -172,11 +299,21 @@ public class RouteService {
     }
 
     private RouteResponse toResponse(Route route) {
+        List<RouteStopResponse> stops = route.getTripType() == TripType.LOCAL
+                ? routeStopRepository.findByRouteIdOrderByStopOrderAsc(route.getId()).stream().map(this::toRouteStopResponse).toList()
+                : List.of();
         return new RouteResponse(
                 route.getId(), route.getCode(), route.getName(),
                 route.getOrigin(), route.getDestination(), route.getDistanceKm(),
-                route.getEstimatedDurationMinutes(), route.getTripType().name(), route.getStatus().name(),
+                route.getEstimatedDurationMinutes(), route.getOperatingStartTime(), route.getOperatingEndTime(),
+                route.getTripType().name(), route.getStatus().name(), stops,
                 route.getCreatedAt(), route.getUpdatedAt()
         );
+    }
+
+    private RouteStopResponse toRouteStopResponse(RouteStop routeStop) {
+        BusStop stop = routeStop.getBusStop();
+        return new RouteStopResponse(routeStop.getId(), stop.getId(), stop.getName(), stop.getLandmark(),
+                routeStop.getStopOrder(), routeStop.getEstimatedMinutesFromStart(), routeStop.getCumulativeFare());
     }
 }

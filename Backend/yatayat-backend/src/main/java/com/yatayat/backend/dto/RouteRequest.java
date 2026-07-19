@@ -4,6 +4,8 @@ import com.yatayat.backend.entity.RouteStatus;
 import com.yatayat.backend.entity.TripType;
 
 import java.math.BigDecimal;
+import java.time.LocalTime;
+import java.util.List;
 
 public record RouteRequest(
         String code,
@@ -12,7 +14,10 @@ public record RouteRequest(
         String destination,
         BigDecimal distanceKm,
         Integer estimatedDurationMinutes,
+        LocalTime operatingStartTime,
+        LocalTime operatingEndTime,
         TripType tripType,
-        RouteStatus status
+        RouteStatus status,
+        List<RouteStopRequest> stops
 ) {
 }
