@@ -38,6 +38,7 @@ import DriverProfilePage from "./pages/driver/DriverProfilePage";
 import DriverSettingsPage from "./pages/driver/DriverSettingsPage";
 import TripSummaryPage from "./pages/driver/TripSummaryPage";
 import DriverTripManifestPage from "./pages/driver/DriverTripManifestPage";
+import DriverLocalServicesPage from "./pages/driver/DriverLocalServicesPage";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import DriverApplicationsPage from "./pages/admin/DriverApplicationsPage";
@@ -53,6 +54,7 @@ import OperatorDriversPage from "./pages/operator/OperatorDriversPage";
 import OperatorTripsPage from "./pages/operator/OperatorTripsPage";
 import CreateOperatorTripPage from "./pages/operator/CreateOperatorTripPage";
 import OperatorTripDetailsPage from "./pages/operator/OperatorTripDetailsPage";
+import OperatorLocalServicesPage from "./pages/operator/OperatorLocalServicesPage";
 
 
 import LiveTrackingPage from "./pages/tracking/LiveTrackingPage";
@@ -252,6 +254,15 @@ export default function App() {
         />
 
         <Route
+          path="/driver/local-services"
+          element={
+            <ProtectedRoute allowedRole="DRIVER">
+              <DriverLocalServicesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/driver/scanner"
           element={
             <ProtectedRoute allowedRole="DRIVER">
@@ -373,6 +384,7 @@ export default function App() {
   ["/operator/buses/register", <OperatorBusRegistrationPage />],
   ["/operator/buses/:id", <OperatorBusDetailsPage />],
   ["/operator/drivers", <OperatorDriversPage />],
+  ["/operator/local-services", <OperatorLocalServicesPage />],
   ["/operator/trips", <OperatorTripsPage />],
   ["/operator/trips/create", <CreateOperatorTripPage />],
   ["/operator/trips/:tripId", <OperatorTripDetailsPage />],
