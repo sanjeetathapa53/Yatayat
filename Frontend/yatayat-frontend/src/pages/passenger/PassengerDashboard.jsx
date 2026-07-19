@@ -19,33 +19,43 @@ export default function PassengerDashboard() {
   const firstName = getFirstName();
   const user = JSON.parse(localStorage.getItem("yatayatUser"));
 
-const [walletBalance, setWalletBalance] = useState(0);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [walletStatus, setWalletStatus] = useState("");
 
-useEffect(() => {
-  const fetchBalance = async () => {
-    try {
-      const response = await fetch(
-        `http://localhost:8080/api/wallet/balance/${user.id}`,
-        { credentials: "include" }
-      );
+  useEffect(() => {
+    const fetchWalletSummary = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:8080/api/wallet/balance/${user.id}`,
+          { credentials: "include" }
+        );
 
-      const balance = await response.text();
-      setWalletBalance(Number(balance));
-    } catch (error) {
-      console.error("Failed to fetch wallet balance:", error);
+        const balance = await response.text();
+        setWalletBalance(Number(balance));
+
+        const statusResponse = await fetch(
+          `http://localhost:8080/api/wallet/pin-status/${user.id}`,
+          { credentials: "include" }
+        );
+
+        if (statusResponse.ok) {
+          setWalletStatus(await statusResponse.text());
+        }
+      } catch (error) {
+        console.error("Failed to fetch wallet summary:", error);
+      }
+    };
+
+    if (user?.id) {
+      fetchWalletSummary();
     }
-  };
-
-  if (user?.id) {
-    fetchBalance();
-  }
-}, []);
+  }, []);
 
 
 
   return (
     <PassengerLayout activePage="Dashboard">
-      <header className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <h2 className="text-2xl font-black tracking-tight sm:text-3xl">
   Namaste, {firstName} 👋
 </h2>
@@ -73,14 +83,13 @@ useEffect(() => {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-        <section className="space-y-5 xl:col-span-8">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,330px)]">
+        <section className="min-w-0 space-y-5">
           <WalletCard
-  balance={walletBalance}
-  onWallet={() => navigate("/wallet")}
-/>
-          </div>
+            balance={walletBalance}
+            status={walletStatus}
+            onWallet={() => navigate("/wallet")}
+          />
 
           <section>
             <div className="mb-3">
@@ -228,7 +237,7 @@ useEffect(() => {
           </section>
         </section>
 
-        <aside className="xl:col-span-4">
+        <aside className="min-w-0">
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
             <h3 className="mb-4 text-xl font-black text-slate-900 sm:text-2xl">
               Recent Map Search
@@ -286,36 +295,97 @@ useEffect(() => {
   );
 }
 
-function WalletCard({ balance, onWallet }) {
+function WalletCard({ balance, status, onWallet }) {
+  const isActive = status === "PIN_SET";
+  const statusLabel =
+    status === "PIN_SET"
+      ? "Active"
+      : status === "PIN_NOT_SET"
+        ? "Not Activated"
+        : "Checking";
+
   return (
-    <div className="rounded-xl bg-linear-to-br from-[#1d3f6e] to-[#265e6e] p-6 text-white shadow-lg">
-      <p className="text-xs font-black uppercase tracking-widest text-slate-300">
-        Digital Wallet
-      </p>
+    <div className="relative h-auto min-h-[220px] w-full min-w-0 overflow-hidden rounded-2xl bg-[#08264a] p-5 text-white shadow-lg shadow-slate-900/10 sm:p-6">
+      <div className="absolute inset-0 bg-linear-to-br from-[#061f3f] via-[#0d3d6d] to-[#106f82]" />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-cyan-300/20 blur-2xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-20 right-28 h-44 w-44 rounded-full bg-emerald-300/20 blur-2xl"
+      />
 
-      <h3 className="mt-5 text-4xl font-black leading-tight">
-  NPR <br />
-  {balance.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })}
-</h3>
+      <div className="relative z-10 grid min-h-[172px] gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(230px,0.85fr)] lg:items-center">
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-100">
+            Yatayat Smart Wallet
+          </p>
 
-      <div className="mt-8 flex gap-3">
-        <button
-          onClick={onWallet}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-400 py-3 text-xs font-black text-[#08264a] transition hover:bg-emerald-300"
+          <div className="mt-4">
+            <p className="text-sm font-bold text-blue-100">
+              Available Balance
+            </p>
+            <h3 className="mt-1.5 break-words text-3xl font-black leading-tight sm:text-4xl xl:whitespace-nowrap xl:text-[46px]">
+              NPR{" "}
+              {balance.toLocaleString(undefined, {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </h3>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+            <button
+              type="button"
+              onClick={onWallet}
+              className="flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-black text-[#08264a] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:ring-offset-2 focus:ring-offset-[#08264a]"
+            >
+              <PlusCircle size={17} />
+              Top Up
+            </button>
+
+            <span
+              className={`inline-flex min-h-10 items-center justify-center gap-2 rounded-full px-3.5 text-xs font-black ${
+                isActive
+                  ? "bg-emerald-400/20 text-emerald-100"
+                  : "bg-white/15 text-slate-100"
+              }`}
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  isActive ? "bg-emerald-300" : "bg-amber-300"
+                }`}
+              />
+              {statusLabel}
+            </span>
+
+            <button
+              type="button"
+              onClick={onWallet}
+              className="flex min-h-10 items-center justify-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/25 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-[#08264a]"
+            >
+              <RotateCcw size={18} />
+              History
+            </button>
+          </div>
+        </div>
+
+        <div
+          aria-hidden="true"
+          className="pointer-events-none relative hidden h-[136px] min-w-0 overflow-hidden lg:block"
         >
-          <PlusCircle size={17} />
-          Recharge
-        </button>
-
-        <button
-          onClick={onWallet}
-          className="rounded-lg bg-white/15 px-4 transition hover:bg-white/25"
-        >
-          <RotateCcw size={19} />
-        </button>
+          <div className="absolute right-2 top-5 h-[86px] w-[148px] rotate-3 rounded-3xl bg-white/15 shadow-2xl shadow-slate-950/20" />
+          <div className="absolute right-8 top-9 h-20 w-[148px] -rotate-6 rounded-3xl bg-linear-to-br from-white/25 to-white/10 shadow-2xl shadow-slate-950/20" />
+          <div className="absolute right-[120px] top-[52px] h-7 w-10 rounded-xl bg-emerald-300/90 shadow-lg shadow-emerald-950/20" />
+          <div className="absolute right-[52px] top-[82px] h-1.5 w-[84px] rounded-full bg-white/35" />
+          <div className="absolute right-[52px] top-[106px] h-1.5 w-16 rounded-full bg-white/25" />
+          <div className="absolute bottom-4 right-8 flex gap-2">
+            <span className="h-7 w-7 rounded-full bg-white/24" />
+            <span className="h-7 w-7 rounded-full bg-emerald-300/70" />
+          </div>
+          <div className="absolute inset-y-0 right-[88px] w-px rotate-12 bg-white/10" />
+        </div>
       </div>
     </div>
   );
