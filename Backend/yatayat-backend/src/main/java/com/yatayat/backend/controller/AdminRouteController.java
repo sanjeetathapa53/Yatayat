@@ -2,6 +2,8 @@ package com.yatayat.backend.controller;
 
 import com.yatayat.backend.dto.RouteRequest;
 import com.yatayat.backend.dto.RouteResponse;
+import com.yatayat.backend.dto.RouteStopRequest;
+import com.yatayat.backend.entity.RouteStatus;
 import com.yatayat.backend.service.RouteService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,11 @@ public class AdminRouteController {
         return routeService.getAllRoutes();
     }
 
+    @GetMapping("/local")
+    public List<RouteResponse> getLocalRoutes() {
+        return routeService.getLocalRoutes();
+    }
+
     @GetMapping("/{id}")
     public RouteResponse getRoute(@PathVariable Long id) {
         return routeService.getRoute(id);
@@ -40,12 +47,36 @@ public class AdminRouteController {
                 .body(routeService.createRoute(request));
     }
 
+    @PostMapping("/local")
+    public ResponseEntity<RouteResponse> createLocalRoute(
+            @RequestBody RouteRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(routeService.createLocalRoute(request));
+    }
+
     @PutMapping("/{id}")
     public RouteResponse updateRoute(
             @PathVariable Long id,
             @RequestBody RouteRequest request
     ) {
         return routeService.updateRoute(id, request);
+    }
+
+    @PutMapping("/{id}/stops")
+    public RouteResponse replaceStops(
+            @PathVariable Long id,
+            @RequestBody List<RouteStopRequest> stops
+    ) {
+        return routeService.replaceRouteStops(id, stops);
+    }
+
+    @PatchMapping("/{id}/status")
+    public RouteResponse setStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, RouteStatus> request
+    ) {
+        return routeService.setStatus(id, request.get("status"));
     }
 
     @ExceptionHandler(ResponseStatusException.class)

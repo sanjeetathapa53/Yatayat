@@ -21,8 +21,13 @@ public class PassengerLocalRouteController {
 
     @GetMapping("/search")
     public List<PassengerLocalRouteResponse> search(Authentication authentication,
-                                                     @RequestParam String origin,
-                                                     @RequestParam String destination) {
+                                                     @RequestParam(required = false) String origin,
+                                                     @RequestParam(required = false) String destination,
+                                                     @RequestParam(required = false) Long fromStopId,
+                                                     @RequestParam(required = false) Long toStopId) {
+        if (fromStopId != null || toStopId != null) {
+            return routeService.searchByStopIds(authentication.getName(), fromStopId, toStopId);
+        }
         return routeService.search(authentication.getName(), origin, destination);
     }
 

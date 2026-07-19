@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 @Entity
 @Table(
@@ -36,6 +37,10 @@ public class Route {
 
     @Column(nullable = false)
     private Integer estimatedDurationMinutes;
+
+    private LocalTime operatingStartTime;
+
+    private LocalTime operatingEndTime;
 
     @Enumerated(EnumType.STRING)
     @Column(length = 30)
@@ -71,6 +76,8 @@ public class Route {
     public String getDestination() { return destination; }
     public BigDecimal getDistanceKm() { return distanceKm; }
     public Integer getEstimatedDurationMinutes() { return estimatedDurationMinutes; }
+    public LocalTime getOperatingStartTime() { return operatingStartTime; }
+    public LocalTime getOperatingEndTime() { return operatingEndTime; }
     public TripType getTripType() { return tripType == null ? TripType.OUT_OF_VALLEY : tripType; }
     public RouteStatus getStatus() { return status; }
     public LocalDateTime getCreatedAt() { return createdAt; }
@@ -83,6 +90,8 @@ public class Route {
     public void setDestination(String destination) { this.destination = clean(destination); }
     public void setDistanceKm(BigDecimal distanceKm) { this.distanceKm = distanceKm; }
     public void setEstimatedDurationMinutes(Integer estimatedDurationMinutes) { this.estimatedDurationMinutes = estimatedDurationMinutes; }
+    public void setOperatingStartTime(LocalTime operatingStartTime) { this.operatingStartTime = operatingStartTime; }
+    public void setOperatingEndTime(LocalTime operatingEndTime) { this.operatingEndTime = operatingEndTime; }
     public void setTripType(TripType tripType) { this.tripType = tripType; }
     public void setStatus(RouteStatus status) { this.status = status; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

@@ -12,7 +12,9 @@ public interface RouteRepository extends JpaRepository<Route, Long> {
     boolean existsByCodeIgnoreCase(String code);
     boolean existsByCodeIgnoreCaseAndIdNot(String code, Long id);
     List<Route> findAllByOrderByCodeAsc();
+    List<Route> findByTripTypeOrderByCodeAsc(TripType tripType);
     List<Route> findByStatusOrderByCodeAsc(RouteStatus status);
+    List<Route> findByStatusAndTripTypeOrderByCodeAsc(RouteStatus status, TripType tripType);
     List<Route> findByStatusAndTripTypeAndOriginIgnoreCaseAndDestinationIgnoreCaseOrderByCodeAsc(
             RouteStatus status, TripType tripType, String origin, String destination);
     Optional<Route> findByIdAndStatusAndTripType(Long id, RouteStatus status, TripType tripType);

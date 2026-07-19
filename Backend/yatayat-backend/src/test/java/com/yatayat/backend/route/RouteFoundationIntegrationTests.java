@@ -5,6 +5,8 @@ import com.yatayat.backend.controller.AdminRouteController;
 import com.yatayat.backend.controller.OperatorRouteController;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.RouteRepository;
+import com.yatayat.backend.repository.BusStopRepository;
+import com.yatayat.backend.repository.RouteStopRepository;
 import com.yatayat.backend.repository.TransportOperatorRepository;
 import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.service.RouteService;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -40,6 +43,10 @@ class RouteFoundationIntegrationTests {
 
     @MockitoBean
     private RouteRepository routeRepository;
+    @MockitoBean
+    private BusStopRepository busStopRepository;
+    @MockitoBean
+    private RouteStopRepository routeStopRepository;
     @MockitoBean
     private UserRepository userRepository;
     @MockitoBean
@@ -61,6 +68,7 @@ class RouteFoundationIntegrationTests {
         operator.setUser(operatorUser);
         operator.setName("Yatayat Operator");
         operator.setVerificationStatus(OperatorVerificationStatus.APPROVED);
+        when(routeStopRepository.findByRouteIdOrderByStopOrderAsc(anyLong())).thenReturn(List.of());
     }
 
     @Test
