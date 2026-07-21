@@ -11,18 +11,20 @@ import {
   Clock,
 } from "lucide-react";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function FarePassPage() {
+  const { t } = useLanguage();
   const [qrGenerated, setQrGenerated] = useState(false);
 
   return (
     <PassengerLayout activePage="Routes">
       <header className="mb-6">
         <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-          Local QR Fare Pass
+          {t("passenger.farePass.title")}
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Pay local bus fare from your wallet and generate a one-time QR pass.
+          {t("passenger.farePass.subtitle")}
         </p>
       </header>
 
@@ -32,13 +34,13 @@ export default function FarePassPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-slate-300">
-                  Wallet Balance
+                  {t("passenger.farePass.walletBalance")}
                 </p>
 
                 <h2 className="mt-2 text-4xl font-black">NPR 1,250</h2>
 
                 <p className="mt-1 text-sm text-slate-300">
-                  Available balance
+                  {t("passenger.farePass.availableBalance")}
                 </p>
               </div>
 
@@ -49,13 +51,13 @@ export default function FarePassPage() {
 
             <div className="mt-5 flex flex-wrap gap-3">
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">
-                Valid for 24 hours
+                {t("passenger.farePass.validFor24Hours")}
               </span>
               <span className="rounded-full bg-emerald-600 px-3 py-1 text-xs font-bold">
-                One-time use
+                {t("passenger.farePass.oneTimeUse")}
               </span>
               <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold">
-                Offline ready
+                {t("passenger.farePass.offlineReady")}
               </span>
             </div>
           </div>
@@ -68,24 +70,24 @@ export default function FarePassPage() {
 
               <div>
                 <h2 className="text-xl font-black text-slate-900">
-                  Select Local Route
+                  {t("passenger.farePass.selectLocalRoute")}
                 </h2>
                 <p className="text-sm text-slate-500">
-                  This pass verifies local fare payment only. It does not reserve a seat.
+                  {t("passenger.farePass.localFareOnly")}
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <InputBox label="From" value="Ratnapark" />
-              <InputBox label="To" value="Bhaktapur" />
+              <InputBox label={t("passenger.farePass.from")} value="Ratnapark" />
+              <InputBox label={t("passenger.farePass.to")} value="Bhaktapur" />
             </div>
 
             <div className="mt-4 rounded-xl bg-slate-50 p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-                    Selected Route
+                    {t("passenger.farePass.selectedRoute")}
                   </p>
 
                   <h3 className="mt-1 text-lg font-black">
@@ -100,7 +102,7 @@ export default function FarePassPage() {
 
                 <div className="text-left sm:text-right">
                   <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-                    Fare
+                    {t("passenger.farePass.fare")}
                   </p>
 
                   <h3 className="mt-1 text-3xl font-black text-emerald-700">
@@ -111,21 +113,19 @@ export default function FarePassPage() {
             </div>
 
             <button
+              type="button"
               onClick={() => setQrGenerated(true)}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
             >
               <QrCode size={18} />
-              Generate QR Fare Pass
+              {t("passenger.farePass.generateQrFarePass")}
             </button>
           </div>
 
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
             <div className="flex gap-2">
               <AlertCircle size={18} className="shrink-0" />
-              <p>
-                This QR pass is valid for 24 hours or until scanned once by the
-                driver/conductor. Once scanned, it becomes USED and cannot be reused.
-              </p>
+              <p>{t("passenger.farePass.validityNotice")}</p>
             </div>
           </div>
         </section>
@@ -135,10 +135,10 @@ export default function FarePassPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-black text-slate-900">
-                  QR Fare Pass
+                  {t("passenger.farePass.qrFarePass")}
                 </h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Show this to the driver/conductor for scanning.
+                  {t("passenger.farePass.showToDriver")}
                 </p>
               </div>
 
@@ -149,7 +149,7 @@ export default function FarePassPage() {
               <div className="mt-4 flex h-56 flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 text-center">
                 <QrCode size={46} className="text-slate-400" />
                 <p className="mt-3 text-sm font-bold text-slate-500">
-                  QR will appear after generation
+                  {t("passenger.farePass.qrAppearsAfterGeneration")}
                 </p>
               </div>
             ) : (
@@ -170,17 +170,17 @@ export default function FarePassPage() {
                 </div>
 
                 <div className="mt-4 space-y-2 text-sm">
-                  <PassInfo label="Pass ID" value="LQR-2026-0012" />
-                  <PassInfo label="Route" value="Ratnapark → Bhaktapur" />
-                  <PassInfo label="Fare" value="NPR 45" />
-                  <PassInfo label="Status" value="ACTIVE" />
-                  <PassInfo label="Time Left" value="23h 59m" />
-                  <PassInfo label="Usage" value="Unused" />
+                  <PassInfo label={t("passenger.farePass.passId")} value="LQR-2026-0012" />
+                  <PassInfo label={t("passenger.farePass.route")} value="Ratnapark → Bhaktapur" />
+                  <PassInfo label={t("passenger.farePass.fare")} value="NPR 45" />
+                  <PassInfo label={t("passenger.farePass.status")} value={t("passenger.farePass.active")} />
+                  <PassInfo label={t("passenger.farePass.timeLeft")} value="23h 59m" />
+                  <PassInfo label={t("passenger.farePass.usage")} value={t("passenger.farePass.unused")} />
                 </div>
 
                 <div className="mt-4 flex items-center gap-2 rounded-xl bg-white p-3 text-sm font-bold text-emerald-700">
                   <CheckCircle size={18} />
-                  Active • Offline QR Ready
+                  {t("passenger.farePass.activeOfflineReady")}
                 </div>
               </div>
             )}
@@ -188,20 +188,20 @@ export default function FarePassPage() {
             <div className="mt-4 rounded-xl bg-slate-50 p-4">
               <div className="flex items-center gap-2 text-sm font-black text-slate-700">
                 <Clock size={17} />
-                QR Validity
+                {t("passenger.farePass.qrValidity")}
               </div>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Valid for 24 hours, but once scanned by the driver, it becomes
-                used immediately.
+                {t("passenger.farePass.qrValidityDescription")}
               </p>
             </div>
 
             <button
+              type="button"
               onClick={() => setQrGenerated(false)}
               className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 py-3 text-sm font-black hover:bg-slate-50"
             >
               <RefreshCcw size={17} />
-              Reset Pass
+              {t("passenger.farePass.resetPass")}
             </button>
           </div>
         </aside>
