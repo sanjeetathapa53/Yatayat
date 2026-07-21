@@ -14,9 +14,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const [twoFA, setTwoFA] = useState(true);
   const [alerts, setAlerts] = useState(true);
@@ -29,11 +31,11 @@ export default function ProfilePage() {
   const storedUser = localStorage.getItem("yatayatUser");
   const user = storedUser ? JSON.parse(storedUser) : null;
 
-  const fullName = user?.fullName || "User";
+  const fullName = user?.fullName || t("passenger.profile.userFallback");
   const firstName = fullName.split(" ")[0];
   const email = user?.email || "";
-  const phone = user?.phone || "No phone available";
-  const role = user?.role === "DRIVER" ? "Driver Account" : "Passenger Account";
+  const phone = user?.phone || t("passenger.profile.noPhone");
+  const role = user?.role === "DRIVER" ? t("passenger.profile.driverAccount") : t("passenger.profile.passengerAccount");
 
   const handleLogout = () => {
     localStorage.removeItem("yatayatUser");
@@ -43,12 +45,12 @@ export default function ProfilePage() {
 
   const handleChangePassword = async () => {
     if (!oldPassword || !newPassword || !confirmPassword) {
-      toast.error("Please fill all password fields");
+      toast.error(t("passenger.profile.fillPasswordFields"));
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("New password and confirm password do not match");
+      toast.error(t("passenger.profile.passwordMismatch"));
       return;
     }
 
@@ -69,7 +71,7 @@ export default function ProfilePage() {
       const message = await response.text();
 
       if (message === "Password changed successfully") {
-        toast.success("Password changed successfully");
+        toast.success(t("passenger.profile.passwordChanged"));
         setShowPasswordModal(false);
         setOldPassword("");
         setNewPassword("");
@@ -79,7 +81,7 @@ export default function ProfilePage() {
       }
     } catch (error) {
       console.error(error);
-      toast.error("Failed to change password");
+      toast.error(t("passenger.profile.passwordChangeFailed"));
     }
   };
 
@@ -87,10 +89,10 @@ export default function ProfilePage() {
     <PassengerLayout activePage="Profile">
       <div className="mb-5">
         <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-          User Profile
+          {t("passenger.profile.title")}
         </h1>
         <p className="mt-1 text-sm text-slate-600">
-          Manage your account, security, language, and notification settings.
+          {t("passenger.profile.subtitle")}
         </p>
       </div>
 
@@ -109,40 +111,41 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3">
-              <ProfileStat label="Trips" value="0" />
-              <ProfileStat label="QR Passes" value="0" />
+              <ProfileStat label={t("passenger.profile.trips")} value="0" />
+              <ProfileStat label={t("passenger.profile.qrPasses")} value="0" />
             </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-black text-slate-900">
-              Quick Actions
+              {t("passenger.profile.quickActions")}
             </h2>
 
             <div className="mt-4 space-y-3">
               <QuickButton
                 icon={<ShieldCheck size={18} />}
-                label="Security Settings"
+                label={t("passenger.profile.securitySettings")}
                 onClick={() => navigate("/settings")}
               />
               <QuickButton
                 icon={<Globe size={18} />}
-                label="Language Preference"
+                label={t("passenger.profile.languagePreference")}
                 onClick={() => navigate("/settings")}
               />
               <QuickButton
                 icon={<Bell size={18} />}
-                label="Notification Settings"
+                label={t("passenger.profile.notificationSettings")}
                 onClick={() => navigate("/settings")}
               />
             </div>
 
             <button
+              type="button"
               onClick={handleLogout}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-red-100 py-3 text-sm font-black text-red-700 hover:bg-red-200"
             >
               <LogOut size={17} />
-              Logout
+              {t("passenger.profile.logout")}
             </button>
           </div>
         </aside>
@@ -150,46 +153,46 @@ export default function ProfilePage() {
         <section className="space-y-5 xl:col-span-8">
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">
-              Personal Information
+              {t("passenger.profile.personalInformation")}
             </h2>
 
             <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <InputBox icon={<UserCircle size={18} />} label="Full Name" value={fullName} />
-              <InputBox icon={<Mail size={18} />} label="Email" value={email} />
-              <InputBox icon={<Phone size={18} />} label="Phone" value={phone} />
-              <InputBox icon={<Globe size={18} />} label="Preferred Language" value="English / नेपाली" />
+              <InputBox icon={<UserCircle size={18} />} label={t("passenger.profile.fullName")} value={fullName} />
+              <InputBox icon={<Mail size={18} />} label={t("passenger.profile.email")} value={email} />
+              <InputBox icon={<Phone size={18} />} label={t("passenger.profile.phone")} value={phone} />
+              <InputBox icon={<Globe size={18} />} label={t("passenger.profile.preferredLanguage")} value={t("passenger.profile.languageValue")} />
             </div>
 
-            <button className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white hover:bg-[#0d3566] sm:w-auto">
+            <button type="button" className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white hover:bg-[#0d3566] sm:w-auto">
               <Save size={17} />
-              Save Changes
+              {t("passenger.profile.saveChanges")}
             </button>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-black text-slate-900">Security</h2>
+            <h2 className="text-xl font-black text-slate-900">{t("passenger.profile.security")}</h2>
 
             <div className="mt-5 space-y-4">
               <SettingRow
                 icon={<Lock size={20} />}
-                title="Change Password"
-                desc="Update your login password regularly."
-                button="Change"
+                title={t("passenger.profile.changePassword")}
+                desc={t("passenger.profile.changePasswordDesc")}
+                button={t("passenger.profile.change")}
                 onClick={() => setShowPasswordModal(true)}
               />
 
               <ToggleRow
                 icon={<ShieldCheck size={20} />}
-                title="Two-Factor Authentication"
-                desc="Add extra security using OTP verification."
+                title={t("passenger.profile.twoFactor")}
+                desc={t("passenger.profile.twoFactorDesc")}
                 enabled={twoFA}
                 setEnabled={setTwoFA}
               />
 
               <ToggleRow
                 icon={<Bell size={20} />}
-                title="Trip and Payment Alerts"
-                desc="Receive notifications for fare pass, wallet and bus delays."
+                title={t("passenger.profile.tripPaymentAlerts")}
+                desc={t("passenger.profile.tripPaymentAlertsDesc")}
                 enabled={alerts}
                 setEnabled={setAlerts}
               />
@@ -198,14 +201,14 @@ export default function ProfilePage() {
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">
-              Device Login History
+              {t("passenger.profile.deviceLoginHistory")}
             </h2>
 
             <div className="mt-4 space-y-3">
               <DeviceRow
                 device="Chrome on Windows"
                 location="Kathmandu, Nepal"
-                status="Current Device"
+                status={t("passenger.profile.currentDevice")}
               />
             </div>
           </div>
@@ -216,16 +219,16 @@ export default function ProfilePage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h2 className="text-xl font-black text-slate-900">
-              Change Password
+              {t("passenger.profile.changePassword")}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              Enter your old password and create a new password.
+              {t("passenger.profile.changePasswordHelp")}
             </p>
 
             <div className="mt-5 space-y-4">
               <input
                 type="password"
-                placeholder="Old password"
+                placeholder={t("passenger.profile.oldPassword")}
                 value={oldPassword}
                 onChange={(e) => setOldPassword(e.target.value)}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none"
@@ -233,7 +236,7 @@ export default function ProfilePage() {
 
               <input
                 type="password"
-                placeholder="New password"
+                placeholder={t("passenger.profile.newPassword")}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none"
@@ -241,7 +244,7 @@ export default function ProfilePage() {
 
               <input
                 type="password"
-                placeholder="Confirm new password"
+                placeholder={t("passenger.profile.confirmNewPassword")}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none"
@@ -250,17 +253,19 @@ export default function ProfilePage() {
 
             <div className="mt-6 flex gap-3">
               <button
+                type="button"
                 onClick={() => setShowPasswordModal(false)}
                 className="w-full rounded-xl border border-slate-300 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50"
               >
-                Cancel
+                {t("passenger.profile.cancel")}
               </button>
 
               <button
+                type="button"
                 onClick={handleChangePassword}
                 className="w-full rounded-xl bg-[#08264a] py-3 text-sm font-bold text-white hover:bg-[#0d3566]"
               >
-                Update
+                {t("passenger.profile.update")}
               </button>
             </div>
           </div>
@@ -282,6 +287,7 @@ function ProfileStat({ label, value }) {
 function QuickButton({ icon, label, onClick }) {
   return (
     <button
+      type="button"
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-xl bg-slate-50 p-3 text-sm font-bold text-slate-700 hover:bg-slate-100"
     >
@@ -325,6 +331,7 @@ function SettingRow({ icon, title, desc, button, onClick }) {
       </div>
 
       <button
+        type="button"
         onClick={onClick}
         className="rounded-lg bg-[#08264a] px-4 py-2 text-sm font-bold text-white hover:bg-[#0d3566]"
       >
@@ -349,6 +356,7 @@ function ToggleRow({ icon, title, desc, enabled, setEnabled }) {
       </div>
 
       <button
+        type="button"
         onClick={() => setEnabled(!enabled)}
         className={`flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition ${
           enabled ? "justify-end bg-emerald-600" : "justify-start bg-slate-300"
