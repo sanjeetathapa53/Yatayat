@@ -12,65 +12,67 @@ import {
   Wallet,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "../../context/LanguageContext";
 
 const initialNotifications = [
   {
     id: 1,
     type: "transit",
-    title: "Bus delayed",
-    message: "BA 2 PA 9901 is delayed by 11 minutes near Balaju.",
-    time: "2 mins ago",
+    titleKey: "busDelayedTitle",
+    messageKey: "busDelayedMessage",
+    timeKey: "twoMinutesAgo",
     unread: true,
     icon: Bus,
   },
   {
     id: 2,
     type: "wallet",
-    title: "Wallet recharge successful",
-    message: "NPR 500 has been added to your Yatayat Wallet.",
-    time: "18 mins ago",
+    titleKey: "walletRechargeTitle",
+    messageKey: "walletRechargeMessage",
+    timeKey: "eighteenMinutesAgo",
     unread: true,
     icon: Wallet,
   },
   {
     id: 3,
     type: "fare",
-    title: "QR Fare Pass generated",
-    message: "Your Ratnapark → Bhaktapur QR pass is active for 24 hours or until scanned once.",
-    time: "35 mins ago",
+    titleKey: "farePassTitle",
+    messageKey: "farePassMessage",
+    timeKey: "thirtyFiveMinutesAgo",
     unread: false,
     icon: Ticket,
   },
   {
     id: 4,
     type: "security",
-    title: "New device login OTP",
-    message: "A new login attempt was detected. OTP verification may be required.",
-    time: "1 hour ago",
+    titleKey: "newDeviceTitle",
+    messageKey: "newDeviceMessage",
+    timeKey: "oneHourAgo",
     unread: false,
     icon: ShieldAlert,
   },
   {
     id: 5,
     type: "security",
-    title: "Email verification pending",
-    message: "Please verify your email address to secure your account.",
-    time: "Yesterday",
+    titleKey: "emailPendingTitle",
+    messageKey: "emailPendingMessage",
+    timeKey: "yesterday",
     unread: false,
     icon: MailCheck,
   },
   {
     id: 6,
     type: "payment",
-    title: "Payment confirmation saved",
-    message: "Your payment record has been stored successfully.",
-    time: "Yesterday",
+    titleKey: "paymentSavedTitle",
+    messageKey: "paymentSavedMessage",
+    timeKey: "yesterday",
     unread: false,
     icon: CreditCard,
   },
 ];
 
 export default function NotificationsPage() {
+  const { t } = useLanguage();
   const [activeFilter, setActiveFilter] = useState("all");
   const [notifications, setNotifications] = useState(initialNotifications);
 
@@ -114,22 +116,22 @@ export default function NotificationsPage() {
 
             <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold sm:gap-6">
               <Link to="/routes" className="text-slate-600 hover:text-[#08264a]">
-                Routes
+                {t("passenger.notifications.routes")}
               </Link>
               <Link to="/track-bus" className="text-slate-600 hover:text-[#08264a]">
-                Track Bus
+                {t("passenger.notifications.trackBus")}
               </Link>
               <Link to="/fare-pass" className="text-slate-600 hover:text-[#08264a]">
-                Fare Pass
+                {t("passenger.notifications.farePass")}
               </Link>
               <Link to="/wallet" className="text-slate-600 hover:text-[#08264a]">
-                Wallet
+                {t("passenger.notifications.wallet")}
               </Link>
             </div>
           </div>
 
           <div className="shrink-0 rounded-full bg-[#08264a] px-4 py-2 text-xs font-black text-white">
-            {unreadCount} unread
+            {t("passenger.notifications.unreadCount", { count: unreadCount })}
           </div>
         </nav>
       </header>
@@ -140,16 +142,16 @@ export default function NotificationsPage() {
           className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-[#08264a]"
         >
           <ArrowLeft size={17} />
-          Back to Dashboard
+          {t("passenger.notifications.backToDashboard")}
         </Link>
 
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="min-w-0">
             <h1 className="safe-wrap text-2xl font-black text-slate-900 sm:text-3xl">
-              Notification Center
+              {t("passenger.notifications.title")}
             </h1>
             <p className="mt-1 text-sm text-slate-600">
-              View trip alerts, QR pass updates, wallet activity, and security notifications.
+              {t("passenger.notifications.subtitle")}
             </p>
           </div>
 
@@ -158,7 +160,7 @@ export default function NotificationsPage() {
             onClick={markAllAsRead}
             className="tap-target rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
           >
-            Mark all as read
+            {t("passenger.notifications.markAllAsRead")}
           </button>
         </div>
 
@@ -168,11 +170,11 @@ export default function NotificationsPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-xs font-black uppercase tracking-widest text-slate-300">
-                    Unread Alerts
+                    {t("passenger.notifications.unreadAlerts")}
                   </p>
                   <h2 className="mt-2 text-4xl font-black">{unreadCount}</h2>
                   <p className="mt-1 text-sm text-slate-300">
-                    Notifications needing attention
+                    {t("passenger.notifications.needsAttention")}
                   </p>
                 </div>
 
@@ -184,26 +186,23 @@ export default function NotificationsPage() {
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <h2 className="mb-3 text-lg font-black text-slate-900">
-                Filter Notifications
+                {t("passenger.notifications.filterNotifications")}
               </h2>
 
               <div className="space-y-2">
-                <FilterButton label="All" value="all" active={activeFilter} onClick={setActiveFilter} />
-                <FilterButton label="Transit" value="transit" active={activeFilter} onClick={setActiveFilter} />
-                <FilterButton label="Wallet" value="wallet" active={activeFilter} onClick={setActiveFilter} />
-                <FilterButton label="Fare Pass" value="fare" active={activeFilter} onClick={setActiveFilter} />
-                <FilterButton label="Security" value="security" active={activeFilter} onClick={setActiveFilter} />
-                <FilterButton label="Payment" value="payment" active={activeFilter} onClick={setActiveFilter} />
+                <FilterButton label={t("passenger.notifications.all")} value="all" active={activeFilter} onClick={setActiveFilter} />
+                <FilterButton label={t("passenger.notifications.transit")} value="transit" active={activeFilter} onClick={setActiveFilter} />
+                <FilterButton label={t("passenger.notifications.wallet")} value="wallet" active={activeFilter} onClick={setActiveFilter} />
+                <FilterButton label={t("passenger.notifications.farePass")} value="fare" active={activeFilter} onClick={setActiveFilter} />
+                <FilterButton label={t("passenger.notifications.security")} value="security" active={activeFilter} onClick={setActiveFilter} />
+                <FilterButton label={t("passenger.notifications.payment")} value="payment" active={activeFilter} onClick={setActiveFilter} />
               </div>
             </div>
 
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
               <div className="flex gap-2">
                 <CheckCircle size={18} />
-                <p>
-                  Later this page will receive real-time alerts from Spring Boot for OTP,
-                  payments, QR usage, and bus delays.
-                </p>
+                <p>{t("passenger.notifications.futureInfo")}</p>
               </div>
             </div>
           </aside>
@@ -213,10 +212,10 @@ export default function NotificationsPage() {
               <div className="flex items-center justify-between gap-3 border-b border-slate-200 p-4 sm:p-5">
                 <div className="min-w-0">
                   <h2 className="text-xl font-black text-slate-900">
-                    Recent Notifications
+                    {t("passenger.notifications.recentNotifications")}
                   </h2>
                   <p className="text-sm text-slate-500">
-                    Showing {filteredNotifications.length} notification(s)
+                    {t("passenger.notifications.showingCount", { count: filteredNotifications.length })}
                   </p>
                 </div>
 
@@ -251,7 +250,7 @@ export default function NotificationsPage() {
                           <div className="min-w-0">
                             <div className="flex min-w-0 items-center gap-2">
                               <h3 className="safe-wrap font-black text-slate-900">
-                                {item.title}
+                                {t(`passenger.notifications.${item.titleKey}`)}
                               </h3>
 
                               {item.unread && (
@@ -260,12 +259,12 @@ export default function NotificationsPage() {
                             </div>
 
                             <p className="safe-wrap mt-1 text-sm leading-6 text-slate-600">
-                              {item.message}
+                              {t(`passenger.notifications.${item.messageKey}`)}
                             </p>
                           </div>
 
                           <span className="shrink-0 text-xs font-bold text-slate-400 sm:whitespace-nowrap">
-                            {item.time}
+                            {t(`passenger.notifications.${item.timeKey}`)}
                           </span>
                         </div>
                       </div>

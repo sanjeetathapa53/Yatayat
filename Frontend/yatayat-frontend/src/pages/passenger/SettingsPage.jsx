@@ -11,9 +11,10 @@ import {
   Bell,
 } from "lucide-react";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function SettingsPage() {
-  const [language, setLanguage] = useState("English");
+  const { language, setLanguage, t } = useLanguage();
   const [emailTickets, setEmailTickets] = useState(true);
   const [tripAlerts, setTripAlerts] = useState(true);
   const [paymentAlerts, setPaymentAlerts] = useState(true);
@@ -21,7 +22,7 @@ export default function SettingsPage() {
   const [autoWallet, setAutoWallet] = useState(false);
 
   const saveSettings = () => {
-    alert("Settings saved successfully.");
+    alert(t("passenger.settings.saved"));
   };
 
   return (
@@ -29,19 +30,20 @@ export default function SettingsPage() {
       <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            Settings
+            {t("passenger.settings.title")}
           </h1>
           <p className="mt-1 text-sm text-slate-600">
-            Manage account preferences, notifications, wallet security, and email tickets.
+            {t("passenger.settings.subtitle")}
           </p>
         </div>
 
         <button
+          type="button"
           onClick={saveSettings}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white hover:bg-[#0d3566] sm:w-auto"
         >
           <Save size={18} />
-          Save Changes
+          {t("passenger.settings.saveChanges")}
         </button>
       </header>
 
@@ -49,21 +51,25 @@ export default function SettingsPage() {
         <section className="space-y-5 xl:col-span-8">
           <SettingsCard
             icon={<Globe size={22} />}
-            title="Language Preference"
-            desc="Choose your preferred interface language."
+            title={t("passenger.settings.languagePreference")}
+            desc={t("passenger.settings.languageDesc")}
           >
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
-              {["English", "नेपाली"].map((item) => (
+              {[
+                ["en", t("passenger.settings.english")],
+                ["ne", t("passenger.settings.nepali")],
+              ].map(([value, label]) => (
                 <button
-                  key={item}
-                  onClick={() => setLanguage(item)}
+                  type="button"
+                  key={value}
+                  onClick={() => setLanguage(value)}
                   className={`rounded-xl border px-5 py-4 text-sm font-black transition ${
-                    language === item
+                    language === value
                       ? "border-[#08264a] bg-[#08264a] text-white"
                       : "border-slate-300 bg-slate-50 text-slate-600 hover:border-[#08264a]"
                   }`}
                 >
-                  {item}
+                  {label}
                 </button>
               ))}
             </div>
@@ -71,22 +77,22 @@ export default function SettingsPage() {
 
           <SettingsCard
             icon={<Bell size={22} />}
-            title="Notification Preferences"
-            desc="Control which alerts you want to receive."
+            title={t("passenger.settings.notificationPreferences")}
+            desc={t("passenger.settings.notificationDesc")}
           >
             <div className="mt-4 space-y-3">
               <ToggleRow
-                title="Trip delay and live bus alerts"
+                title={t("passenger.settings.tripAlerts")}
                 enabled={tripAlerts}
                 setEnabled={setTripAlerts}
               />
               <ToggleRow
-                title="Payment and wallet alerts"
+                title={t("passenger.settings.paymentAlerts")}
                 enabled={paymentAlerts}
                 setEnabled={setPaymentAlerts}
               />
               <ToggleRow
-                title="Email ticket delivery alerts"
+                title={t("passenger.settings.emailTicketAlerts")}
                 enabled={emailTickets}
                 setEnabled={setEmailTickets}
               />
@@ -95,17 +101,17 @@ export default function SettingsPage() {
 
           <SettingsCard
             icon={<Lock size={22} />}
-            title="Wallet Security"
-            desc="Manage PIN and protection for wallet payments."
+            title={t("passenger.settings.walletSecurity")}
+            desc={t("passenger.settings.walletSecurityDesc")}
           >
             <div className="mt-4 space-y-3">
               <SettingAction
-                title="Change Wallet PIN"
-                desc="Update your 4-digit wallet payment PIN."
-                button="Change PIN"
+                title={t("passenger.settings.changeWalletPin")}
+                desc={t("passenger.settings.changeWalletPinDesc")}
+                button={t("passenger.settings.changePin")}
               />
               <ToggleRow
-                title="Require OTP for large wallet payments"
+                title={t("passenger.settings.requireOtpLargePayments")}
                 enabled={twoFactor}
                 setEnabled={setTwoFactor}
               />
@@ -114,19 +120,19 @@ export default function SettingsPage() {
 
           <SettingsCard
             icon={<CreditCard size={22} />}
-            title="Payment Preferences"
-            desc="Set default payment behavior for ticket bookings."
+            title={t("passenger.settings.paymentPreferences")}
+            desc={t("passenger.settings.paymentPreferencesDesc")}
           >
             <div className="mt-4 space-y-3">
               <ToggleRow
-                title="Use Yatayat Wallet as default payment method"
+                title={t("passenger.settings.defaultWallet")}
                 enabled={autoWallet}
                 setEnabled={setAutoWallet}
               />
               <SettingAction
-                title="Saved Payment Methods"
-                desc="eSewa, Khalti, Mobile Banking integration will be added later."
-                button="Manage"
+                title={t("passenger.settings.savedPaymentMethods")}
+                desc={t("passenger.settings.savedPaymentMethodsDesc")}
+                button={t("passenger.settings.manage")}
               />
             </div>
           </SettingsCard>
@@ -138,36 +144,34 @@ export default function SettingsPage() {
               <ShieldCheck size={26} />
             </div>
 
-            <h2 className="mt-5 text-xl font-black">Account Protected</h2>
+            <h2 className="mt-5 text-xl font-black">{t("passenger.settings.accountProtected")}</h2>
             <p className="mt-2 text-sm leading-6 text-slate-300">
-              Two-factor authentication and wallet PIN are currently enabled.
+              {t("passenger.settings.accountProtectedDesc")}
             </p>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">
-              Account Summary
+              {t("passenger.settings.accountSummary")}
             </h2>
 
             <div className="mt-4 space-y-3 text-sm">
-              <SummaryRow label="Name" value="Nischal P." />
-              <SummaryRow label="Role" value="Passenger" />
-              <SummaryRow label="Email" value="nischal@example.com" />
-              <SummaryRow label="Phone" value="+977 9841234567" />
+              <SummaryRow label={t("passenger.settings.name")} value="Nischal P." />
+              <SummaryRow label={t("passenger.settings.role")} value={t("passenger.settings.passenger")} />
+              <SummaryRow label={t("passenger.settings.email")} value="nischal@example.com" />
+              <SummaryRow label={t("passenger.settings.phone")} value="+977 9841234567" />
             </div>
           </div>
 
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-sm text-emerald-800">
             <div className="flex gap-3">
               <Mail size={20} />
-              <p>
-                Ticket PDFs and QR tickets will automatically be sent to your registered email after payment.
-              </p>
+              <p>{t("passenger.settings.ticketEmailInfo")}</p>
             </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-xl font-black text-slate-900">Device</h2>
+            <h2 className="text-xl font-black text-slate-900">{t("passenger.settings.device")}</h2>
 
             <div className="mt-4 flex items-center gap-3 rounded-xl bg-slate-50 p-4">
               <Smartphone size={22} />
@@ -176,7 +180,7 @@ export default function SettingsPage() {
                   Chrome on Windows
                 </p>
                 <p className="text-xs text-slate-500">
-                  Current active session
+                  {t("passenger.settings.currentActiveSession")}
                 </p>
               </div>
             </div>
@@ -212,6 +216,7 @@ function ToggleRow({ title, enabled, setEnabled }) {
       <p className="text-sm font-bold text-slate-700">{title}</p>
 
       <button
+        type="button"
         onClick={() => setEnabled(!enabled)}
         className={`flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition ${
           enabled ? "justify-end bg-emerald-600" : "justify-start bg-slate-300"
@@ -231,7 +236,7 @@ function SettingAction({ title, desc, button }) {
         <p className="mt-1 text-xs text-slate-500">{desc}</p>
       </div>
 
-      <button className="rounded-lg bg-[#08264a] px-4 py-2 text-sm font-bold text-white hover:bg-[#0d3566]">
+      <button type="button" className="rounded-lg bg-[#08264a] px-4 py-2 text-sm font-bold text-white hover:bg-[#0d3566]">
         {button}
       </button>
     </div>
