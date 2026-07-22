@@ -60,6 +60,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         DriverTripOperationController.class,
         PassengerLiveTrackingController.class,
         OperatorLiveFleetController.class,
+        AdminLiveFleetController.class,
         AuthController.class
 })
 @Import({SecurityConfig.class, AuthenticatedUserService.class, SessionLogoutService.class})
@@ -99,6 +100,8 @@ class EndpointSecurityIntegrationTests {
     private PassengerLiveTrackingService passengerLiveTrackingService;
     @MockitoBean
     private OperatorLiveFleetService operatorLiveFleetService;
+    @MockitoBean
+    private AdminLiveFleetService adminLiveFleetService;
     @MockitoBean
     private OperatorApplicationService operatorApplicationService;
     @MockitoBean
@@ -470,6 +473,61 @@ class EndpointSecurityIntegrationTests {
                 .andExpect(content().json("[]"));
 
         verify(operatorLiveFleetService).activeFleet("operator@example.com");
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotRemoveOperatorDriver() throws Exception {
+        mockMvc.perform(delete("/api/operator/drivers/5"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void operatorDriverRemovalUsesAuthenticatedOperator() throws Exception {
+        mockMvc.perform(delete("/api/operator/drivers/5"))
+                .andExpect(status().isOk());
+
+        verify(associationService).remove("operator@example.com", 5L);
+    }
+
+    @Test
+    void anonymousUserCannotReadAdminLiveFleet() throws Exception {
+        mockMvc.perform(get("/api/admin/live-fleet"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotReadAdminLiveFleet() throws Exception {
+        mockMvc.perform(get("/api/admin/live-fleet"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "DRIVER")
+    void driverCannotReadAdminLiveFleet() throws Exception {
+        mockMvc.perform(get("/api/admin/live-fleet"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERATOR")
+    void operatorCannotReadAdminLiveFleet() throws Exception {
+        mockMvc.perform(get("/api/admin/live-fleet"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void authenticatedAdminCanReadAdminLiveFleet() throws Exception {
+        when(adminLiveFleetService.activeFleet()).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/admin/live-fleet"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
+
+        verify(adminLiveFleetService).activeFleet();
     }
 
     @Test

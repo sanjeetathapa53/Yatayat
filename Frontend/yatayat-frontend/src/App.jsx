@@ -65,6 +65,7 @@ import AdminProtectedRoute from "./components/auth/AdminProtectedRoute";
 import TransportOperatorsPage from "./pages/admin/TransportOperatorsPage";
 import AdminBusesPage from "./pages/admin/AdminBusesPage";
 import AdminRoutesPage from "./pages/admin/AdminRoutesPage";
+import AdminLiveMonitoringPage from "./pages/admin/AdminLiveMonitoringPage";
 
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 
@@ -352,6 +353,10 @@ export default function App() {
   <Route
     path="/admin/routes"
     element={<AdminRoutesPage />}
+  />
+  <Route
+    path="/admin/live-tracking"
+    element={<AdminLiveMonitoringPage />}
   />
         </Route>
 
