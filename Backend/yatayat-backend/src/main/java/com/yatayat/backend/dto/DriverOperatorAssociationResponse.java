@@ -1,6 +1,7 @@
 package com.yatayat.backend.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record DriverOperatorAssociationResponse(
         Long associationId,
@@ -16,6 +17,7 @@ public record DriverOperatorAssociationResponse(
         String operatorPhone,
         String associationStatus,
         LocalDateTime invitedAt,
-        LocalDateTime respondedAt
+        LocalDateTime respondedAt,
+        List<AssociatedBusResponse> assignedBuses
 ) {
 }

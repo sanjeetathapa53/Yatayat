@@ -18,17 +18,20 @@ public class DriverOperatorAssociationService {
     private final DriverProfileRepository driverRepository;
     private final TransportOperatorRepository operatorRepository;
     private final DriverOperatorAssociationRepository associationRepository;
+    private final BusRepository busRepository;
 
     public DriverOperatorAssociationService(
             UserRepository userRepository,
             DriverProfileRepository driverRepository,
             TransportOperatorRepository operatorRepository,
-            DriverOperatorAssociationRepository associationRepository
+            DriverOperatorAssociationRepository associationRepository,
+            BusRepository busRepository
     ) {
         this.userRepository = userRepository;
         this.driverRepository = driverRepository;
         this.operatorRepository = operatorRepository;
         this.associationRepository = associationRepository;
+        this.busRepository = busRepository;
     }
 
     public List<DriverOperatorAssociationResponse> getOperatorDrivers(String email) {
@@ -148,6 +151,28 @@ public class DriverOperatorAssociationService {
         return toResponse(associationRepository.saveAndFlush(invitation));
     }
 
+    @Transactional
+    public DriverOperatorAssociationResponse remove(String email, Long associationId) {
+        TransportOperator operator = approvedOperator(email);
+        DriverOperatorAssociation association = associationRepository
+                .findLockedByIdAndOperator(associationId, operator)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Active driver association not found"));
+        if (association.getStatus() != DriverOperatorAssociationStatus.ACTIVE) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Only an active driver association can be removed");
+        }
+
+        List<Bus> assignedBuses = busRepository.findByOperatorAndAssignedDriver(
+                operator, association.getDriver());
+        assignedBuses.forEach(bus -> bus.setAssignedDriver(null));
+        if (!assignedBuses.isEmpty()) busRepository.saveAll(assignedBuses);
+
+        association.setStatus(DriverOperatorAssociationStatus.REMOVED);
+        association.setRespondedAt(LocalDateTime.now());
+        return toResponse(associationRepository.saveAndFlush(association));
+    }
+
     private DriverOperatorAssociation ownedPendingInvitation(
             DriverProfile driver,
             Long associationId
@@ -238,7 +263,11 @@ public class DriverOperatorAssociationService {
                 user.getPhone(), driver.getLicenseNumber(),
                 driver.getVerificationStatus().name(), operator.getId(), operator.getName(),
                 operator.getEmail(), operator.getPhone(), association.getStatus().name(),
-                association.getInvitedAt(), association.getRespondedAt()
+                association.getInvitedAt(), association.getRespondedAt(),
+                busRepository.findByOperatorAndAssignedDriver(operator, driver).stream()
+                        .map(bus -> new AssociatedBusResponse(
+                                bus.getId(), bus.getBusNumber(), bus.getBusName()))
+                        .toList()
         );
     }
 }

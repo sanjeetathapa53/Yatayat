@@ -42,6 +42,14 @@ public class OperatorDriverController {
                 associationService.invite(authentication.getName(), request));
     }
 
+    @DeleteMapping("/drivers/{associationId}")
+    public DriverOperatorAssociationResponse remove(
+            Authentication authentication,
+            @PathVariable Long associationId
+    ) {
+        return associationService.remove(authentication.getName(), associationId);
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handle(ResponseStatusException exception) {
         return ResponseEntity.status(exception.getStatusCode()).body(

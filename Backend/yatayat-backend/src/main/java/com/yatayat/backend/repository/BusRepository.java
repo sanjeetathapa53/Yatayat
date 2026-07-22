@@ -26,6 +26,11 @@ public interface BusRepository
 
     List<Bus> findByAssignedDriver(DriverProfile assignedDriver);
 
+    List<Bus> findByOperatorAndAssignedDriver(
+            TransportOperator operator,
+            DriverProfile assignedDriver
+    );
+
     boolean existsByBusNumberIgnoreCase(String busNumber);
 
     boolean existsByPermitNumberIgnoreCase(String permitNumber);

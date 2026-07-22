@@ -58,7 +58,7 @@ const menuItems = [
     path: "/admin/trips",
   },
   {
-    label: "Live Tracking",
+    label: "Live Monitoring",
     icon: Map,
     path: "/admin/live-tracking",
   },

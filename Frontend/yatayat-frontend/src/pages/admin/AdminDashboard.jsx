@@ -105,7 +105,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    loadDashboard();
+    Promise.resolve().then(() => loadDashboard());
   }, []);
 
   const latestApplications = useMemo(
@@ -432,7 +432,7 @@ export default function AdminDashboard() {
                 onClick={() => navigate("/admin/live-tracking")}
                 className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm font-black text-[#08264a] transition hover:bg-slate-100"
               >
-                Open Live Tracking
+                Open Live Monitoring
                 <ArrowRight size={17} />
               </button>
             </div>
