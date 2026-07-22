@@ -18,11 +18,13 @@ import {
   ShieldCheck,
   ContactRound,
   Users,
+  Radio,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import DriverLayout from "../../components/layout/DriverLayout";
 import { apiFetch } from "../../utils/api";
 import { finishDriverTrip, getCurrentDriverTrip, startDriverTrip, tripStatusLabel, tripStatusTone } from "../../utils/driverTrips";
+import { GPS_STATUS, useDriverLocationTracking } from "../../hooks/useDriverLocationTracking";
 
 const API_BASE_URL = "http://localhost:8080";
 
@@ -45,6 +47,10 @@ export default function DriverProfilePage() {
   const [operatorAssociation, setOperatorAssociation] = useState(null);
   const [currentTrip, setCurrentTrip] = useState(null);
   const [operatingTrip, setOperatingTrip] = useState(false);
+  const gps = useDriverLocationTracking(
+    currentTrip?.scheduledTripId,
+    currentTrip?.status === "IN_PROGRESS",
+  );
 
   const fetchDriverProfile = async (manualRefresh = false) => {
     if (!loggedInUser?.id) {
@@ -265,6 +271,9 @@ export default function DriverProfilePage() {
         </div>
         {currentTrip ? (
           <>
+            {currentTrip.status === "IN_PROGRESS" && (
+              <GpsStatus status={gps.status} message={gps.message} />
+            )}
             <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <InformationCard icon={<CalendarDays size={19} />} label="Departure" value={formatDateTime(currentTrip.departureAt)} />
               <InformationCard icon={<MapPin size={19} />} label="Estimated arrival" value={formatDateTime(currentTrip.estimatedArrivalAt)} />
@@ -797,4 +806,24 @@ function formatVerificationStatus(status) {
     default:
       return "Driver Account";
   }
+}
+
+function GpsStatus({ status, message }) {
+  const tones = {
+    [GPS_STATUS.ACTIVE]: "border-emerald-200 bg-emerald-50 text-emerald-800",
+    [GPS_STATUS.WAITING]: "border-amber-200 bg-amber-50 text-amber-800",
+    [GPS_STATUS.PERMISSION_DENIED]: "border-red-200 bg-red-50 text-red-800",
+    [GPS_STATUS.UNAVAILABLE]: "border-orange-200 bg-orange-50 text-orange-800",
+    [GPS_STATUS.NETWORK_ERROR]: "border-red-200 bg-red-50 text-red-800",
+  };
+
+  return (
+    <div className={`mt-5 flex items-start gap-3 rounded-2xl border p-4 ${tones[status] || tones[GPS_STATUS.WAITING]}`} role="status">
+      <Radio size={20} className={`mt-0.5 shrink-0 ${status === GPS_STATUS.ACTIVE ? "animate-pulse" : ""}`} />
+      <div>
+        <p className="font-black">{status}</p>
+        {message && <p className="mt-1 text-sm font-semibold">{message}</p>}
+      </div>
+    </div>
+  );
 }

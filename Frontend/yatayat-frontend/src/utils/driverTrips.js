@@ -24,6 +24,12 @@ export const startDriverTrip = (scheduledTripId) =>
   driverTripRequest(`/api/driver/trips/${encodeURIComponent(scheduledTripId)}/start`, { method: "POST" });
 export const finishDriverTrip = (scheduledTripId) =>
   driverTripRequest(`/api/driver/trips/${encodeURIComponent(scheduledTripId)}/finish`, { method: "POST" });
+export const updateDriverTripLocation = (scheduledTripId, location, options = {}) =>
+  driverTripRequest(`/api/driver/trips/${encodeURIComponent(scheduledTripId)}/location`, {
+    method: "PUT",
+    body: JSON.stringify(location),
+    signal: options.signal,
+  });
 
 export function tripStatusLabel(status) {
   return {
