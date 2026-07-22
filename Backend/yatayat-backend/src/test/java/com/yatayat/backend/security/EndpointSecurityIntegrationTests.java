@@ -4,6 +4,7 @@ import com.yatayat.backend.config.SecurityConfig;
 import com.yatayat.backend.controller.*;
 import com.yatayat.backend.dto.DriverInvitationRequest;
 import com.yatayat.backend.dto.DriverTicketValidationResponse;
+import com.yatayat.backend.dto.TripLocationResponse;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.entity.Wallet;
 import com.yatayat.backend.entity.WalletTransaction;
@@ -28,9 +29,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -87,6 +90,8 @@ class EndpointSecurityIntegrationTests {
     private DriverTicketValidationService driverTicketValidationService;
     @MockitoBean
     private TripOperationService tripOperationService;
+    @MockitoBean
+    private TripLocationService tripLocationService;
     @MockitoBean
     private OperatorApplicationService operatorApplicationService;
     @MockitoBean
@@ -335,6 +340,66 @@ class EndpointSecurityIntegrationTests {
     void anonymousUserIsDeniedFromDriverTripStartEndpoint() throws Exception {
         mockMvc.perform(post("/api/driver/trips/50/start"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void anonymousUserCannotUpdateTripLocation() throws Exception {
+        mockMvc.perform(put("/api/driver/trips/50/location")
+                        .contentType("application/json")
+                        .content("{\"latitude\":27.7,\"longitude\":85.3}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void nonDriverCannotUpdateTripLocation() throws Exception {
+        mockMvc.perform(put("/api/driver/trips/50/location")
+                        .contentType("application/json")
+                        .content("{\"latitude\":27.7,\"longitude\":85.3}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "driver@example.com", roles = "DRIVER")
+    void validTripLocationUpdateUsesAuthenticatedDriver() throws Exception {
+        when(tripLocationService.update(
+                org.mockito.ArgumentMatchers.eq("driver@example.com"),
+                org.mockito.ArgumentMatchers.eq(50L),
+                any(com.yatayat.backend.dto.TripLocationUpdateRequest.class)
+        )).thenReturn(new TripLocationResponse(
+                50L, 27.7, 85.3, 5.0, 20.0, 90.0,
+                LocalDateTime.of(2026, 7, 22, 10, 0)
+        ));
+
+        mockMvc.perform(put("/api/driver/trips/50/location")
+                        .contentType("application/json")
+                        .content("{\"latitude\":27.7,\"longitude\":85.3," +
+                                "\"accuracy\":5,\"speed\":20,\"heading\":90}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tripId").value(50))
+                .andExpect(jsonPath("$.latitude").value(27.7));
+
+        verify(tripLocationService).update(
+                org.mockito.ArgumentMatchers.eq("driver@example.com"),
+                org.mockito.ArgumentMatchers.eq(50L),
+                any(com.yatayat.backend.dto.TripLocationUpdateRequest.class)
+        );
+    }
+
+    @Test
+    @WithMockUser(username = "driver@example.com", roles = "DRIVER")
+    void invalidLatitudeAndLongitudeReturnBadRequest() throws Exception {
+        for (String body : List.of(
+                "{\"latitude\":90.1,\"longitude\":85.3}",
+                "{\"latitude\":27.7,\"longitude\":-180.1}"
+        )) {
+            mockMvc.perform(put("/api/driver/trips/50/location")
+                            .contentType("application/json")
+                            .content(body))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.success").value(false));
+        }
+        verifyNoInteractions(tripLocationService);
     }
 
     @Test
