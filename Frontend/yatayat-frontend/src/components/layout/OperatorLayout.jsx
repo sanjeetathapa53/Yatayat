@@ -1,4 +1,4 @@
-import { Building2, Bus, CalendarDays, LayoutDashboard, LogOut, Menu, Users, X } from "lucide-react";
+import { Building2, Bus, CalendarDays, LayoutDashboard, LogOut, MapPinned, Menu, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../services/authService";
@@ -41,6 +41,7 @@ export default function OperatorLayout({ children }) {
           <NavItem icon={<Users size={19} />} label="Drivers" path="/operator/drivers" active={location.pathname.startsWith("/operator/drivers")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
           <NavItem icon={<CalendarDays size={19} />} label="Local Services" path="/operator/local-services" active={location.pathname.startsWith("/operator/local-services")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
           <NavItem icon={<CalendarDays size={19} />} label="Trips" path="/operator/trips" active={location.pathname.startsWith("/operator/trips")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
+          <NavItem icon={<MapPinned size={19} />} label="Live Fleet" path="/operator/live-fleet" active={location.pathname === "/operator/live-fleet"} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
         </nav>
 
         <div className="border-t border-slate-200 p-5">

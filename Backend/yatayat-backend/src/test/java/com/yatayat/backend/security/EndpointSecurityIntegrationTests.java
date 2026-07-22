@@ -59,6 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         DriverTicketController.class,
         DriverTripOperationController.class,
         PassengerLiveTrackingController.class,
+        OperatorLiveFleetController.class,
         AuthController.class
 })
 @Import({SecurityConfig.class, AuthenticatedUserService.class, SessionLogoutService.class})
@@ -96,6 +97,8 @@ class EndpointSecurityIntegrationTests {
     private TripLocationService tripLocationService;
     @MockitoBean
     private PassengerLiveTrackingService passengerLiveTrackingService;
+    @MockitoBean
+    private OperatorLiveFleetService operatorLiveFleetService;
     @MockitoBean
     private OperatorApplicationService operatorApplicationService;
     @MockitoBean
@@ -442,6 +445,31 @@ class EndpointSecurityIntegrationTests {
                         .contentType("application/json")
                         .content("{}"))
                 .andExpect(status().isMethodNotAllowed());
+    }
+
+    @Test
+    void anonymousUserCannotReadOperatorLiveFleet() throws Exception {
+        mockMvc.perform(get("/api/operator/live-fleet"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotReadOperatorLiveFleet() throws Exception {
+        mockMvc.perform(get("/api/operator/live-fleet"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void operatorLiveFleetUsesAuthenticatedOperator() throws Exception {
+        when(operatorLiveFleetService.activeFleet("operator@example.com")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/operator/live-fleet"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
+
+        verify(operatorLiveFleetService).activeFleet("operator@example.com");
     }
 
     @Test

@@ -115,6 +115,7 @@ export default function OperatorDashboard() {
                 { label: "Plan Local Service", path: "/operator/local-services" },
                 { label: "Create Scheduled Trip", path: "/operator/trips/create" },
                 { label: "View Active Trips", path: "/operator/trips" },
+                { label: "Monitor Live Fleet", path: "/operator/live-fleet" },
               ].map((action) => (
                 <button key={action.label} type="button" disabled={!action.path} onClick={() => action.path && navigate(action.path)} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left disabled:opacity-70">
                   <p className="font-black text-slate-700">{action.label}</p>
