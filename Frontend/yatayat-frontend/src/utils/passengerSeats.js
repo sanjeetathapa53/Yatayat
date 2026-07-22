@@ -12,7 +12,7 @@ async function seatRequest(path, options = {}) {
   return data;
 }
 
-export const getTripSeats = (tripId) => seatRequest(`/api/passenger/trips/${tripId}/seats`);
+export const getTripSeats = (tripId) => seatRequest(`/api/passenger/trips/${tripId}/availability`);
 export const holdTripSeats = (tripId, seatNumbers) => seatRequest(`/api/passenger/trips/${tripId}/seat-holds`, {
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ seatNumbers }),
 });

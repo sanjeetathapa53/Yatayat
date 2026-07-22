@@ -13,7 +13,7 @@ import java.util.Map;
 public class PassengerSeatController {
     private final PassengerSeatService seatService;
     public PassengerSeatController(PassengerSeatService seatService) { this.seatService = seatService; }
-    @GetMapping("/seats")
+    @GetMapping({"/seats", "/availability"})
     public SeatAvailabilityResponse seats(Authentication auth, @PathVariable Long tripId) {
         return seatService.availability(auth.getName(), tripId);
     }

@@ -101,6 +101,38 @@ class PassengerBookingIntegrationTests {
 
     @Test
     @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void checkoutAliasCreatesPendingBooking() throws Exception {
+        prepareHolds(1);
+        mockMvc.perform(post("/api/passenger/bookings/checkout").contentType("application/json")
+                        .content(validRequest(1)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bookingStatus").value("PENDING_PAYMENT"))
+                .andExpect(jsonPath("$.totalFare").value(500.00));
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void repeatedCheckoutReturnsExistingPendingBookingWithoutCreatingDuplicate() throws Exception {
+        PassengerTripBooking pending = pendingBooking();
+        List<BookingSeat> heldSeats = bookingSeats(pending, 1, LocalDateTime.now().plusMinutes(5));
+        pending.setNumberOfSeats(1);
+        pending.setTotalFare(trip.getFare());
+        when(tripRepository.findPassengerVisibleByIdForUpdate(eq(10L), any(), anyList()))
+                .thenReturn(Optional.of(trip));
+        when(seatRepository.findByScheduledTripAndPassengerAndStatusOrderBySeatNumberAsc(
+                trip, passengerA, BookingSeatStatus.HELD)).thenReturn(heldSeats);
+
+        mockMvc.perform(post("/api/passenger/bookings/checkout").contentType("application/json")
+                        .content(validRequest(1)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.bookingReference").value(pending.getBookingReference()))
+                .andExpect(jsonPath("$.bookingStatus").value("PENDING_PAYMENT"));
+
+        verify(bookingRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
     void exactRemainingCapacitySucceeds() throws Exception {
         trip.setSeatCapacitySnapshot(4);
         prepareHolds(2);
@@ -394,7 +426,7 @@ class PassengerBookingIntegrationTests {
         verify(walletTransactionRepository, never()).save(any());
         verify(passengerTicketService, never()).scheduleAutomaticEmailAfterCommit(anyString());
         org.assertj.core.api.Assertions.assertThat(wallet.getBalance()).isEqualTo(1500.0);
-        org.assertj.core.api.Assertions.assertThat(pending.getStatus()).isEqualTo(BookingStatus.CANCELLED);
+        org.assertj.core.api.Assertions.assertThat(pending.getStatus()).isEqualTo(BookingStatus.EXPIRED);
         org.assertj.core.api.Assertions.assertThat(seats).allMatch(seat -> seat.getStatus() == BookingSeatStatus.RELEASED);
     }
 

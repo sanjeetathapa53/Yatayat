@@ -87,6 +87,21 @@ public class PassengerBookingService {
                     "An active seat hold is required for every selected seat.");
         }
 
+        Optional<PassengerTripBooking> repeatedBooking = holds.stream()
+                .map(BookingSeat::getBooking)
+                .filter(java.util.Objects::nonNull)
+                .findFirst();
+        if (repeatedBooking.isPresent()) {
+            PassengerTripBooking existing = repeatedBooking.get();
+            boolean sameBooking = holds.stream().allMatch(seat -> seat.getBooking() != null
+                    && java.util.Objects.equals(existing.getId(), seat.getBooking().getId()));
+            if (sameBooking && existing.getStatus() == BookingStatus.PENDING_PAYMENT) {
+                return toDetails(existing);
+            }
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "The selected seats already belong to another booking.");
+        }
+
         PassengerTripBooking booking = new PassengerTripBooking();
         booking.setBookingReference(generateReference());
         booking.setPassenger(passenger);
@@ -108,22 +123,29 @@ public class PassengerBookingService {
         }
     }
 
+    @Transactional
     public List<PassengerBookingSummaryResponse> list(String email) {
         User passenger = requirePassenger(email);
-        return bookingRepository.findByPassengerOrderByBookedAtDesc(passenger)
-                .stream().map(this::toSummary).toList();
+        List<PassengerTripBooking> bookings = bookingRepository.findByPassengerOrderByBookedAtDesc(passenger);
+        bookings.forEach(booking -> expireIfNecessary(booking, LocalDateTime.now()));
+        return bookings.stream().map(this::toSummary).toList();
     }
 
+    @Transactional
     public PassengerBookingDetailsResponse details(String email, String reference) {
         User passenger = requirePassenger(email);
-        return toDetails(ownedBooking(passenger, reference));
+        PassengerTripBooking booking = ownedBooking(passenger, reference);
+        expireIfNecessary(booking, LocalDateTime.now());
+        return toDetails(booking);
     }
 
     @Transactional
     public PassengerBookingDetailsResponse cancel(String email, String reference) {
         User passenger = requirePassenger(email);
         PassengerTripBooking booking = ownedBooking(passenger, reference);
-        if (booking.getStatus() == BookingStatus.CANCELLED) return toDetails(booking);
+        expireIfNecessary(booking, LocalDateTime.now());
+        if (booking.getStatus() == BookingStatus.CANCELLED
+                || booking.getStatus() == BookingStatus.EXPIRED) return toDetails(booking);
 
         ScheduledTrip trip = booking.getScheduledTrip();
         if (!trip.getDepartureAt().isAfter(LocalDateTime.now())
@@ -141,7 +163,7 @@ public class PassengerBookingService {
         return toDetails(bookingRepository.saveAndFlush(booking));
     }
 
-    @Transactional
+    @Transactional(dontRollbackOn = BookingExpiredException.class)
     public WalletBookingPaymentResponse payWithWallet(String email, String reference, String walletPin) {
         User passenger = requirePassenger(email);
         if (reference == null || reference.isBlank()) throw bookingNotFound();
@@ -161,6 +183,9 @@ public class PassengerBookingService {
     ) {
         if (booking.getStatus() == BookingStatus.CANCELLED) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This booking has been cancelled.");
+        }
+        if (booking.getStatus() == BookingStatus.EXPIRED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This booking has expired.");
         }
         if (booking.getStatus() != BookingStatus.PENDING_PAYMENT) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This booking is not pending payment.");
@@ -193,12 +218,11 @@ public class PassengerBookingService {
         }
         if (seats.stream().anyMatch(seat -> !seat.getHoldExpiresAt().isAfter(now))) {
             seats.forEach(seat -> seat.release(BookingSeatStatus.RELEASED));
-            booking.setStatus(BookingStatus.CANCELLED);
+            booking.setStatus(BookingStatus.EXPIRED);
             booking.setCancelledAt(now);
             seatRepository.saveAll(seats);
             bookingRepository.saveAndFlush(booking);
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Your seat hold has expired. Please select seats again.");
+            throw new BookingExpiredException();
         }
 
         BigDecimal total = booking.getFarePerSeat().multiply(BigDecimal.valueOf(seats.size()));
@@ -423,7 +447,28 @@ public class PassengerBookingService {
         return booking.getSeats().stream().map(BookingSeat::getHoldExpiresAt)
                 .min(LocalDateTime::compareTo).orElse(null);
     }
+    private void expireIfNecessary(PassengerTripBooking booking, LocalDateTime now) {
+        if (booking.getStatus() != BookingStatus.PENDING_PAYMENT || booking.getSeats() == null) return;
+        List<BookingSeat> activeSeats = booking.getSeats().stream()
+                .filter(seat -> seat.getStatus() == BookingSeatStatus.HELD
+                        && seat.getActiveSeatNumber() != null)
+                .toList();
+        boolean expired = activeSeats.isEmpty()
+                || activeSeats.stream().anyMatch(seat -> !seat.getHoldExpiresAt().isAfter(now));
+        if (!expired) return;
+        activeSeats.forEach(seat -> seat.release(BookingSeatStatus.RELEASED));
+        seatRepository.saveAll(activeSeats);
+        booking.setStatus(BookingStatus.EXPIRED);
+        booking.setCancelledAt(now);
+        bookingRepository.save(booking);
+    }
     private void badRequest(String message) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message); }
     private ResponseStatusException tripNotFound() { return new ResponseStatusException(HttpStatus.NOT_FOUND, "This trip is no longer available for booking."); }
     private ResponseStatusException bookingNotFound() { return new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found."); }
+
+    private static final class BookingExpiredException extends ResponseStatusException {
+        private BookingExpiredException() {
+            super(HttpStatus.CONFLICT, "Your seat hold has expired. Please select seats again.");
+        }
+    }
 }

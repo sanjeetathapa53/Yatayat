@@ -17,7 +17,7 @@ public class PassengerBookingController {
         this.bookingService = bookingService;
     }
 
-    @PostMapping
+    @PostMapping({"", "/checkout"})
     public ResponseEntity<PassengerBookingDetailsResponse> create(
             Authentication authentication, @RequestBody CreatePassengerBookingRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)

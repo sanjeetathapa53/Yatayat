@@ -36,7 +36,7 @@ public class PassengerTripBooking {
     @Column(nullable = false, precision = 12, scale = 2) private BigDecimal farePerSeat;
     @Column(nullable = false, precision = 12, scale = 2) private BigDecimal totalFare;
     @Enumerated(EnumType.STRING) @Column(nullable = false, length = 20)
-    private BookingStatus status = BookingStatus.CONFIRMED;
+    private BookingStatus status = BookingStatus.PENDING_PAYMENT;
     @Column(nullable = false) private LocalDateTime bookedAt;
     private LocalDateTime cancelledAt;
     @Column(nullable = false) private LocalDateTime createdAt;
@@ -48,7 +48,7 @@ public class PassengerTripBooking {
 
     @PrePersist void onCreate() {
         LocalDateTime now = LocalDateTime.now();
-        if (status == null) status = BookingStatus.CONFIRMED;
+        if (status == null) status = BookingStatus.PENDING_PAYMENT;
         if (bookedAt == null) bookedAt = now;
         createdAt = now; updatedAt = now;
     }
