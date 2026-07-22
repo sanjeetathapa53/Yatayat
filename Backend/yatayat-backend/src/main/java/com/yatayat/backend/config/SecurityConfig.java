@@ -120,6 +120,8 @@ public class SecurityConfig {
                         ).hasRole("DRIVER")
                         .requestMatchers("/api/bookings/**").hasRole("PASSENGER")
                         .requestMatchers("/api/wallet/**").hasRole("PASSENGER")
+                        .requestMatchers("/api/passenger/live-trips/**").hasRole("PASSENGER")
+                        .requestMatchers("/api/passenger/live-trips").hasRole("PASSENGER")
                         .requestMatchers("/api/drivers/**").hasRole("DRIVER")
                         .requestMatchers("/api/driver/**").hasRole("DRIVER")
                         .requestMatchers("/api/operators/**").hasRole("OPERATOR")
