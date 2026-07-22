@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Armchair,
@@ -11,6 +11,7 @@ import {
   Loader2,
   ReceiptText,
   ShieldCheck,
+  Smartphone,
   Wallet,
   X,
   XCircle,
@@ -26,6 +27,7 @@ import {
   formatNpr,
   getPassengerBooking,
   handleBookingSession,
+  initiateExternalBookingPayment,
   payPassengerBookingWithWallet,
 } from "../../utils/passengerBookings";
 import { getTicketByBooking } from "../../utils/passengerTickets";
@@ -64,15 +66,17 @@ export default function PassengerBookingDetailsPage() {
   const [ticketLoading, setTicketLoading] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [paying, setPaying] = useState(false);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  const [externalProcessing, setExternalProcessing] = useState("");
+  const [externalMessage, setExternalMessage] = useState("");
 
-  const loadBooking = async () => {
+  const loadBooking = useCallback(async () => {
     const data = await getPassengerBooking(bookingReference);
     setBooking(data);
     return data;
-  };
+  }, [bookingReference]);
 
-  const loadWallet = async () => {
+  const loadWallet = useCallback(async () => {
     if (!user?.id) return;
     const response = await apiFetch(`/api/wallet/balance/${user.id}`);
     if (!response.ok) throw new Error(t("passenger.booking.walletLoadError"));
@@ -81,11 +85,11 @@ export default function PassengerBookingDetailsPage() {
     const pinResponse = await apiFetch(`/api/wallet/pin-status/${user.id}`);
     if (!pinResponse.ok) throw new Error(t("passenger.booking.pinStatusLoadError"));
     setPinStatus(await pinResponse.text());
-  };
+  }, [t, user?.id]);
 
   useEffect(() => {
     let active = true;
-    loadBooking()
+    Promise.resolve().then(() => loadBooking())
       .then(() => loadWallet().catch((loadError) => {
         if (!active) return;
         if (!handleBookingSession(loadError, navigate)) setWalletError(loadError.message);
@@ -99,7 +103,7 @@ export default function PassengerBookingDetailsPage() {
         if (active) setLoading(false);
       });
     return () => { active = false; };
-  }, [bookingReference, navigate]);
+  }, [loadBooking, loadWallet, navigate]);
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000);
@@ -121,8 +125,10 @@ export default function PassengerBookingDetailsPage() {
   useEffect(() => {
     if (booking?.bookingStatus !== "CONFIRMED" || ticketNumber) return undefined;
     let active = true;
-    setTicketLoading(true);
-    getTicketByBooking(booking.bookingReference)
+    Promise.resolve().then(() => {
+      if (active) setTicketLoading(true);
+      return getTicketByBooking(booking.bookingReference);
+    })
       .then((ticket) => { if (active) setTicketNumber(ticket.ticketNumber); })
       .catch(() => { if (active) setTicketNumber(""); })
       .finally(() => { if (active) setTicketLoading(false); });
@@ -222,6 +228,24 @@ export default function PassengerBookingDetailsPage() {
     }
   };
 
+  const initiateExternal = async (provider) => {
+    if (externalProcessing || paying) return;
+    setExternalProcessing(provider);
+    setExternalMessage("");
+    try {
+      const result = await initiateExternalBookingPayment(bookingReference, provider);
+      setExternalMessage(result.message || `${provider} payment was initiated.`);
+      toast.info(result.message || `${provider} payment was initiated.`);
+    } catch (initiationError) {
+      if (!handleBookingSession(initiationError, navigate)) {
+        setExternalMessage(initiationError.message || `Unable to initiate ${provider} payment.`);
+        toast.error(initiationError.message || `Unable to initiate ${provider} payment.`);
+      }
+    } finally {
+      setExternalProcessing("");
+    }
+  };
+
   return <PassengerLayout activePage="My Bookings"><div className="mx-auto max-w-5xl space-y-6">
     <button type="button" onClick={() => navigate("/passenger/bookings")} className="flex items-center gap-2 text-sm font-black text-[#08264a] transition hover:text-blue-700"><ArrowLeft size={17} /> {t("passenger.booking.backToMyBookings")}</button>
     {location.state?.created && <div className="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 text-amber-900 shadow-sm"><div className="flex items-center gap-2 font-black"><CheckCircle2 size={20} /> {t("passenger.booking.seatsReserved")}</div><p className="mt-2 text-sm">{t("passenger.booking.payBeforeHoldExpires")}</p></div>}
@@ -247,7 +271,7 @@ export default function PassengerBookingDetailsPage() {
           {booking.tripStatus === "COMPLETED" ? t("passenger.booking.tripCompleted") : formatTripStatus(booking.tripStatus, t)}
         </span>
       </div>}
-      {pendingPayment && <PaymentPanel booking={booking} walletBalance={walletBalance} walletError={walletError} pinStatus={pinStatus} remainingSeconds={remainingSeconds} insufficientBalance={insufficientBalance} paying={paying} onPay={openSummary} t={t} />}
+      {pendingPayment && <PaymentPanel booking={booking} walletBalance={walletBalance} walletError={walletError} pinStatus={pinStatus} remainingSeconds={remainingSeconds} insufficientBalance={insufficientBalance} paying={paying} externalProcessing={externalProcessing} externalMessage={externalMessage} onPay={openSummary} onExternal={initiateExternal} t={t} />}
       {booking.bookingStatus === "CONFIRMED" && <div className="flex flex-col gap-4 rounded-3xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-5 text-emerald-900 shadow-sm sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-center gap-2 font-black"><CheckCircle2 size={20} /> {t("passenger.booking.bookingConfirmed")}</div><p className="mt-2 text-sm">{t("passenger.booking.bookingConfirmedHelp")}</p></div><button type="button" disabled={ticketLoading || !ticketNumber} onClick={() => navigate(`/passenger/tickets/${ticketNumber}`)} className="rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-600/20 disabled:cursor-not-allowed disabled:opacity-60">{ticketLoading ? t("passenger.booking.preparingTicket") : t("passenger.booking.viewTicket")}</button></div>}
       <section className="grid grid-cols-1 gap-4 rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">{rows.map(([label, value]) => <div key={label} className="rounded-2xl bg-slate-50 p-4 transition hover:bg-slate-100"><p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><p className="mt-2 break-words font-bold text-slate-800">{value}</p></div>)}</section>
       {cancellable && <div className="flex justify-end rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><button type="button" onClick={() => setShowCancel(true)} className="flex shrink-0 items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 font-black text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700"><XCircle size={17} /> {t("passenger.booking.cancelBooking")}</button></div>}
@@ -259,18 +283,18 @@ export default function PassengerBookingDetailsPage() {
   </div></PassengerLayout>;
 }
 
-function PaymentPanel({ booking, walletBalance, walletError, pinStatus, remainingSeconds, insufficientBalance, paying, onPay, t }) {
+function PaymentPanel({ booking, walletBalance, walletError, pinStatus, remainingSeconds, insufficientBalance, paying, externalProcessing, externalMessage, onPay, onExternal, t }) {
   const expired = booking.paymentHoldExpiresAt && remainingSeconds <= 0;
   const inactive = pinStatus === "PIN_NOT_SET";
   return <section className="overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-xl shadow-blue-950/5">
     <div className="bg-gradient-to-r from-[#08264a] via-blue-900 to-blue-700 p-6 text-white">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-blue-100"><Wallet size={16} /> {t("passenger.booking.walletCheckout")}</p>
+          <p className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.25em] text-blue-100"><CreditCard size={16} /> Payment Selection</p>
           <h2 className="mt-3 text-4xl font-black">{formatNpr(booking.totalFare)}</h2>
           <p className="mt-2 text-sm font-semibold text-blue-100">{t("passenger.booking.confirmSeatsBeforeHold")}</p>
         </div>
-        <button type="button" onClick={onPay} disabled={paying || inactive || insufficientBalance || expired || walletBalance === null || pinStatus !== "PIN_SET"} className="flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 font-black text-[#08264a] shadow-lg shadow-blue-950/20 transition hover:-translate-y-0.5 hover:bg-blue-50 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50"><CreditCard size={18} /> {t("passenger.booking.payWithWallet")}</button>
+        <div className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-black">Status: {booking.bookingStatus}</div>
       </div>
     </div>
     <div className="grid gap-4 p-5 sm:grid-cols-3">
@@ -278,12 +302,48 @@ function PaymentPanel({ booking, walletBalance, walletError, pinStatus, remainin
       <InfoPill label={t("passenger.booking.walletStatus")} value={pinStatus === "PIN_SET" ? t("passenger.booking.active") : pinStatus === "PIN_NOT_SET" ? t("passenger.booking.activationRequired") : t("passenger.booking.checking")} tone={inactive ? "amber" : "blue"} />
       <InfoPill label={t("passenger.booking.holdTimeLeft")} value={booking.paymentHoldExpiresAt ? formatTime(remainingSeconds) : t("passenger.booking.notAvailable")} tone={expired ? "red" : "blue"} />
     </div>
+    <div className="grid gap-4 border-t border-slate-100 p-5 lg:grid-cols-3">
+      <PaymentMethodCard
+        icon={<Wallet size={24} />}
+        title="Yatayat Wallet"
+        description="Pay securely using your activated wallet and existing 4-digit PIN."
+        action={t("passenger.booking.payWithWallet")}
+        disabled={paying || inactive || insufficientBalance || expired || walletBalance === null || pinStatus !== "PIN_SET" || Boolean(externalProcessing)}
+        onClick={onPay}
+      />
+      <PaymentMethodCard
+        icon={<Smartphone size={24} />}
+        title="eSewa"
+        description="Initiate an eSewa payment. Your booking remains pending until backend verification."
+        action={externalProcessing === "ESEWA" ? "Initiating..." : "Continue with eSewa"}
+        disabled={expired || paying || Boolean(externalProcessing)}
+        onClick={() => onExternal("ESEWA")}
+      />
+      <PaymentMethodCard
+        icon={<Smartphone size={24} />}
+        title="Khalti"
+        description="Initiate a Khalti payment. Your booking remains pending until backend verification."
+        action={externalProcessing === "KHALTI" ? "Initiating..." : "Continue with Khalti"}
+        disabled={expired || paying || Boolean(externalProcessing)}
+        onClick={() => onExternal("KHALTI")}
+      />
+    </div>
+    {externalMessage && <div className="mx-5 mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-900">{externalMessage}</div>}
     {(inactive || insufficientBalance || expired) && <div className="border-t border-slate-100 p-5">
       {inactive && <InlineNotice tone="amber" message={t("passenger.booking.activateWalletNotice")} action={<Link to="/wallet" className="font-black underline">{t("passenger.booking.activateWallet")}</Link>} />}
       {insufficientBalance && <InlineNotice tone="red" message={t("passenger.booking.insufficientBalanceNotice")} action={<Link to="/wallet" className="font-black underline">{t("passenger.booking.topUpWallet")}</Link>} />}
       {expired && <InlineNotice tone="red" message={t("passenger.booking.expiredHoldNotice")} />}
     </div>}
   </section>;
+}
+
+function PaymentMethodCard({ icon, title, description, action, disabled, onClick }) {
+  return <article className="flex flex-col rounded-3xl border border-slate-200 bg-slate-50 p-5">
+    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#08264a] shadow-sm">{icon}</div>
+    <h3 className="mt-4 text-lg font-black text-slate-900">{title}</h3>
+    <p className="mt-2 flex-1 text-sm font-semibold leading-6 text-slate-500">{description}</p>
+    <button type="button" disabled={disabled} onClick={onClick} className="mt-5 rounded-2xl bg-[#08264a] px-4 py-3 text-sm font-black text-white transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-50">{action}</button>
+  </article>;
 }
 
 function PaymentSummaryModal({ booking, walletBalance, onClose, onContinue, t }) {

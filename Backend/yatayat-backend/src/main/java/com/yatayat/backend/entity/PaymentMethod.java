@@ -1,5 +1,7 @@
 package com.yatayat.backend.entity;
 
 public enum PaymentMethod {
-    WALLET
+    WALLET,
+    ESEWA,
+    KHALTI
 }
