@@ -25,6 +25,10 @@ export const initiateExternalBookingPayment = (reference, provider) => bookingRe
   `/api/passenger/bookings/${encodeURIComponent(reference)}/payments/${provider.toLowerCase()}/initiate`,
   { method: "POST" },
 );
+export const verifyKhaltiBookingPayment = (reference, pidx) => bookingRequest(
+  `/api/passenger/bookings/${encodeURIComponent(reference)}/payments/khalti/verify`,
+  { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pidx }) },
+);
 
 export function handleBookingSession(error, navigate) {
   if (error.status === 401) { navigate("/login", { replace: true }); return true; }

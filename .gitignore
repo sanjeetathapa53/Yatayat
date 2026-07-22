@@ -6,6 +6,7 @@ Frontend/yatayat-frontend/dist-ssr/
 # Backend
 Backend/yatayat-backend/target/
 Backend/yatayat-backend/uploads/
+Backend/yatayat-backend/src/main/resources/application.properties
 
 # IDE
 .idea/

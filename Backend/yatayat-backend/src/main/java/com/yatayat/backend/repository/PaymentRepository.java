@@ -20,4 +20,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
 
     Optional<Payment> findByBookingAndPaymentMethodAndTransactionReference(
             PassengerTripBooking booking, PaymentMethod paymentMethod, String transactionReference);
+
+    Optional<Payment> findByBookingAndPaymentMethodAndProviderPaymentId(
+            PassengerTripBooking booking, PaymentMethod paymentMethod, String providerPaymentId);
 }
