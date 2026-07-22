@@ -5,6 +5,7 @@ import com.yatayat.backend.controller.*;
 import com.yatayat.backend.dto.DriverInvitationRequest;
 import com.yatayat.backend.dto.DriverTicketValidationResponse;
 import com.yatayat.backend.dto.TripLocationResponse;
+import com.yatayat.backend.dto.PassengerTripLocationResponse;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.entity.Wallet;
 import com.yatayat.backend.entity.WalletTransaction;
@@ -57,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         AdminAuthController.class,
         DriverTicketController.class,
         DriverTripOperationController.class,
+        PassengerLiveTrackingController.class,
         AuthController.class
 })
 @Import({SecurityConfig.class, AuthenticatedUserService.class, SessionLogoutService.class})
@@ -92,6 +94,8 @@ class EndpointSecurityIntegrationTests {
     private TripOperationService tripOperationService;
     @MockitoBean
     private TripLocationService tripLocationService;
+    @MockitoBean
+    private PassengerLiveTrackingService passengerLiveTrackingService;
     @MockitoBean
     private OperatorApplicationService operatorApplicationService;
     @MockitoBean
@@ -400,6 +404,44 @@ class EndpointSecurityIntegrationTests {
                     .andExpect(jsonPath("$.success").value(false));
         }
         verifyNoInteractions(tripLocationService);
+    }
+
+    @Test
+    void anonymousUserCannotReadPassengerLiveLocations() throws Exception {
+        mockMvc.perform(get("/api/passenger/live-trips"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "DRIVER")
+    void driverCannotReadPassengerLiveLocations() throws Exception {
+        mockMvc.perform(get("/api/passenger/live-trips"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCanOnlyReadLiveLocations() throws Exception {
+        when(passengerLiveTrackingService.activeLocations()).thenReturn(List.of(
+                new PassengerTripLocationResponse(
+                        50L,
+                        new PassengerTripLocationResponse.BusInfo(4L, "BA 1 PA 1234", "Green Line"),
+                        3L, "Ring Road", "Kalanki", "Koteshwor",
+                        27.7, 85.3, 10.0, 90.0,
+                        LocalDateTime.of(2026, 7, 22, 12, 0),
+                        com.yatayat.backend.entity.TripStatus.IN_PROGRESS
+                )
+        ));
+
+        mockMvc.perform(get("/api/passenger/live-trips"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].tripId").value(50))
+                .andExpect(jsonPath("$[0].bus.number").value("BA 1 PA 1234"));
+
+        mockMvc.perform(put("/api/passenger/live-trips/50")
+                        .contentType("application/json")
+                        .content("{}"))
+                .andExpect(status().isMethodNotAllowed());
     }
 
     @Test

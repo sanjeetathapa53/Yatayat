@@ -357,8 +357,8 @@ export default function App() {
         {/* PUBLIC ROUTE AND TRACKING PAGES */}
 
         <Route path="/routes" element={<Navigate to="/passenger/local-routes" replace />} />
-        <Route path="/track-bus" element={<LiveTrackingPage />} />
-        <Route path="/track-bus/:id" element={<LiveTrackingPage />} />
+        <Route path="/track-bus" element={<ProtectedRoute allowedRole="PASSENGER"><LiveTrackingPage /></ProtectedRoute>} />
+        <Route path="/track-bus/:id" element={<ProtectedRoute allowedRole="PASSENGER"><LiveTrackingPage /></ProtectedRoute>} />
 
         <Route
   path="/operator/application"

@@ -46,6 +46,13 @@ public interface ScheduledTripRepository extends JpaRepository<ScheduledTrip, Lo
             @Param("statuses") List<TripStatus> statuses
     );
 
+    @EntityGraph(attributePaths = {"route", "bus"})
+    List<ScheduledTrip> findByStatusOrderByDepartureAtAsc(TripStatus status);
+
+    @EntityGraph(attributePaths = {"route", "bus"})
+    @Query("select trip from ScheduledTrip trip where trip.id = :tripId")
+    Optional<ScheduledTrip> findByIdForTracking(@Param("tripId") Long tripId);
+
     @EntityGraph(attributePaths = {"route", "operator", "bus", "driver"})
     @Query("""
             select distinct trip from ScheduledTrip trip

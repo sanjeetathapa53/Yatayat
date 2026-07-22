@@ -1,426 +1,248 @@
-import { useState } from "react";
-import {
-  Search,
-  Bell,
-  UserCircle,
-  Bus,
-  Ticket,
-  LocateFixed,
-  Plus,
-  Minus,
-  Filter,
-  ExternalLink,
-  Menu,
-  X,
-  MapPin,
-  Navigation,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, Popup, Polyline } from "react-leaflet";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Clock3, Gauge, MapPin, Navigation, RefreshCw, Route } from "lucide-react";
+import { Link, useParams } from "react-router-dom";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
-import { useLanguage } from "../../context/LanguageContext";
+import { getActiveTripLocations, getTripLocation } from "../../utils/passengerLiveTracking";
 
-const createBusIcon = (label, background) => new L.DivIcon({
-  html: `<div style="background:${background};color:white;border-radius:999px;padding:8px 12px;font-weight:800;font-size:12px;box-shadow:0 8px 20px rgba(0,0,0,.25)">🚌 ${label}</div>`,
+const POLL_INTERVAL_MS = 7000;
+const DEFAULT_CENTER = [27.7105, 85.318];
+
+const busIcon = new L.DivIcon({
+  html: '<div style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:4px solid white;border-radius:50%;background:#047857;color:white;font-size:22px;box-shadow:0 8px 24px rgba(0,0,0,.3)">🚌</div>',
   className: "",
+  iconSize: [44, 44],
+  iconAnchor: [22, 22],
 });
 
-const buses = [
-  {
-    id: "BA 1 PA 4521",
-    route: "Ring Road Circular",
-    status: "ON TIME",
-    eta: "4 mins",
-    nextStop: "Kalanki Chowk",
-    location: "Swayambhu Stupa Gate",
-    speed: "24 km/h",
-    passengers: 18,
-    position: [27.7172, 85.324],
-  },
-  {
-    id: "BA 2 PA 9901",
-    route: "Ratnapark - Gongabu",
-    status: "DELAYED",
-    eta: "11 mins",
-    nextStop: "Balaju",
-    location: "Ratnapark",
-    speed: "16 km/h",
-    passengers: 31,
-    position: [27.705, 85.315],
-  },
-];
-
-const routeLine = [
-  [27.7172, 85.324],
-  [27.713, 85.322],
-  [27.71, 85.32],
-  [27.705, 85.315],
-  [27.699, 85.31],
-];
-
 export default function LiveTrackingPage() {
-  const navigate = useNavigate();
-  const { t } = useLanguage();
-  const [selectedBus, setSelectedBus] = useState(buses[0]);
-  const [panelOpen, setPanelOpen] = useState(false);
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const { id: tripId } = useParams();
+  const [trips, setTrips] = useState([]);
+  const [selectedTripId, setSelectedTripId] = useState(tripId || null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [finishedTrip, setFinishedTrip] = useState(null);
+  const selectedTripIdRef = useRef(selectedTripId);
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    selectedTripIdRef.current = selectedTripId;
+  }, [selectedTripId]);
+
+  const loadLocations = useCallback(async (signal) => {
+    try {
+      const data = tripId
+        ? [await getTripLocation(tripId, signal)]
+        : await getActiveTripLocations(signal);
+      if (signal.aborted) return;
+
+      setError("");
+      setTrips(data);
+
+      const currentSelection = selectedTripIdRef.current;
+      if (tripId) {
+        setSelectedTripId(tripId);
+        setFinishedTrip(data[0]?.tripStatus === "COMPLETED" ? data[0] : null);
+        if (data[0]?.tripStatus === "COMPLETED" && intervalRef.current !== null) {
+          window.clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+      } else if (data.length === 0) {
+        if (currentSelection) {
+          try {
+            const previous = await getTripLocation(currentSelection, signal);
+            if (!signal.aborted && previous.tripStatus === "COMPLETED") setFinishedTrip(previous);
+          } catch (lookupError) {
+            if (lookupError.name !== "AbortError") setFinishedTrip(null);
+          }
+        }
+        setSelectedTripId(null);
+      } else {
+        setFinishedTrip(null);
+        if (!data.some((trip) => String(trip.tripId) === String(currentSelection))) {
+          setSelectedTripId(String(data[0].tripId));
+        }
+      }
+    } catch (loadError) {
+      if (loadError.name !== "AbortError") {
+        setError(loadError.message || "The live tracking service is temporarily unavailable.");
+      }
+    } finally {
+      if (!signal.aborted) setLoading(false);
+    }
+  }, [tripId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    Promise.resolve().then(() => loadLocations(controller.signal));
+    intervalRef.current = window.setInterval(() => loadLocations(controller.signal), POLL_INTERVAL_MS);
+    return () => {
+      controller.abort();
+      if (intervalRef.current !== null) window.clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    };
+  }, [loadLocations]);
+
+  const selectedTrip = useMemo(
+    () => trips.find((trip) => String(trip.tripId) === String(selectedTripId)) || finishedTrip,
+    [finishedTrip, selectedTripId, trips],
+  );
+  const hasGps = Number.isFinite(selectedTrip?.latitude) && Number.isFinite(selectedTrip?.longitude);
+  const markerPosition = hasGps ? [selectedTrip.latitude, selectedTrip.longitude] : null;
 
   return (
-    <div className="min-h-screen bg-slate-200 text-[#08264a]">
-      <header className="fixed left-0 top-0 z-[1000] h-16 w-full border-b border-slate-200 bg-white">
-        <nav className="flex h-full items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={() => setMobileNavOpen(true)}
-              aria-label={t("passenger.liveTracking.openMenu")}
-              className="rounded-xl p-2 hover:bg-slate-100 md:hidden"
-            >
-              <Menu size={22} />
-            </button>
-
-            <Link to="/" className="text-xl font-black">
-              Yatayat
-            </Link>
-
-            <div className="hidden gap-6 text-sm font-semibold md:flex">
-              <Link to="/routes" className="text-slate-600 hover:text-[#08264a]">
-                {t("passenger.liveTracking.routes")}
-              </Link>
-              <Link
-                to="/track-bus"
-                className="border-b-2 border-[#08264a] pb-5 text-[#08264a]"
-              >
-                {t("passenger.liveTracking.trackBus")}
-              </Link>
-              <Link to="/fare-pass" className="text-slate-600 hover:text-[#08264a]">
-                {t("passenger.liveTracking.farePass")}
-              </Link>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="hidden w-72 items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 lg:flex">
-              <Search size={17} />
-              <input
-                placeholder={t("passenger.liveTracking.searchRouteOrBus")}
-                aria-label={t("passenger.liveTracking.searchRouteOrBus")}
-                className="w-full bg-transparent text-sm outline-none"
-              />
-            </div>
-
-            <Link to="/notifications" aria-label={t("common.openNotifications")} className="rounded-full p-2 hover:bg-slate-100">
-              <Bell size={19} />
-            </Link>
-
-            <Link to="/profile" aria-label={t("common.openProfile")} className="rounded-full p-2 hover:bg-slate-100">
-              <UserCircle size={21} />
-            </Link>
-          </div>
-        </nav>
+    <div className="min-h-screen bg-slate-100 text-[#08264a]">
+      <header className="flex min-h-16 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-7">
+        <div>
+          <Link to="/passenger/dashboard" className="text-xl font-black">Yatayat</Link>
+          <p className="text-xs font-semibold text-slate-500">Passenger live bus tracking</p>
+        </div>
+        <Link to="/passenger/dashboard" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black hover:bg-slate-50">
+          Dashboard
+        </Link>
       </header>
 
-      {mobileNavOpen && (
-        <div className="fixed inset-0 z-[1100] bg-black/40 md:hidden">
-          <div className="h-full w-72 bg-white p-5">
-            <div className="mb-8 flex items-center justify-between">
-              <h2 className="text-2xl font-black">Yatayat</h2>
-              <button type="button" onClick={() => setMobileNavOpen(false)} aria-label={t("passenger.liveTracking.closeMenu")}>
-                <X size={22} />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-sm font-bold">
-              <button type="button" onClick={() => navigate("/routes")} className="block w-full rounded-xl p-3 text-left hover:bg-slate-100">
-                {t("passenger.liveTracking.routes")}
-              </button>
-              <button type="button" onClick={() => navigate("/track-bus")} className="block w-full rounded-xl bg-[#08264a] p-3 text-left text-white">
-                {t("passenger.liveTracking.trackBus")}
-              </button>
-              <button type="button" onClick={() => navigate("/fare-pass")} className="block w-full rounded-xl p-3 text-left hover:bg-slate-100">
-                {t("passenger.liveTracking.farePass")}
-              </button>
-              <button type="button" onClick={() => navigate("/passenger/dashboard")} className="block w-full rounded-xl p-3 text-left hover:bg-slate-100">
-                {t("common.dashboard")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <main className="relative pt-16">
-        <button
-          type="button"
-          onClick={() => setPanelOpen(!panelOpen)}
-          aria-label={panelOpen ? t("passenger.liveTracking.hideDetails") : t("passenger.liveTracking.showDetails")}
-          className={`fixed left-0 top-24 z-[900] hidden rounded-r-xl bg-[#08264a] p-3 text-white shadow-lg transition-all lg:flex ${
-            panelOpen ? "translate-x-[400px]" : "translate-x-0"
-          }`}
-        >
-          {panelOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setPanelOpen(true)}
-          className="fixed bottom-6 left-4 z-[900] flex items-center gap-2 rounded-full bg-[#08264a] px-5 py-3 text-sm font-black text-white shadow-lg lg:hidden"
-        >
-          <Filter size={18} />
-          {t("passenger.liveTracking.trackingDetails")}
-        </button>
-
-        {panelOpen && (
-          <div
-            onClick={() => setPanelOpen(false)}
-            className="fixed inset-0 z-[850] bg-black/40 lg:hidden"
-          />
-        )}
-
-        <aside
-          className={`fixed left-0 top-16 z-[900] h-[calc(100vh-64px)] w-full max-w-[420px] overflow-y-auto bg-transparent p-4 transition-transform duration-300 sm:p-5 lg:w-[420px] ${
-            panelOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-black">{t("passenger.liveTracking.title")}</h2>
-
-                <div className="flex items-center gap-2">
-                  <button type="button" className="hidden items-center gap-2 text-sm font-bold hover:text-emerald-700 sm:flex">
-                    <ExternalLink size={15} />
-                    {t("passenger.liveTracking.editTracking")}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setPanelOpen(false)}
-                    aria-label={t("passenger.liveTracking.closeDetails")}
-                    className="rounded-lg p-2 hover:bg-slate-100"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="mt-5 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
-                <Search size={18} className="text-slate-500" />
-                <input
-                  placeholder={t("passenger.liveTracking.searchBusPlaceholder")}
-                  aria-label={t("passenger.liveTracking.searchBus")}
-                  className="w-full bg-transparent text-sm outline-none"
-                />
-              </div>
-
-              <button type="button" className="mt-5 flex w-full items-center justify-between rounded-xl bg-[#1d3f6e] px-5 py-4 text-sm font-bold text-white transition hover:bg-[#0d3566]">
-                {t("passenger.liveTracking.showNearbyBuses")}
-                <span className="flex h-6 w-11 items-center justify-end rounded-full bg-emerald-600 p-1">
-                  <span className="h-5 w-5 rounded-full bg-white"></span>
-                </span>
-              </button>
-            </div>
-
-            <div className="rounded-2xl border border-slate-200 bg-white shadow-lg">
-              <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-                <h3 className="text-sm font-black uppercase tracking-widest text-slate-600">
-                  {t("passenger.liveTracking.activeVehicles", { count: buses.length })}
-                </h3>
-                <Filter size={18} className="text-slate-500" />
-              </div>
-
-              <div className="max-h-64 overflow-y-auto p-3">
-                {buses.map((bus) => (
-                  <button
-                    type="button"
-                    key={bus.id}
-                    onClick={() => setSelectedBus(bus)}
-                    className={`mb-3 w-full rounded-xl border p-4 text-left transition hover:shadow-md ${
-                      selectedBus.id === bus.id
-                        ? "border-[#08264a] bg-slate-100"
-                        : "border-slate-200 bg-white"
-                    }`}
-                  >
-                    <div className="flex justify-between gap-3">
-                      <div>
-                        <h4 className="font-black">{bus.id}</h4>
-                        <p className="text-sm text-slate-500">{bus.route}</p>
-                      </div>
-
-                      <StatusBadge status={bus.status} t={t} />
-                    </div>
-
-                    <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
-                      <MiniInfo title={t("passenger.liveTracking.nextStop")} value={bus.nextStop} />
-                      <MiniInfo title={t("passenger.liveTracking.eta")} value={bus.eta} green />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <SelectedBusCard selectedBus={selectedBus} navigate={navigate} t={t} />
-          </div>
-        </aside>
-
-        <div className="fixed right-4 top-20 z-[800] rounded-full bg-white px-4 py-3 text-xs shadow-lg sm:right-6 sm:top-24 sm:px-6 sm:py-4 sm:text-sm">
-          <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-600"></span>
-          {t("passenger.liveTracking.onlineCount", { count: "1,240" })}
-          <span className="mx-2 text-slate-300 sm:mx-4">|</span>
-          NP-KTM-01
-        </div>
-
-        <div className="h-[calc(100vh-64px)] w-full">
-          <MapContainer
-            center={[27.7105, 85.318]}
-            zoom={14}
-            scrollWheelZoom={true}
-            className="h-full w-full"
-          >
-            <TileLayer
-              attribution="© OpenStreetMap"
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-
-            <Polyline positions={routeLine} color="#047857" weight={5} />
-
-            {buses.map((bus) => (
-              <Marker
-                key={bus.id}
-                position={bus.position}
-                icon={bus.status === "DELAYED" ? createBusIcon(t("passenger.liveTracking.status.delayed"), "#dc2626") : createBusIcon("BA 1 PA", "#047857")}
-                eventHandlers={{
-                  click: () => {
-                    setSelectedBus(bus);
-                    setPanelOpen(true);
-                  },
-                }}
-              >
-                <Popup>
-                  <b>{bus.id}</b>
-                  <br />
-                  {bus.route}
-                  <br />
-                  {t("passenger.liveTracking.eta")}: {bus.eta}
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
-        </div>
-
-        <div className="fixed bottom-24 right-4 z-[800] flex flex-col gap-3 sm:bottom-8 sm:right-8">
-          <button type="button" aria-label={t("passenger.liveTracking.recenterMap")} title={t("passenger.liveTracking.recenterMap")} className="rounded-xl bg-white p-3 shadow-lg hover:bg-slate-100">
-            <LocateFixed size={22} />
-          </button>
-          <button type="button" aria-label={t("passenger.liveTracking.zoomIn")} title={t("passenger.liveTracking.zoomIn")} className="rounded-xl bg-white p-3 shadow-lg hover:bg-slate-100">
-            <Plus size={22} />
-          </button>
-          <button type="button" aria-label={t("passenger.liveTracking.zoomOut")} title={t("passenger.liveTracking.zoomOut")} className="rounded-xl bg-white p-3 shadow-lg hover:bg-slate-100">
-            <Minus size={22} />
-          </button>
-        </div>
-
-        <div className="fixed bottom-0 left-0 right-0 z-[750] border-t border-slate-200 bg-white p-4 shadow-lg lg:hidden">
+      <main className="grid min-h-[calc(100vh-65px)] lg:grid-cols-[360px_1fr]">
+        <aside className="z-10 border-r border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
-                {t("passenger.liveTracking.selectedBus")}
-              </p>
-              <h3 className="font-black">{selectedBus.id}</h3>
-              <p className="text-xs text-slate-500">{selectedBus.route}</p>
+              <h1 className="text-2xl font-black">Live buses</h1>
+              <p className="mt-1 text-sm text-slate-500">Updates automatically every seven seconds.</p>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setPanelOpen(true)}
-              className="rounded-xl bg-[#08264a] px-4 py-3 text-xs font-black text-white"
-            >
-              {t("passenger.liveTracking.viewDetails")}
-            </button>
+            {loading && <RefreshCw className="animate-spin text-emerald-700" size={20} />}
           </div>
-        </div>
+
+          {error && (
+            <Notice tone="red" title="Network Error">{error} Automatic retry is enabled.</Notice>
+          )}
+          {!loading && !error && trips.length === 0 && !finishedTrip && (
+            <Notice title="No active trip">There are no buses currently marked IN_PROGRESS.</Notice>
+          )}
+          {finishedTrip && (
+            <Notice tone="blue" title="Trip finished">This bus has completed its trip. No further GPS coordinates are expected.</Notice>
+          )}
+
+          {!tripId && trips.length > 0 && (
+            <div className="mt-5 space-y-3">
+              {trips.map((trip) => (
+                <button
+                  type="button"
+                  key={trip.tripId}
+                  onClick={() => setSelectedTripId(String(trip.tripId))}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${String(selectedTripId) === String(trip.tripId) ? "border-emerald-600 bg-emerald-50" : "border-slate-200 hover:bg-slate-50"}`}
+                >
+                  <p className="font-black">{trip.bus?.number || "Bus details unavailable"}</p>
+                  <p className="mt-1 text-sm text-slate-600">{routeLabel(trip)}</p>
+                  <p className="mt-2 text-xs font-bold text-emerald-700">{statusLabel(trip.tripStatus)}</p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selectedTrip && (
+            <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h2 className="text-xl font-black">{selectedTrip.bus?.number || "Bus unavailable"}</h2>
+              {selectedTrip.bus?.name && <p className="text-sm text-slate-500">{selectedTrip.bus.name}</p>}
+              <div className="mt-4 space-y-3">
+                <Detail icon={<Route size={17} />} label="Route" value={routeLabel(selectedTrip)} />
+                <Detail icon={<Navigation size={17} />} label="Trip status" value={statusLabel(selectedTrip.tripStatus)} />
+                <Detail icon={<Clock3 size={17} />} label="Last updated" value={formatUpdatedAt(selectedTrip.updatedAt)} />
+                {selectedTrip.speed != null && <Detail icon={<Gauge size={17} />} label="Speed" value={`${formatSpeed(selectedTrip.speed)} km/h`} />}
+              </div>
+              {!hasGps && (
+                <Notice title="GPS unavailable">The driver has not provided a GPS position for this trip yet.</Notice>
+              )}
+            </section>
+          )}
+        </aside>
+
+        <section className="relative min-h-[60vh]">
+          <MapContainer center={markerPosition || DEFAULT_CENTER} zoom={14} scrollWheelZoom className="h-full min-h-[60vh] w-full lg:min-h-[calc(100vh-65px)]">
+            <TileLayer attribution="© OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            {markerPosition && (
+              <>
+                <SmoothBusMarker position={markerPosition} trip={selectedTrip} />
+                <FollowBus position={markerPosition} />
+              </>
+            )}
+          </MapContainer>
+          {!markerPosition && (
+            <div className="pointer-events-none absolute left-1/2 top-6 z-[500] -translate-x-1/2 rounded-2xl bg-white px-5 py-4 text-center shadow-xl">
+              <MapPin className="mx-auto text-slate-400" />
+              <p className="mt-2 font-black">Waiting for live GPS</p>
+            </div>
+          )}
+        </section>
       </main>
     </div>
   );
 }
 
-function SelectedBusCard({ selectedBus, navigate, t }) {
+function SmoothBusMarker({ position, trip }) {
+  const markerRef = useRef(null);
+  const previousRef = useRef(position);
+
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return undefined;
+    const from = previousRef.current;
+    const startedAt = performance.now();
+    let frame;
+    const animate = (now) => {
+      const progress = Math.min((now - startedAt) / 1000, 1);
+      marker.setLatLng([
+        from[0] + (position[0] - from[0]) * progress,
+        from[1] + (position[1] - from[1]) * progress,
+      ]);
+      if (progress < 1) frame = requestAnimationFrame(animate);
+      else previousRef.current = position;
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [position]);
+
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-lg">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
-            {t("passenger.liveTracking.selectedBus")}
-          </p>
-          <h3 className="mt-1 text-xl font-black text-[#08264a]">
-            {selectedBus.id}
-          </h3>
-          <p className="text-sm text-slate-500">{selectedBus.route}</p>
-        </div>
-
-        <StatusBadge status={selectedBus.status} t={t} />
-      </div>
-
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <MiniDetail label={t("passenger.liveTracking.currentLocation")} value={selectedBus.location} />
-        <MiniDetail label={t("passenger.liveTracking.nextStop")} value={selectedBus.nextStop} />
-        <MiniDetail label={t("passenger.liveTracking.eta")} value={selectedBus.eta} green />
-        <MiniDetail label={t("passenger.liveTracking.speed")} value={selectedBus.speed} />
-      </div>
-
-      <button
-        type="button"
-        onClick={() => navigate("/fare-pass")}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-700 py-3 text-sm font-black text-white transition hover:bg-emerald-800"
-      >
-        <Ticket size={17} />
-        {t("passenger.liveTracking.payLocalFare")}
-      </button>
-    </div>
+    <Marker ref={markerRef} position={position} icon={busIcon}>
+      <Popup><strong>{trip.bus?.number || "Bus"}</strong><br />{routeLabel(trip)}</Popup>
+    </Marker>
   );
 }
 
-function MiniInfo({ title, value, green }) {
-  return (
-    <div>
-      <p className="font-bold uppercase text-slate-400">{title}</p>
-      <p className={`mt-1 font-black ${green ? "text-emerald-700" : ""}`}>
-        {value}
-      </p>
-    </div>
-  );
+function FollowBus({ position }) {
+  const map = useMap();
+  const firstPositionRef = useRef(true);
+  useEffect(() => {
+    if (firstPositionRef.current) {
+      map.flyTo(position, Math.max(map.getZoom(), 14), { duration: 1 });
+      firstPositionRef.current = false;
+    }
+  }, [map, position]);
+  return null;
 }
 
-function MiniDetail({ label, value, green }) {
-  return (
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-        {label}
-      </p>
-      <p
-        className={`mt-1 text-sm font-black ${
-          green ? "text-emerald-700" : "text-[#08264a]"
-        }`}
-      >
-        {value}
-      </p>
-    </div>
-  );
+function Notice({ title, children, tone = "amber" }) {
+  const styles = tone === "red" ? "border-red-200 bg-red-50 text-red-800" : tone === "blue" ? "border-blue-200 bg-blue-50 text-blue-800" : "border-amber-200 bg-amber-50 text-amber-800";
+  return <div className={`mt-5 rounded-2xl border p-4 text-sm ${styles}`}><p className="font-black">{title}</p><p className="mt-1 font-semibold">{children}</p></div>;
 }
 
-function StatusBadge({ status, t }) {
-  const translatedStatus = status === "DELAYED" ? t("passenger.liveTracking.status.delayed") : t("passenger.liveTracking.status.onTime");
+function Detail({ icon, label, value }) {
+  return <div className="flex items-start gap-3"><span className="mt-0.5 text-emerald-700">{icon}</span><div><p className="text-xs font-bold uppercase text-slate-400">{label}</p><p className="font-black">{value}</p></div></div>;
+}
 
-  return (
-    <span
-      className={`h-fit rounded-full px-3 py-1 text-[10px] font-black ${
-        status === "DELAYED"
-          ? "bg-red-100 text-red-700"
-          : "bg-emerald-100 text-emerald-700"
-      }`}
-    >
-      {translatedStatus}
-    </span>
-  );
+function routeLabel(trip) {
+  return trip.routeName || `${trip.origin || "Unknown origin"} → ${trip.destination || "Unknown destination"}`;
+}
+
+function statusLabel(status) {
+  return String(status || "UNKNOWN").replaceAll("_", " ");
+}
+
+function formatUpdatedAt(value) {
+  if (!value) return "Waiting for GPS";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : new Intl.DateTimeFormat("en-NP", { dateStyle: "medium", timeStyle: "medium" }).format(date);
+}
+
+function formatSpeed(metersPerSecond) {
+  return (metersPerSecond * 3.6).toFixed(1);
 }
