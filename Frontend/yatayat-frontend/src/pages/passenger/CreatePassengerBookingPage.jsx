@@ -80,7 +80,7 @@ export default function CreatePassengerBookingPage() {
         numberOfSeats: heldSeats.length,
         seatNumbers: heldSeats,
       });
-      navigate(`/passenger/bookings/${booking.bookingReference}`, { replace: true, state: { created: true } });
+      navigate(`/passenger/bookings/${booking.bookingReference}/payment`, { replace: true, state: { created: true } });
     } catch (submitError) {
       if (!handleBookingSession(submitError, navigate)) {
         toast.error(submitError.message || t("passenger.booking.createFailed"));

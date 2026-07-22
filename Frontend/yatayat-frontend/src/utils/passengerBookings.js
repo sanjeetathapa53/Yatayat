@@ -12,7 +12,7 @@ async function bookingRequest(path, options = {}) {
   return data;
 }
 
-export const createPassengerBooking = (payload) => bookingRequest("/api/passenger/bookings", {
+export const createPassengerBooking = (payload) => bookingRequest("/api/passenger/bookings/checkout", {
   method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
 });
 export const listPassengerBookings = () => bookingRequest("/api/passenger/bookings");
