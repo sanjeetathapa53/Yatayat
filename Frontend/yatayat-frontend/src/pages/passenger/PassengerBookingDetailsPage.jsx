@@ -234,6 +234,13 @@ export default function PassengerBookingDetailsPage() {
     setExternalMessage("");
     try {
       const result = await initiateExternalBookingPayment(bookingReference, provider);
+      if (provider === "KHALTI" && result.redirectUrl) {
+        if (!isSafeKhaltiPaymentUrl(result.redirectUrl)) {
+          throw new Error("Khalti returned an unsafe payment URL.");
+        }
+        window.location.assign(result.redirectUrl);
+        return;
+      }
       setExternalMessage(result.message || `${provider} payment was initiated.`);
       toast.info(result.message || `${provider} payment was initiated.`);
     } catch (initiationError) {
@@ -657,4 +664,13 @@ function formatTime(seconds) {
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
   return `${minutes}:${String(rest).padStart(2, "0")}`;
+}
+
+function isSafeKhaltiPaymentUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "test-pay.khalti.com";
+  } catch {
+    return false;
+  }
 }

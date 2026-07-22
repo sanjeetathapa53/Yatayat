@@ -3,6 +3,7 @@ package com.yatayat.backend.controller;
 import com.yatayat.backend.dto.*;
 import com.yatayat.backend.service.PassengerBookingService;
 import com.yatayat.backend.service.PassengerExternalPaymentService;
+import com.yatayat.backend.service.KhaltiPaymentService;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -15,10 +16,13 @@ import java.util.Map;
 public class PassengerBookingController {
     private final PassengerBookingService bookingService;
     private final PassengerExternalPaymentService externalPaymentService;
+    private final KhaltiPaymentService khaltiPaymentService;
     public PassengerBookingController(PassengerBookingService bookingService,
-                                      PassengerExternalPaymentService externalPaymentService) {
+                                      PassengerExternalPaymentService externalPaymentService,
+                                      KhaltiPaymentService khaltiPaymentService) {
         this.bookingService = bookingService;
         this.externalPaymentService = externalPaymentService;
+        this.khaltiPaymentService = khaltiPaymentService;
     }
 
     @PostMapping({"", "/checkout"})
@@ -52,6 +56,17 @@ public class PassengerBookingController {
                                                        @RequestBody(required = false) WalletPinRequest request) {
         return bookingService.payWithWallet(authentication.getName(), bookingReference,
                 request == null ? null : request.getWalletPin());
+    }
+    @PostMapping("/{bookingReference}/payments/khalti/initiate")
+    public ExternalPaymentInitiationResponse initiateKhalti(
+            Authentication authentication, @PathVariable String bookingReference) {
+        return khaltiPaymentService.initiate(authentication.getName(), bookingReference);
+    }
+    @PostMapping("/{bookingReference}/payments/khalti/verify")
+    public ExternalPaymentVerificationResponse verifyKhalti(
+            Authentication authentication, @PathVariable String bookingReference,
+            @RequestBody(required = false) KhaltiPaymentVerificationRequest request) {
+        return khaltiPaymentService.verify(authentication.getName(), bookingReference, request);
     }
     @PostMapping("/{bookingReference}/payments/{provider}/initiate")
     public ExternalPaymentInitiationResponse initiateExternalPayment(

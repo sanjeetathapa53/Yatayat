@@ -6,6 +6,7 @@ import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.PassengerBookingService;
 import com.yatayat.backend.service.PassengerExternalPaymentService;
+import com.yatayat.backend.service.KhaltiPaymentService;
 import com.yatayat.backend.service.PassengerTicketService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,7 @@ class PassengerBookingIntegrationTests {
     @MockitoBean private PaymentRepository paymentRepository;
     @MockitoBean private PassengerTicketService passengerTicketService;
     @MockitoBean private PassengerExternalPaymentService passengerExternalPaymentService;
+    @MockitoBean private KhaltiPaymentService khaltiPaymentService;
 
     private User passengerA;
     private User passengerB;

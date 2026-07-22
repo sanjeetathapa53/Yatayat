@@ -46,6 +46,11 @@ public class Payment {
     private LocalDateTime verifiedAt;
     @Column(name = "provider_transaction_id", length = 100, unique = true)
     private String providerTransactionId;
+    @Column(name = "provider_payment_id", length = 100, unique = true)
+    private String providerPaymentId;
+    @Column(name = "provider_payment_url", length = 1000)
+    private String providerPaymentUrl;
+    private LocalDateTime providerExpiresAt;
     @Column(name = "failure_reason", length = 500)
     private String failureReason;
     @Column(nullable = false) private LocalDateTime createdAt;
@@ -71,6 +76,9 @@ public class Payment {
     public LocalDateTime getInitiatedAt() { return initiatedAt; }
     public LocalDateTime getVerifiedAt() { return verifiedAt; }
     public String getProviderTransactionId() { return providerTransactionId; }
+    public String getProviderPaymentId() { return providerPaymentId; }
+    public String getProviderPaymentUrl() { return providerPaymentUrl; }
+    public LocalDateTime getProviderExpiresAt() { return providerExpiresAt; }
     public String getFailureReason() { return failureReason; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
@@ -85,6 +93,9 @@ public class Payment {
     public void setInitiatedAt(LocalDateTime value) { initiatedAt = value; }
     public void setVerifiedAt(LocalDateTime value) { verifiedAt = value; }
     public void setProviderTransactionId(String value) { providerTransactionId = clean(value); }
+    public void setProviderPaymentId(String value) { providerPaymentId = clean(value); }
+    public void setProviderPaymentUrl(String value) { providerPaymentUrl = clean(value); }
+    public void setProviderExpiresAt(LocalDateTime value) { providerExpiresAt = value; }
     public void setFailureReason(String value) { failureReason = clean(value); }
     private String clean(String value) { return value == null ? null : value.trim(); }
 }
