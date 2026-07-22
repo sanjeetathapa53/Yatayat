@@ -5,6 +5,7 @@ import com.yatayat.backend.controller.PassengerBookingController;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.PassengerBookingService;
+import com.yatayat.backend.service.PassengerExternalPaymentService;
 import com.yatayat.backend.service.PassengerTicketService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -41,6 +42,7 @@ class PassengerBookingIntegrationTests {
     @MockitoBean private WalletTransactionRepository walletTransactionRepository;
     @MockitoBean private PaymentRepository paymentRepository;
     @MockitoBean private PassengerTicketService passengerTicketService;
+    @MockitoBean private PassengerExternalPaymentService passengerExternalPaymentService;
 
     private User passengerA;
     private User passengerB;
@@ -486,6 +488,10 @@ class PassengerBookingIntegrationTests {
     @Test
     void anonymousIsUnauthorized() throws Exception {
         mockMvc.perform(get("/api/passenger/bookings")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/passenger/bookings/YAT-TEST/payment"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/passenger/bookings/YAT-TEST/payments/esewa/initiate"))
+                .andExpect(status().isUnauthorized());
         mockMvc.perform(post("/api/passenger/bookings/YAT-20260717-PENDING/pay/wallet"))
                 .andExpect(status().isUnauthorized());
     }
@@ -497,9 +503,27 @@ class PassengerBookingIntegrationTests {
             User user = new User(role, "operator@example.com", "", "", role);
             when(userRepository.findByEmailIgnoreCase("operator@example.com")).thenReturn(Optional.of(user));
             mockMvc.perform(get("/api/passenger/bookings")).andExpect(status().isForbidden());
+            mockMvc.perform(post("/api/passenger/bookings/YAT-TEST/payments/khalti/initiate"))
+                    .andExpect(status().isForbidden());
             mockMvc.perform(post("/api/passenger/bookings/YAT-20260717-PENDING/pay/wallet"))
                     .andExpect(status().isForbidden());
         }
+    }
+
+    @Test
+    @WithMockUser(username = "a@example.com", roles = "PASSENGER")
+    void cancelledBookingCannotBePaid() throws Exception {
+        PassengerTripBooking cancelled = pendingBooking();
+        cancelled.setStatus(BookingStatus.CANCELLED);
+        when(bookingRepository.findOwnedByReferenceForPayment(
+                cancelled.getBookingReference(), passengerA.getId())).thenReturn(Optional.of(cancelled));
+
+        mockMvc.perform(post("/api/passenger/bookings/" + cancelled.getBookingReference() + "/pay/wallet")
+                        .contentType("application/json").content(pinRequest("1234")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("This booking has been cancelled."));
+
+        verify(walletRepository, never()).findWithLockByUser(any());
     }
 
     private void assertInvalidResource(Runnable mutation) throws Exception {

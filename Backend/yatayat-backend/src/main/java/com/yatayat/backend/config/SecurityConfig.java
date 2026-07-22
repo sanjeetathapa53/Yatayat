@@ -113,6 +113,7 @@ public class SecurityConfig {
                                 "/api/auth/reset-password"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/passenger/**").hasRole("PASSENGER")
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/bookings/validate-qr",

@@ -2,6 +2,7 @@ package com.yatayat.backend.controller;
 
 import com.yatayat.backend.dto.*;
 import com.yatayat.backend.service.PassengerBookingService;
+import com.yatayat.backend.service.PassengerExternalPaymentService;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +14,11 @@ import java.util.Map;
 @RequestMapping("/api/passenger/bookings")
 public class PassengerBookingController {
     private final PassengerBookingService bookingService;
-    public PassengerBookingController(PassengerBookingService bookingService) {
+    private final PassengerExternalPaymentService externalPaymentService;
+    public PassengerBookingController(PassengerBookingService bookingService,
+                                      PassengerExternalPaymentService externalPaymentService) {
         this.bookingService = bookingService;
+        this.externalPaymentService = externalPaymentService;
     }
 
     @PostMapping({"", "/checkout"})
@@ -32,6 +36,11 @@ public class PassengerBookingController {
                                                     @PathVariable String bookingReference) {
         return bookingService.details(authentication.getName(), bookingReference);
     }
+    @GetMapping("/{bookingReference}/payment")
+    public PassengerBookingDetailsResponse payment(Authentication authentication,
+                                                    @PathVariable String bookingReference) {
+        return bookingService.details(authentication.getName(), bookingReference);
+    }
     @PostMapping("/{bookingReference}/cancel")
     public PassengerBookingDetailsResponse cancel(Authentication authentication,
                                                    @PathVariable String bookingReference) {
@@ -43,6 +52,29 @@ public class PassengerBookingController {
                                                        @RequestBody(required = false) WalletPinRequest request) {
         return bookingService.payWithWallet(authentication.getName(), bookingReference,
                 request == null ? null : request.getWalletPin());
+    }
+    @PostMapping("/{bookingReference}/payments/{provider}/initiate")
+    public ExternalPaymentInitiationResponse initiateExternalPayment(
+            Authentication authentication, @PathVariable String bookingReference,
+            @PathVariable String provider) {
+        return externalPaymentService.initiate(authentication.getName(), bookingReference,
+                externalProvider(provider));
+    }
+    @PostMapping("/{bookingReference}/payments/{provider}/verify")
+    public ExternalPaymentVerificationResponse verifyExternalPayment(
+            Authentication authentication, @PathVariable String bookingReference,
+            @PathVariable String provider,
+            @RequestBody(required = false) ExternalPaymentVerificationRequest request) {
+        return externalPaymentService.verify(authentication.getName(), bookingReference,
+                externalProvider(provider), request);
+    }
+
+    private com.yatayat.backend.entity.PaymentMethod externalProvider(String provider) {
+        try {
+            return com.yatayat.backend.entity.PaymentMethod.valueOf(provider.trim().toUpperCase());
+        } catch (RuntimeException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported payment provider.");
+        }
     }
 
     @ExceptionHandler(ResponseStatusException.class)
