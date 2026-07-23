@@ -1,5 +1,9 @@
 package com.yatayat.backend.payment;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -12,11 +16,14 @@ import java.util.Map;
 
 @Component
 public class KhaltiHttpClient implements KhaltiGateway {
+    private static final Logger log = LoggerFactory.getLogger(KhaltiHttpClient.class);
     private final KhaltiProperties properties;
     private final RestClient client;
+    private final ObjectMapper objectMapper;
 
-    public KhaltiHttpClient(KhaltiProperties properties) {
+    public KhaltiHttpClient(KhaltiProperties properties, ObjectMapper objectMapper) {
         this.properties = properties;
+        this.objectMapper = objectMapper;
         HttpClient httpClient = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
         JdkClientHttpRequestFactory factory = new JdkClientHttpRequestFactory(httpClient);
         factory.setReadTimeout(Duration.ofSeconds(10));
@@ -51,14 +58,31 @@ public class KhaltiHttpClient implements KhaltiGateway {
 
     private <T> T post(String url, Object body, Class<T> responseType) {
         try {
-            return client.post().uri(url).header("Authorization", "Key " + properties.getSecretKey())
+            String requestJson = objectMapper.writeValueAsString(body);
+            log.info("Khalti request URL: {}", url);
+            log.info("Khalti request method: POST");
+            log.info("Khalti Authorization header: Key [REDACTED]");
+            log.info("Khalti request JSON body: {}", requestJson);
+
+            var response = client.post().uri(url).header("Authorization", "Key " + properties.getSecretKey())
                     .contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON)
-                    .body(body).retrieve().body(responseType);
+                    .body(requestJson).retrieve().toEntity(String.class);
+            log.info("Khalti response HTTP status: {}", response.getStatusCode().value());
+            log.info("Khalti response body: {}", response.getBody());
+            return objectMapper.readValue(response.getBody(), responseType);
         } catch (RestClientResponseException exception) {
+            log.error("Khalti response HTTP status: {}", exception.getStatusCode().value());
+            log.error("Khalti response body: {}", exception.getResponseBodyAsString());
+            log.error("Khalti initiate/lookup request failed", exception);
             throw providerError("Khalti rejected the request.");
         } catch (ResourceAccessException exception) {
+            log.error("Khalti initiate/lookup request failed", exception);
             throw providerError("Khalti is temporarily unavailable.");
         } catch (RestClientException exception) {
+            log.error("Khalti initiate/lookup request failed", exception);
+            throw providerError("Khalti returned an invalid response.");
+        } catch (JsonProcessingException exception) {
+            log.error("Khalti initiate/lookup JSON processing failed", exception);
             throw providerError("Khalti returned an invalid response.");
         }
     }
