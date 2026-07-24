@@ -14,6 +14,8 @@ import org.springframework.security.core.Authentication;
 import com.yatayat.backend.service.AuthenticatedUserService;
 
 import java.util.List;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/wallet")
@@ -49,29 +51,8 @@ public class WalletController {
 
     @PostMapping("/topup")
     public String topUp(@RequestBody TopUpRequest request, Authentication authentication) {
-        User user = authenticatedUserService.requireOwnedUser(authentication, request.getUserId());
-
-        if (request.getAmount() == null || request.getAmount() <= 0) {
-            return "Invalid amount";
-        }
-
-        Wallet wallet = walletRepository.findByUser(user)
-                .orElseGet(() -> walletRepository.save(new Wallet(user)));
-
-        wallet.setBalance(wallet.getBalance() + request.getAmount());
-        walletRepository.save(wallet);
-
-        WalletTransaction transaction = new WalletTransaction(
-                wallet,
-                "TOPUP",
-                request.getAmount(),
-                "SUCCESS",
-                request.getPaymentMethod()
-        );
-
-        transactionRepository.save(transaction);
-
-        return "Wallet topped up successfully";
+        throw new ResponseStatusException(HttpStatus.GONE,
+                "Direct wallet top-up is disabled. Use a verified payment provider.");
     }
 
     @GetMapping("/history/{userId}")
