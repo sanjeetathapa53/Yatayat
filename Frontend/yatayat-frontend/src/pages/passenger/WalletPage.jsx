@@ -3,8 +3,6 @@ import {
   Wallet,
   PlusCircle,
   Smartphone,
-  Building2,
-  CreditCard,
   CheckCircle,
   Clock,
   ArrowDownLeft,
@@ -15,6 +13,10 @@ import {
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { useLanguage } from "../../context/LanguageContext";
 import { apiFetch } from "../../utils/api";
+import {
+  initiateWalletTopUp,
+  submitEsewaWalletTopUp,
+} from "../../utils/walletTopUps";
 
 export default function WalletPage() {
   const { t } = useLanguage();
@@ -28,19 +30,15 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState([]);
   const [pinStatus, setPinStatus] = useState("");
   const [walletError, setWalletError] = useState("");
+  const [processing, setProcessing] = useState(false);
 
-  const [success, setSuccess] = useState(false);
+  const success = new URLSearchParams(window.location.search).get("topup") === "success";
   const [showPinModal, setShowPinModal] = useState(false);
   const [newPin, setNewPin] = useState("");
   const [confirmPin, setConfirmPin] = useState("");
 
   const finalAmount = customAmount ? Number(customAmount) : selectedAmount;
   const paymentMethods = getPaymentMethods(t);
-
-  useEffect(() => {
-    loadWallet();
-    checkPinStatus();
-  }, []);
 
   const loadWallet = async () => {
     try {
@@ -73,7 +71,10 @@ export default function WalletPage() {
   };
 
   const handleRecharge = async () => {
-    if (!finalAmount || finalAmount <= 0) return;
+    if (!finalAmount || finalAmount < 100 || finalAmount > 50000 || processing) {
+      setWalletError("Top-up amount must be between NPR 100.00 and NPR 50,000.00.");
+      return;
+    }
 
     if (pinStatus === "PIN_NOT_SET") {
       setShowPinModal(true);
@@ -83,27 +84,33 @@ export default function WalletPage() {
     await rechargeWallet();
   };
 
-  const rechargeWallet = async () => {
-    const response = await fetch("http://localhost:8080/api/wallet/topup", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: user.id,
-        amount: finalAmount,
-        paymentMethod: selectedMethod,
-      }),
+  useEffect(() => {
+    Promise.resolve().then(() => {
+      loadWallet();
+      checkPinStatus();
     });
+    // Wallet data should load once for the authenticated user on page entry.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const text = await response.text();
-
-    if (text === "Wallet topped up successfully") {
-      setSuccess(true);
-      await loadWallet();
-      setCustomAmount("");
-      setTimeout(() => setSuccess(false), 2500);
+  const rechargeWallet = async () => {
+    try {
+      setProcessing(true);
+      setWalletError("");
+      const initiation = await initiateWalletTopUp(selectedMethod, finalAmount);
+      if (selectedMethod === "ESEWA") {
+        submitEsewaWalletTopUp(initiation);
+        return;
+      }
+      if (!initiation.redirectUrl) throw new Error("Khalti did not return a checkout URL.");
+      window.location.assign(initiation.redirectUrl);
+    } catch (error) {
+      if (error.status === 401) {
+        window.location.assign("/login");
+        return;
+      }
+      setWalletError(error.message || "Unable to start the wallet top-up.");
+      setProcessing(false);
     }
   };
 
@@ -130,7 +137,6 @@ export default function WalletPage() {
       setPinStatus("PIN_SET");
       setNewPin("");
       setConfirmPin("");
-      await rechargeWallet();
     } else {
       alert(text);
     }
@@ -303,10 +309,15 @@ export default function WalletPage() {
 
             <button
               onClick={handleRecharge}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+              disabled={processing}
+              className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-3 text-sm font-black text-white transition hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <PlusCircle size={18} />
-              {pinStatus === "PIN_NOT_SET" ? t("passenger.wallet.activateAndRecharge") : t("passenger.wallet.rechargeWallet")}
+              {processing
+                ? "Opening secure checkout…"
+                : pinStatus === "PIN_NOT_SET"
+                  ? t("passenger.wallet.activateWallet")
+                  : t("passenger.wallet.rechargeWallet")}
             </button>
           </div>
         </section>
@@ -407,8 +418,6 @@ function getPaymentMethods(t) {
   return [
     { id: "ESEWA", name: "eSewa", desc: t("passenger.wallet.paymentMethodDesc"), icon: <Smartphone size={22} /> },
     { id: "KHALTI", name: "Khalti", desc: t("passenger.wallet.paymentMethodDesc"), icon: <Smartphone size={22} /> },
-    { id: "MOBILE_BANKING", name: t("passenger.wallet.mobileBanking"), desc: t("passenger.wallet.mobileBankingDesc"), icon: <Building2 size={22} /> },
-    { id: "CARD", name: t("passenger.wallet.card"), desc: t("passenger.wallet.cardDesc"), icon: <CreditCard size={22} /> },
   ];
 }
 
