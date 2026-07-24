@@ -241,6 +241,10 @@ export default function PassengerBookingDetailsPage() {
         window.location.assign(result.redirectUrl);
         return;
       }
+      if (provider === "ESEWA" && result.formAction && result.formFields) {
+        submitEsewaForm(result.formAction, result.formFields);
+        return;
+      }
       setExternalMessage(result.message || `${provider} payment was initiated.`);
       toast.info(result.message || `${provider} payment was initiated.`);
     } catch (initiationError) {
@@ -673,4 +677,38 @@ function isSafeKhaltiPaymentUrl(value) {
   } catch {
     return false;
   }
+}
+
+function submitEsewaForm(action, fields) {
+  let url;
+  try {
+    url = new URL(action);
+  } catch {
+    throw new Error("eSewa returned an invalid payment URL.");
+  }
+  if (url.protocol !== "https:" || url.hostname !== "rc-epay.esewa.com.np") {
+    throw new Error("eSewa returned an unsafe payment URL.");
+  }
+  const requiredFields = [
+    "amount", "tax_amount", "total_amount", "transaction_uuid", "product_code",
+    "product_service_charge", "product_delivery_charge", "success_url",
+    "failure_url", "signed_field_names", "signature",
+  ];
+  if (!requiredFields.every((name) => typeof fields[name] === "string" && fields[name])) {
+    throw new Error("eSewa returned incomplete payment information.");
+  }
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = url.toString();
+  form.style.display = "none";
+  requiredFields.forEach((name) => {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = name;
+    input.value = fields[name];
+    form.appendChild(input);
+  });
+  document.body.appendChild(form);
+  form.submit();
+  form.remove();
 }

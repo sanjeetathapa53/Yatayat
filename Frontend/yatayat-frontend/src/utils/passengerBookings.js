@@ -29,6 +29,14 @@ export const verifyKhaltiBookingPayment = (reference, pidx) => bookingRequest(
   `/api/passenger/bookings/${encodeURIComponent(reference)}/payments/khalti/verify`,
   { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pidx }) },
 );
+export const verifyEsewaBookingPayment = (reference, transactionUuid, data = "") => bookingRequest(
+  `/api/passenger/bookings/${encodeURIComponent(reference)}/payments/esewa/verify`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ transactionUuid, data }),
+  },
+);
 
 export function handleBookingSession(error, navigate) {
   if (error.status === 401) { navigate("/login", { replace: true }); return true; }
