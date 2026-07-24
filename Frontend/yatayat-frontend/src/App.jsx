@@ -27,6 +27,7 @@ import PassengerTicketPage from "./pages/passenger/PassengerTicketPage";
 import PassengerLocalRoutesPage from "./pages/passenger/PassengerLocalRoutesPage";
 import PassengerLocalRouteDetailsPage from "./pages/passenger/PassengerLocalRouteDetailsPage";
 import KhaltiPaymentCallbackPage from "./pages/passenger/KhaltiPaymentCallbackPage";
+import EsewaPaymentCallbackPage from "./pages/passenger/EsewaPaymentCallbackPage";
 
 import DriverApplicationPage from "./pages/driver/DriverApplicationPage";
 import DriverApplicationStatusPage from "./pages/driver/DriverApplicationStatusPage";
@@ -161,6 +162,9 @@ export default function App() {
         <Route path="/passenger/bookings/:bookingReference" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerBookingDetailsPage /></ProtectedRoute>} />
         <Route path="/passenger/bookings/:bookingReference/payment" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerBookingDetailsPage /></ProtectedRoute>} />
         <Route path="/passenger/payments/khalti/callback" element={<ProtectedRoute allowedRole="PASSENGER"><KhaltiPaymentCallbackPage /></ProtectedRoute>} />
+        <Route path="/passenger/payments/esewa/callback" element={<ProtectedRoute allowedRole="PASSENGER"><EsewaPaymentCallbackPage /></ProtectedRoute>} />
+        <Route path="/passenger/payments/esewa/callback/:outcome/:bookingReference" element={<ProtectedRoute allowedRole="PASSENGER"><EsewaPaymentCallbackPage /></ProtectedRoute>} />
+        <Route path="/passenger/payments/esewa/callback/:outcome/:bookingReference/:transactionUuid" element={<ProtectedRoute allowedRole="PASSENGER"><EsewaPaymentCallbackPage /></ProtectedRoute>} />
         <Route path="/passenger/tickets/:ticketNumber" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerTicketPage /></ProtectedRoute>} />
 
         <Route

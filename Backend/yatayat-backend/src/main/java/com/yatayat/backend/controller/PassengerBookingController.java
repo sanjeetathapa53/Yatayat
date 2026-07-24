@@ -2,6 +2,7 @@ package com.yatayat.backend.controller;
 
 import com.yatayat.backend.dto.*;
 import com.yatayat.backend.service.PassengerBookingService;
+import com.yatayat.backend.service.EsewaPaymentService;
 import com.yatayat.backend.service.PassengerExternalPaymentService;
 import com.yatayat.backend.service.KhaltiPaymentService;
 import org.springframework.http.*;
@@ -17,12 +18,15 @@ public class PassengerBookingController {
     private final PassengerBookingService bookingService;
     private final PassengerExternalPaymentService externalPaymentService;
     private final KhaltiPaymentService khaltiPaymentService;
+    private final EsewaPaymentService esewaPaymentService;
     public PassengerBookingController(PassengerBookingService bookingService,
                                       PassengerExternalPaymentService externalPaymentService,
-                                      KhaltiPaymentService khaltiPaymentService) {
+                                      KhaltiPaymentService khaltiPaymentService,
+                                      EsewaPaymentService esewaPaymentService) {
         this.bookingService = bookingService;
         this.externalPaymentService = externalPaymentService;
         this.khaltiPaymentService = khaltiPaymentService;
+        this.esewaPaymentService = esewaPaymentService;
     }
 
     @PostMapping({"", "/checkout"})
@@ -67,6 +71,17 @@ public class PassengerBookingController {
             Authentication authentication, @PathVariable String bookingReference,
             @RequestBody(required = false) KhaltiPaymentVerificationRequest request) {
         return khaltiPaymentService.verify(authentication.getName(), bookingReference, request);
+    }
+    @PostMapping("/{bookingReference}/payments/esewa/initiate")
+    public EsewaPaymentInitiationResponse initiateEsewa(
+            Authentication authentication, @PathVariable String bookingReference) {
+        return esewaPaymentService.initiate(authentication.getName(), bookingReference);
+    }
+    @PostMapping("/{bookingReference}/payments/esewa/verify")
+    public ExternalPaymentVerificationResponse verifyEsewa(
+            Authentication authentication, @PathVariable String bookingReference,
+            @RequestBody(required = false) EsewaPaymentVerificationRequest request) {
+        return esewaPaymentService.verify(authentication.getName(), bookingReference, request);
     }
     @PostMapping("/{bookingReference}/payments/{provider}/initiate")
     public ExternalPaymentInitiationResponse initiateExternalPayment(
