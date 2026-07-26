@@ -90,12 +90,8 @@ export default function CreatePassengerBookingPage() {
     }
   };
 
-  return <PassengerLayout activePage="Find Trips"><div className="mx-auto max-w-5xl space-y-6">
+  return <PassengerLayout activePage="Find Trips" title={t("passenger.booking.createTitle")} subtitle={t("passenger.booking.createSubtitle")}><div className="mx-auto max-w-5xl space-y-6">
     <button type="button" onClick={() => navigate(`/passenger/trips/${tripId}`)} className="flex items-center gap-2 text-sm font-black"><ArrowLeft size={17} /> {t("passenger.booking.backToTripDetails")}</button>
-    <div>
-      <h1 className="text-3xl font-black text-slate-900">{t("passenger.booking.createTitle")}</h1>
-      <p className="mt-1 text-sm text-slate-500">{t("passenger.booking.createSubtitle")}</p>
-    </div>
     {pageError && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{pageError}</div>}
     {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin" size={40} /></div> : trip && (trip.tripType === "LOCAL"
       ? <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8"><h2 className="text-2xl font-black text-amber-900">{t("passenger.booking.seatBookingNotAvailable")}</h2><p className="mt-2 font-semibold text-amber-800">{t("passenger.booking.localTripLater")}</p><button type="button" onClick={() => navigate(`/passenger/trips/${tripId}`)} className="mt-5 rounded-xl bg-[#08264a] px-6 py-3 font-black text-white">{t("passenger.booking.returnToTripDetails")}</button></div>

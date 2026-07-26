@@ -56,7 +56,7 @@ export default function BookingSummaryPage() {
   };
 
   return (
-    <PassengerLayout activePage="Out-of-Valley">
+    <PassengerLayout activePage="Out-of-Valley" title="Booking Summary" subtitle="Review your passenger, trip, seat, and fare details before payment.">
       <button
         onClick={() => navigate("/seat-selection", { state: { bus } })}
         className="mb-5 flex items-center gap-2 text-sm font-black text-slate-600 hover:text-[#08264a]"
@@ -69,12 +69,6 @@ export default function BookingSummaryPage() {
         <div>
           <p className="text-xs font-black uppercase tracking-widest text-slate-500">
             Search › Selection › Summary
-          </p>
-          <h1 className="mt-2 text-3xl font-black text-slate-900">
-            Booking Summary
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Review your passenger, trip, seat, and fare details before payment.
           </p>
         </div>
       </header>

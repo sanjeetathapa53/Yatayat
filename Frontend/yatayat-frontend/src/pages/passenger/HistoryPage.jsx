@@ -66,22 +66,13 @@ export default function HistoryPage() {
       : historyItems.filter((item) => item.type === activeFilter);
 
   return (
-    <PassengerLayout activePage="History">
-      <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            Travel History
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            View your local fare passes, bookings, wallet activity, and cancellations.
-          </p>
-        </div>
-
+    <PassengerLayout activePage="History" title="Travel History" subtitle="View your local fare passes, bookings, wallet activity, and cancellations.">
+      <div className="mb-7 flex justify-end">
         <button className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white hover:bg-[#0d3566] sm:w-auto">
           <Download size={18} />
           Export History
         </button>
-      </header>
+      </div>
 
       <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Total Trips" value="42" />

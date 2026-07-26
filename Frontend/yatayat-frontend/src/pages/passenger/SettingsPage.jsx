@@ -26,17 +26,8 @@ export default function SettingsPage() {
   };
 
   return (
-    <PassengerLayout activePage="Settings">
-      <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            {t("passenger.settings.title")}
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {t("passenger.settings.subtitle")}
-          </p>
-        </div>
-
+    <PassengerLayout activePage="Settings" title={t("passenger.settings.title")} subtitle={t("passenger.settings.subtitle")}>
+      <div className="mb-7 flex justify-end">
         <button
           type="button"
           onClick={saveSettings}
@@ -45,7 +36,7 @@ export default function SettingsPage() {
           <Save size={18} />
           {t("passenger.settings.saveChanges")}
         </button>
-      </header>
+      </div>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         <section className="space-y-5 xl:col-span-8">

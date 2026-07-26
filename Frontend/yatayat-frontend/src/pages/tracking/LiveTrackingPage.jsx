@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clock3, Gauge, MapPin, Navigation, RefreshCw, Route } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { getActiveTripLocations, getTripLocation } from "../../utils/passengerLiveTracking";
+import PassengerLayout from "../../components/layout/PassengerLayout";
 
 const POLL_INTERVAL_MS = 7000;
 const DEFAULT_CENTER = [27.7105, 85.318];
@@ -91,24 +92,10 @@ export default function LiveTrackingPage() {
   const markerPosition = hasGps ? [selectedTrip.latitude, selectedTrip.longitude] : null;
 
   return (
-    <div className="min-h-screen bg-slate-100 text-[#08264a]">
-      <header className="flex min-h-16 items-center justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-7">
-        <div>
-          <Link to="/passenger/dashboard" className="text-xl font-black">Yatayat</Link>
-          <p className="text-xs font-semibold text-slate-500">Passenger live bus tracking</p>
-        </div>
-        <Link to="/passenger/dashboard" className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black hover:bg-slate-50">
-          Dashboard
-        </Link>
-      </header>
-
-      <main className="grid min-h-[calc(100vh-65px)] lg:grid-cols-[360px_1fr]">
+    <PassengerLayout activePage="Track Bus" title="Live buses" subtitle="Updates automatically every seven seconds.">
+      <div className="grid min-h-[calc(100vh-8rem)] overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 text-[#08264a] lg:grid-cols-[360px_1fr]">
         <aside className="z-10 border-r border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <h1 className="text-2xl font-black">Live buses</h1>
-              <p className="mt-1 text-sm text-slate-500">Updates automatically every seven seconds.</p>
-            </div>
             {loading && <RefreshCw className="animate-spin text-emerald-700" size={20} />}
           </div>
 
@@ -157,7 +144,7 @@ export default function LiveTrackingPage() {
         </aside>
 
         <section className="relative min-h-[60vh]">
-          <MapContainer center={markerPosition || DEFAULT_CENTER} zoom={14} scrollWheelZoom className="h-full min-h-[60vh] w-full lg:min-h-[calc(100vh-65px)]">
+          <MapContainer center={markerPosition || DEFAULT_CENTER} zoom={14} scrollWheelZoom className="h-full min-h-[60vh] w-full lg:min-h-[calc(100vh-8rem)]">
             <TileLayer attribution="© OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {markerPosition && (
               <>
@@ -173,8 +160,8 @@ export default function LiveTrackingPage() {
             </div>
           )}
         </section>
-      </main>
-    </div>
+      </div>
+    </PassengerLayout>
   );
 }
 

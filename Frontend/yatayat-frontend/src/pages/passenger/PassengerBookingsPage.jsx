@@ -67,14 +67,10 @@ export default function PassengerBookingsPage() {
     }
   };
 
-  return <PassengerLayout activePage="My Bookings"><div className="space-y-6">
-    <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-      <div>
-        <h1 className="text-3xl font-black text-slate-900">{t("passenger.tickets.myBookings")}</h1>
-        <p className="mt-1 text-sm text-slate-500">{t("passenger.tickets.pageSubtitle")}</p>
-      </div>
+  return <PassengerLayout activePage="My Bookings" title={t("passenger.tickets.myBookings")} subtitle={t("passenger.tickets.pageSubtitle")}><div className="space-y-6">
+    <div className="flex justify-end">
       <button type="button" onClick={() => navigate("/passenger/trips")} className="flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 font-black text-white"><Plus size={18} /> {t("passenger.tickets.newBooking")}</button>
-    </header>
+    </div>
     {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
     {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin" size={40} /></div> : bookings.length === 0
       ? <div className="rounded-3xl border border-slate-200 bg-white py-16 text-center"><Bus className="mx-auto text-slate-300" size={48} /><h2 className="mt-4 text-xl font-black">{t("passenger.tickets.noBookingsFound")}</h2><p className="mt-2 text-sm text-slate-500">{t("passenger.tickets.noBookingsDescription")}</p></div>

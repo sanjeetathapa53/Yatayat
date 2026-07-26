@@ -72,16 +72,10 @@ export default function EsewaPaymentCallbackPage() {
     return () => { active = false; };
   }, [bookingReference, data, navigate, outcome, transactionUuid]);
 
-  return <PassengerLayout activePage="My Bookings">
+  return <PassengerLayout activePage="My Bookings" title={titleFor(state.status)} subtitle={state.message}>
     <div className="mx-auto flex min-h-[65vh] max-w-xl items-center justify-center">
       <section className="w-full rounded-[2rem] border border-slate-200 bg-white p-7 text-center shadow-xl shadow-blue-950/10 sm:p-10">
         <StatusIcon status={state.status} />
-        <h1 className="mt-5 text-2xl font-black text-slate-950 sm:text-3xl">
-          {titleFor(state.status)}
-        </h1>
-        <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
-          {state.message}
-        </p>
         {bookingReference && <p className="mt-5 break-all rounded-2xl bg-slate-50 p-4 text-xs font-black text-slate-500">
           Booking: {bookingReference}
         </p>}

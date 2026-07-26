@@ -95,7 +95,11 @@ export default function WalletTopUpCallbackPage({ provider }) {
   }, [callback, navigate, provider]);
 
   return (
-    <PassengerLayout activePage="Wallet">
+    <PassengerLayout
+      activePage="Wallet"
+      title={state.status === "VERIFYING" ? "Verifying top-up" : state.status === "SUCCESS" ? "Top-up successful" : "Top-up not completed"}
+      subtitle={state.message}
+    >
       <div className="mx-auto flex min-h-[65vh] max-w-xl items-center justify-center">
         <section className="w-full rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl shadow-blue-950/10">
           {state.status === "VERIFYING" ? (
@@ -105,16 +109,6 @@ export default function WalletTopUpCallbackPage({ provider }) {
           ) : (
             <ShieldAlert className="mx-auto text-amber-600" size={58} />
           )}
-          <h1 className="mt-5 text-2xl font-black text-slate-950">
-            {state.status === "VERIFYING"
-              ? "Verifying top-up"
-              : state.status === "SUCCESS"
-                ? "Top-up successful"
-                : "Top-up not completed"}
-          </h1>
-          <p className="mt-3 text-sm font-semibold leading-6 text-slate-600">
-            {state.message}
-          </p>
           {state.status !== "VERIFYING" && (
             <Link
               to="/wallet"

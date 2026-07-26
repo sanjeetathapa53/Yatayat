@@ -18,15 +18,7 @@ export default function FarePassPage() {
   const [qrGenerated, setQrGenerated] = useState(false);
 
   return (
-    <PassengerLayout activePage="Routes">
-      <header className="mb-6">
-        <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-          {t("passenger.farePass.title")}
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
-          {t("passenger.farePass.subtitle")}
-        </p>
-      </header>
+    <PassengerLayout activePage="Routes" title={t("passenger.farePass.title")} subtitle={t("passenger.farePass.subtitle")}>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
         <section className="space-y-5 xl:col-span-7">

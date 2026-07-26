@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useLanguage } from "../../context/LanguageContext";
+import PassengerLayout from "../../components/layout/PassengerLayout";
 
 const initialNotifications = [
   {
@@ -106,37 +107,8 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#eef3f8] text-[#08264a]">
-      <header className="border-b border-slate-200 bg-white">
-        <nav className="mx-auto flex min-h-14 max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-          <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-8">
-            <Link to="/" className="text-xl font-black">
-              Yatayat
-            </Link>
-
-            <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm font-semibold sm:gap-6">
-              <Link to="/routes" className="text-slate-600 hover:text-[#08264a]">
-                {t("passenger.notifications.routes")}
-              </Link>
-              <Link to="/track-bus" className="text-slate-600 hover:text-[#08264a]">
-                {t("passenger.notifications.trackBus")}
-              </Link>
-              <Link to="/fare-pass" className="text-slate-600 hover:text-[#08264a]">
-                {t("passenger.notifications.farePass")}
-              </Link>
-              <Link to="/wallet" className="text-slate-600 hover:text-[#08264a]">
-                {t("passenger.notifications.wallet")}
-              </Link>
-            </div>
-          </div>
-
-          <div className="shrink-0 rounded-full bg-[#08264a] px-4 py-2 text-xs font-black text-white">
-            {t("passenger.notifications.unreadCount", { count: unreadCount })}
-          </div>
-        </nav>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-4 py-5 sm:px-6">
+    <PassengerLayout activePage="Notifications" title={t("passenger.notifications.title")} subtitle={t("passenger.notifications.subtitle")}>
+      <div className="mx-auto max-w-6xl">
         <Link
           to="/passenger/dashboard"
           className="mb-4 inline-flex items-center gap-2 text-sm font-bold text-slate-600 hover:text-[#08264a]"
@@ -145,16 +117,7 @@ export default function NotificationsPage() {
           {t("passenger.notifications.backToDashboard")}
         </Link>
 
-        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="min-w-0">
-            <h1 className="safe-wrap text-2xl font-black text-slate-900 sm:text-3xl">
-              {t("passenger.notifications.title")}
-            </h1>
-            <p className="mt-1 text-sm text-slate-600">
-              {t("passenger.notifications.subtitle")}
-            </p>
-          </div>
-
+        <div className="mb-5 flex justify-end">
           <button
             type="button"
             onClick={markAllAsRead}
@@ -275,8 +238,8 @@ export default function NotificationsPage() {
             </div>
           </section>
         </div>
-      </main>
-    </div>
+      </div>
+    </PassengerLayout>
   );
 }
 

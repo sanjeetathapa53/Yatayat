@@ -4,7 +4,6 @@ import {
   Bus,
   Ticket,
   ArrowLeft,
-  Lock,
   ShieldCheck,
   CreditCard,
   CheckCircle,
@@ -44,11 +43,11 @@ export default function PaymentPage() {
 
   if (!booking?.bookingData) {
     return (
-      <PassengerLayout activePage="Out-of-Valley">
+      <PassengerLayout activePage="Out-of-Valley" title="Payment unavailable" subtitle="Return to ticket search and select a trip before continuing.">
         <div className="rounded-2xl bg-white p-6 text-center shadow-sm">
-          <h1 className="text-2xl font-black text-red-600">
+          <h2 className="text-2xl font-black text-red-600">
             No booking data found
-          </h1>
+          </h2>
           <button
             onClick={() => navigate("/book-ticket")}
             className="mt-4 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-bold text-white"
@@ -138,7 +137,7 @@ export default function PaymentPage() {
   };
 
   return (
-    <PassengerLayout activePage="Out-of-Valley">
+    <PassengerLayout activePage="Out-of-Valley" title="Secure Checkout" subtitle="Pay using your Yatayat Wallet.">
       <button
         onClick={() => navigate("/booking-summary", { state: booking })}
         className="mb-5 flex items-center gap-2 text-sm font-black text-slate-600 hover:text-[#08264a]"
@@ -148,16 +147,6 @@ export default function PaymentPage() {
       </button>
 
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            Secure Checkout
-          </h1>
-          <p className="mt-1 flex items-center gap-2 text-sm text-slate-600">
-            <Lock size={16} className="text-emerald-700" />
-            Pay using your Yatayat Wallet.
-          </p>
-        </div>
-
         <div className="rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white">
           Pay NPR {totalAmount.toLocaleString()}
         </div>
