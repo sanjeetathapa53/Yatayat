@@ -42,6 +42,10 @@ export function handleBookingSession(error, navigate) {
   if (error.status === 401) { navigate("/login", { replace: true }); return true; }
   return false;
 }
+export function isAlreadyPaidBooking(error) {
+  return error?.status === 409
+    && error?.message?.trim().toLowerCase() === "this booking has already been paid.";
+}
 export function formatBookingDate(value) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en-NP", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
