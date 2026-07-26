@@ -41,6 +41,7 @@ public class WalletTopUpService {
     private final EsewaProperties esewaProperties;
     private final EsewaSignatureService signatures;
     private final ObjectMapper objectMapper;
+    private final NotificationService notificationService;
     private final BigDecimal minimumAmount;
     private final BigDecimal maximumAmount;
 
@@ -49,7 +50,7 @@ public class WalletTopUpService {
             WalletTransactionRepository transactions, KhaltiGateway khalti,
             KhaltiProperties khaltiProperties, EsewaGateway esewa,
             EsewaProperties esewaProperties, EsewaSignatureService signatures,
-            ObjectMapper objectMapper,
+            ObjectMapper objectMapper, NotificationService notificationService,
             @Value("${yatayat.wallet.topup.minimum-amount:100.00}") BigDecimal minimumAmount,
             @Value("${yatayat.wallet.topup.maximum-amount:50000.00}") BigDecimal maximumAmount) {
         this.users = users;
@@ -62,6 +63,7 @@ public class WalletTopUpService {
         this.esewaProperties = esewaProperties;
         this.signatures = signatures;
         this.objectMapper = objectMapper;
+        this.notificationService = notificationService;
         this.minimumAmount = minimumAmount;
         this.maximumAmount = maximumAmount;
     }
@@ -243,6 +245,7 @@ public class WalletTopUpService {
         topUp.setFailureReason(null);
         wallets.save(wallet);
         topUps.saveAndFlush(topUp);
+        notificationService.walletTopUpSuccessful(topUp);
         return verifiedResponse(topUp);
     }
 

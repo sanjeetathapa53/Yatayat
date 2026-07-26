@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Clock3, Loader2, ShieldAlert, XCircle } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import { useNotifications } from "../../context/NotificationContext";
 import {
   handleBookingSession,
   isAlreadyPaidBooking,
@@ -11,6 +12,7 @@ import {
 export default function KhaltiPaymentCallbackPage() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+  const { refreshUnreadCount } = useNotifications();
   const bookingReference = (params.get("bookingReference") || "").trim();
   const pidx = (params.get("pidx") || "").trim();
   const [state, setState] = useState({ status: "VERIFYING", message: "Verifying payment…", result: null });
@@ -30,6 +32,7 @@ export default function KhaltiPaymentCallbackPage() {
         const status = result.paymentStatus || "FAILED";
         if (status === "SUCCESS" && result.bookingStatus === "CONFIRMED") {
           setState({ status: "SUCCESS", message: "Payment verified successfully.", result });
+          refreshUnreadCount();
         } else {
           setState({ status, message: statusMessage(status), result });
         }
@@ -42,13 +45,14 @@ export default function KhaltiPaymentCallbackPage() {
             message: "Your payment has already been processed successfully.",
             result: null,
           });
+          refreshUnreadCount();
           return;
         }
         if (handleBookingSession(error, navigate)) return;
         setState({ status: "ERROR", message: error.message || "Unable to verify Khalti payment.", result: null });
       });
     return () => { active = false; };
-  }, [bookingReference, navigate, pidx]);
+  }, [bookingReference, navigate, pidx, refreshUnreadCount]);
 
   return <PassengerLayout activePage="My Bookings" title={titleFor(state.status)} subtitle={state.message}>
     <div className="mx-auto flex min-h-[65vh] max-w-xl items-center justify-center">

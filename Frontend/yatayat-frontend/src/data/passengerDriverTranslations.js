@@ -1205,7 +1205,76 @@ passengerDriverTranslations.en.passenger.notifications = {
   yesterday: "Yesterday",
 };
 
+Object.assign(passengerDriverTranslations.en.passenger.notifications, {
+  loadError: "Unable to load notifications.",
+  updateError: "Unable to update notifications.",
+  empty: "No notifications found.",
+  refreshInfo: "Notifications refresh as you navigate and complete passenger actions.",
+  filters: {
+    all: "All",
+    booking: "Bookings",
+    payment: "Payments",
+    wallet: "Wallet",
+    ticket: "Tickets",
+  },
+  types: {
+    BOOKING_CONFIRMED: {
+      title: "Booking confirmed",
+      message: "Booking {{bookingReference}} has been confirmed.",
+    },
+    BOOKING_CANCELLED: {
+      title: "Booking cancelled",
+      message: "Booking {{bookingReference}} has been cancelled.",
+    },
+    PAYMENT_SUCCESSFUL: {
+      title: "Payment successful",
+      message: "Your {{provider}} payment of NPR {{amount}} for booking {{bookingReference}} was successful.",
+    },
+    WALLET_TOP_UP_SUCCESSFUL: {
+      title: "Wallet top-up successful",
+      message: "NPR {{amount}} was added to your wallet through {{provider}}.",
+    },
+    TICKET_GENERATED: {
+      title: "Ticket generated",
+      message: "Ticket {{ticketNumber}} is ready for booking {{bookingReference}}.",
+    },
+  },
+});
+
 passengerDriverTranslations.ne.passenger.notifications = {
+  loadError: "सूचनाहरू लोड गर्न सकिएन।",
+  updateError: "सूचनाहरू अद्यावधिक गर्न सकिएन।",
+  empty: "कुनै सूचना भेटिएन।",
+  refreshInfo: "पृष्ठ परिवर्तन गर्दा र यात्रुका कार्य पूरा हुँदा सूचनाहरू ताजा हुन्छन्।",
+  filters: {
+    all: "सबै",
+    booking: "बुकिङ",
+    payment: "भुक्तानी",
+    wallet: "वालेट",
+    ticket: "टिकट",
+  },
+  types: {
+    BOOKING_CONFIRMED: {
+      title: "बुकिङ पुष्टि भयो",
+      message: "बुकिङ {{bookingReference}} पुष्टि भएको छ।",
+    },
+    BOOKING_CANCELLED: {
+      title: "बुकिङ रद्द भयो",
+      message: "बुकिङ {{bookingReference}} रद्द भएको छ।",
+    },
+    PAYMENT_SUCCESSFUL: {
+      title: "भुक्तानी सफल भयो",
+      message: "{{provider}} मार्फत बुकिङ {{bookingReference}} को NPR {{amount}} भुक्तानी सफल भयो।",
+    },
+    WALLET_TOP_UP_SUCCESSFUL: {
+      title: "वालेट टप-अप सफल भयो",
+      message: "{{provider}} मार्फत वालेटमा NPR {{amount}} थपियो।",
+    },
+    TICKET_GENERATED: {
+      title: "टिकट तयार भयो",
+      message: "बुकिङ {{bookingReference}} को टिकट {{ticketNumber}} तयार छ।",
+    },
+  },
   routes: "रुटहरू",
   trackBus: "बस ट्र्याक गर्नुहोस्",
   farePass: "भाडा पास",

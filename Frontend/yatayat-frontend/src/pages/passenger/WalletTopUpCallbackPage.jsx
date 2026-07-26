@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, Loader2, ShieldAlert } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import { useNotifications } from "../../context/NotificationContext";
 import {
   verifyEsewaWalletTopUp,
   verifyKhaltiWalletTopUp,
@@ -11,6 +12,7 @@ export default function WalletTopUpCallbackPage({ provider }) {
   const [search] = useSearchParams();
   const params = useParams();
   const navigate = useNavigate();
+  const { refreshUnreadCount } = useNotifications();
   const [state, setState] = useState({
     status: "VERIFYING",
     message: "Verifying your wallet top-up…",
@@ -64,6 +66,7 @@ export default function WalletTopUpCallbackPage({ provider }) {
     request.then((result) => {
       if (!active) return;
       if (result.credited && result.paymentStatus === "SUCCESS") {
+        refreshUnreadCount();
         setState({
           status: "SUCCESS",
           message: "Your wallet was credited successfully. Returning to Wallet…",
@@ -92,7 +95,7 @@ export default function WalletTopUpCallbackPage({ provider }) {
       active = false;
       if (redirectTimer) window.clearTimeout(redirectTimer);
     };
-  }, [callback, navigate, provider]);
+  }, [callback, navigate, provider, refreshUnreadCount]);
 
   return (
     <PassengerLayout

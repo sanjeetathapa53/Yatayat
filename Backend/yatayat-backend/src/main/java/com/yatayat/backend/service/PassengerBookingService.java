@@ -34,6 +34,7 @@ public class PassengerBookingService {
     private final PaymentRepository paymentRepository;
     private final PassengerTicketService ticketService;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
     private final long paymentWindowMinutes;
 
     public PassengerBookingService(UserRepository userRepository,
@@ -45,6 +46,7 @@ public class PassengerBookingService {
                                    PaymentRepository paymentRepository,
                                    PassengerTicketService ticketService,
                                    PasswordEncoder passwordEncoder,
+                                   NotificationService notificationService,
                                    @Value("${yatayat.booking.payment-window-minutes:10}") long paymentWindowMinutes) {
         this.userRepository = userRepository;
         this.tripRepository = tripRepository;
@@ -55,6 +57,7 @@ public class PassengerBookingService {
         this.paymentRepository = paymentRepository;
         this.ticketService = ticketService;
         this.passwordEncoder = passwordEncoder;
+        this.notificationService = notificationService;
         this.paymentWindowMinutes = Math.max(1, paymentWindowMinutes);
     }
 
@@ -160,7 +163,9 @@ public class PassengerBookingService {
         seats.stream().filter(seat -> seat.getActiveSeatNumber() != null)
                 .forEach(seat -> seat.release(BookingSeatStatus.CANCELLED));
         seatRepository.saveAll(seats);
-        return toDetails(bookingRepository.saveAndFlush(booking));
+        PassengerTripBooking cancelled = bookingRepository.saveAndFlush(booking);
+        notificationService.bookingCancelled(cancelled);
+        return toDetails(cancelled);
     }
 
     @Transactional(dontRollbackOn = BookingExpiredException.class)

@@ -6,6 +6,7 @@ import com.yatayat.backend.entity.*;
 import com.yatayat.backend.payment.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.WalletTopUpService;
+import com.yatayat.backend.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
@@ -31,6 +32,7 @@ class WalletTopUpServiceTests {
     private KhaltiProperties khaltiProperties;
     private EsewaProperties esewaProperties;
     private WalletTopUpService service;
+    private NotificationService notificationService;
     private User passenger;
     private Wallet wallet;
 
@@ -49,9 +51,10 @@ class WalletTopUpServiceTests {
         esewaProperties.setEnabled(true);
         esewaProperties.setProductCode("EPAYTEST");
         esewaProperties.setSecretKey("unit-test-secret");
+        notificationService = mock(NotificationService.class);
         service = new WalletTopUpService(
                 users, wallets, topUps, transactions, khalti, khaltiProperties,
-                esewa, esewaProperties, signatures, new ObjectMapper(),
+                esewa, esewaProperties, signatures, new ObjectMapper(), notificationService,
                 new BigDecimal("100.00"), new BigDecimal("50000.00"));
         passenger = new User("Passenger", "passenger@example.com", "9800000000",
                 "encoded", "PASSENGER");
