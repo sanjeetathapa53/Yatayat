@@ -17,13 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -32,7 +28,6 @@ import java.util.UUID;
 public class PassengerTicketService {
     private static final Logger LOGGER = LoggerFactory.getLogger(PassengerTicketService.class);
     private static final DateTimeFormatter TICKET_DATE = DateTimeFormatter.BASIC_ISO_DATE;
-    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final TicketRepository ticketRepository;
     private final UserRepository userRepository;
@@ -40,19 +35,22 @@ public class PassengerTicketService {
     private final TicketPdfService ticketPdfService;
     private final EmailService emailService;
     private final NotificationService notificationService;
+    private final TicketQrTokenService qrTokenService;
 
     public PassengerTicketService(TicketRepository ticketRepository,
                                   UserRepository userRepository,
                                   PaymentRepository paymentRepository,
                                   TicketPdfService ticketPdfService,
                                   EmailService emailService,
-                                  NotificationService notificationService) {
+                                  NotificationService notificationService,
+                                  TicketQrTokenService qrTokenService) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.paymentRepository = paymentRepository;
         this.ticketPdfService = ticketPdfService;
         this.emailService = emailService;
         this.notificationService = notificationService;
+        this.qrTokenService = qrTokenService;
     }
 
     @Transactional
@@ -152,7 +150,7 @@ public class PassengerTicketService {
         ticket.setBooking(booking);
         ticket.setStatus(TicketStatus.VALID);
         ticket.setAutoEmailStatus(TicketEmailStatus.PENDING);
-        ticket.setQrTokenHash(generateQrTokenHash());
+        ticket.setQrTokenHash(qrTokenService.storedHash(ticket.getTicketNumber()));
         ticket.setIssuedAt(now);
         ticket.setValidFrom(now);
         ticket.setValidUntil(validUntil(booking.getScheduledTrip()));
@@ -173,17 +171,27 @@ public class PassengerTicketService {
 
     private void ensureViewable(Ticket ticket) {
         PassengerTripBooking booking = ticket.getBooking();
+        boolean lifecycleChanged = false;
         if (booking.getStatus() == BookingStatus.PENDING_PAYMENT) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Complete payment before viewing the ticket.");
         }
         if (booking.getStatus() == BookingStatus.CANCELLED) {
-            ticket.setStatus(TicketStatus.CANCELLED);
-            if (ticket.getCancelledAt() == null) ticket.setCancelledAt(booking.getCancelledAt());
+            if (ticket.getStatus() != TicketStatus.CANCELLED) {
+                ticket.setStatus(TicketStatus.CANCELLED);
+                lifecycleChanged = true;
+            }
+            if (ticket.getCancelledAt() == null) {
+                ticket.setCancelledAt(booking.getCancelledAt() == null
+                        ? LocalDateTime.now() : booking.getCancelledAt());
+                lifecycleChanged = true;
+            }
         } else if (ticket.getStatus() == TicketStatus.VALID
                 && ticket.getValidUntil().isBefore(LocalDateTime.now())) {
             ticket.setStatus(TicketStatus.EXPIRED);
+            lifecycleChanged = true;
         }
+        if (lifecycleChanged) ticketRepository.saveAndFlush(ticket);
     }
 
     private TicketResponse toResponse(Ticket ticket) {
@@ -232,35 +240,18 @@ public class PassengerTicketService {
                 "Ticket number could not be generated. Please try again.");
     }
 
-    private String generateQrTokenHash() {
-        for (int attempt = 0; attempt < 8; attempt++) {
-            byte[] bytes = new byte[32];
-            SECURE_RANDOM.nextBytes(bytes);
-            String hash = sha256(HexFormat.of().formatHex(bytes));
-            if (!ticketRepository.existsByQrTokenHash(hash)) return hash;
-        }
-        throw new ResponseStatusException(HttpStatus.CONFLICT,
-                "QR token could not be generated. Please try again.");
-    }
-
     private String qrPayload(Ticket ticket) {
         return """
                 {"version":1,"ticketNumber":"%s","token":"%s"}
-                """.formatted(ticket.getTicketNumber(), ticket.getQrTokenHash()).trim();
+                """.formatted(ticket.getTicketNumber(),
+                        qrTokenService.payloadToken(
+                                ticket.getTicketNumber(), ticket.getQrTokenHash()))
+                .trim();
     }
 
     private LocalDateTime validUntil(ScheduledTrip trip) {
         if (trip.getEstimatedArrivalAt() != null) return trip.getEstimatedArrivalAt().plusHours(2);
         return trip.getDepartureAt().plusHours(12);
-    }
-
-    private String sha256(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (Exception exception) {
-            throw new IllegalStateException("Unable to generate secure QR token");
-        }
     }
 
     private List<String> seatNumbers(PassengerTripBooking booking) {

@@ -827,6 +827,31 @@ class EndpointSecurityIntegrationTests {
                 .andExpect(jsonPath("$.ticketNumber").value("YT-TKT-20260718-ABC123"));
     }
 
+    @Test
+    @WithMockUser(username = "driver-a@example.com", roles = "DRIVER")
+    void driverTicketRequestValidationReturnsControlledErrors() throws Exception {
+        mockMvc.perform(post("/api/driver/tickets/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"   \"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.result").value("INVALID_QR"))
+                .andExpect(jsonPath("$.success").value(false));
+
+        String oversized = "x".repeat(
+                DriverTicketValidationService.MAX_QR_PAYLOAD_LENGTH + 1);
+        mockMvc.perform(post("/api/driver/tickets/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"" + oversized + "\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.result").value("INVALID_QR"));
+
+        mockMvc.perform(post("/api/driver/tickets/validate")
+                        .contentType("application/json")
+                        .content("{"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.result").value("INVALID_QR"));
+    }
+
     private MockHttpSession loginPassenger() throws Exception {
         passengerA.setPassword(passwordEncoder.encode("test-passenger-password"));
         when(userRepository.findByEmail("passenger-a@example.com"))

@@ -6,6 +6,7 @@ import com.yatayat.backend.dto.DriverTripManifestResponse;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.DriverTicketValidationService;
+import com.yatayat.backend.service.TicketQrTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,12 +41,14 @@ class DriverTicketValidationServiceTests {
     private Ticket ticket;
     private PassengerTripBooking booking;
     private ScheduledTrip trip;
+    private TicketQrTokenService qrTokens;
 
     @BeforeEach
     void setUp() {
+        qrTokens = new TicketQrTokenService("test-only-ticket-qr-secret-at-least-32-characters");
         service = new DriverTicketValidationService(new ObjectMapper(), userRepository,
                 driverProfileRepository, associationRepository, ticketRepository,
-                scheduledTripRepository, paymentRepository);
+                scheduledTripRepository, paymentRepository, qrTokens);
         driverUser = new User("Driver A", "driver@example.com", "9800000001", "encoded", "DRIVER");
         driverUser.setId(1L);
         driver = new DriverProfile(driverUser);
@@ -84,6 +87,30 @@ class DriverTicketValidationServiceTests {
     }
 
     @Test
+    void validNewSecureRawTokenIsHashedBeforeComparison() {
+        mockApprovedDriver();
+        ticket.setQrTokenHash(qrTokens.storedHash(ticket.getTicketNumber()));
+        mockTicketPaymentAndAssociation(ticket);
+        String payload = "{\"version\":1,\"ticketNumber\":\"" + ticket.getTicketNumber()
+                + "\",\"token\":\"" + qrTokens.rawToken(ticket.getTicketNumber()) + "\"}";
+
+        DriverTicketValidationResponse response =
+                service.validate(driverUser.getEmail(), payload);
+
+        assertThat(response.result()).isEqualTo("VALID");
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.USED);
+    }
+
+    @Test
+    void legacyStoredHashQrRemainsCompatible() {
+        mockApprovedDriver();
+        mockTicketPaymentAndAssociation(ticket);
+
+        assertThat(service.validate(driverUser.getEmail(), validQr()).result())
+                .isEqualTo("VALID");
+    }
+
+    @Test
     void duplicateScanReturnsAlreadyUsedAndDoesNotChangeUsedAt() {
         mockApprovedDriver();
         when(associationRepository.findByDriverAndStatus(driver, DriverOperatorAssociationStatus.ACTIVE))
@@ -93,14 +120,20 @@ class DriverTicketValidationServiceTests {
         when(associationRepository.findByDriverAndOperator(driver, trip.getOperator()))
                 .thenReturn(Optional.of(association));
         LocalDateTime usedAt = LocalDateTime.now().minusMinutes(5);
+        DriverProfile originalDriver = driver;
+        ScheduledTrip originalTrip = trip;
         ticket.setStatus(TicketStatus.USED);
         ticket.setUsedAt(usedAt);
+        ticket.setValidatedByDriverProfile(originalDriver);
+        ticket.setValidatedTrip(originalTrip);
 
         assertThatThrownBy(() -> service.validate(driverUser.getEmail(), validQr()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("ALREADY_USED");
 
         assertThat(ticket.getUsedAt()).isEqualTo(usedAt);
+        assertThat(ticket.getValidatedByDriverProfile()).isSameAs(originalDriver);
+        assertThat(ticket.getValidatedTrip()).isSameAs(originalTrip);
         verify(ticketRepository, never()).save(ticket);
     }
 
@@ -173,12 +206,93 @@ class DriverTicketValidationServiceTests {
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("PAYMENT_NOT_SUCCESSFUL");
 
-        when(paymentRepository.existsByBookingAndStatus(booking, PaymentStatus.SUCCESS)).thenReturn(true);
+        when(paymentRepository.existsByBookingAndStatus(
+                booking, PaymentStatus.SUCCESS)).thenReturn(true);
         ticket.setValidUntil(LocalDateTime.now().minusMinutes(1));
         assertThatThrownBy(() -> service.validate(driverUser.getEmail(), validQr()))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("EXPIRED");
         assertThat(ticket.getStatus()).isEqualTo(TicketStatus.EXPIRED);
+        verify(ticketRepository).saveAndFlush(ticket);
+    }
+
+    @Test
+    void cancelledTicketAndBookingPersistCancelledLifecycle() {
+        mockApprovedDriver();
+        mockTicketPaymentAndAssociation(ticket);
+        ticket.setStatus(TicketStatus.CANCELLED);
+        assertThatThrownBy(() -> service.validate(driverUser.getEmail(), validQr()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("CANCELLED");
+
+        ticket.setStatus(TicketStatus.VALID);
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancelledAt(LocalDateTime.now().minusMinutes(1));
+        assertThatThrownBy(() -> service.validate(driverUser.getEmail(), validQr()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("CANCELLED");
+
+        assertThat(ticket.getStatus()).isEqualTo(TicketStatus.CANCELLED);
+        assertThat(ticket.getCancelledAt()).isEqualTo(booking.getCancelledAt());
+        verify(ticketRepository).saveAndFlush(ticket);
+    }
+
+    @Test
+    void notYetValidTicketIsRejected() {
+        mockApprovedDriver();
+        mockTicketPaymentAndAssociation(ticket);
+        ticket.setValidFrom(LocalDateTime.now().plusMinutes(5));
+
+        assertThatThrownBy(() -> service.validate(driverUser.getEmail(), validQr()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("NOT_YET_VALID");
+        verify(ticketRepository, never()).save(ticket);
+    }
+
+    @Test
+    void completedAndCancelledTripsAreNotBoardable() {
+        mockApprovedDriver();
+        mockTicketPaymentAndAssociation(ticket);
+
+        for (TripStatus status : List.of(TripStatus.COMPLETED, TripStatus.CANCELLED)) {
+            trip.setStatus(status);
+            assertThatThrownBy(() -> service.validate(driverUser.getEmail(), validQr()))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .hasMessageContaining("TRIP_NOT_BOARDABLE");
+        }
+    }
+
+    @Test
+    void expiredDriverLicenceIsDenied() {
+        driver.setLicenseExpiryDate(LocalDate.now().minusDays(1));
+        mockApprovedDriver();
+
+        assertThatThrownBy(() -> service.validate(driverUser.getEmail(), validQr()))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("Approved active driver profile");
+        verifyNoInteractions(ticketRepository);
+    }
+
+    @Test
+    void malformedMissingUnsupportedAndOversizedPayloadsAreControlled() {
+        mockApprovedDriver();
+        when(associationRepository.findByDriverAndStatus(
+                driver, DriverOperatorAssociationStatus.ACTIVE))
+                .thenReturn(Optional.of(association));
+
+        List<String> invalidPayloads = List.of(
+                "not-json",
+                "{\"version\":1,\"ticketNumber\":\"\",\"token\":\"token\"}",
+                "{\"version\":1,\"ticketNumber\":\"YT-TKT-1\",\"token\":\"\"}",
+                "{\"version\":2,\"ticketNumber\":\"YT-TKT-1\",\"token\":\"token\"}",
+                "x".repeat(DriverTicketValidationService.MAX_QR_PAYLOAD_LENGTH + 1)
+        );
+        for (String payload : invalidPayloads) {
+            assertThatThrownBy(() -> service.validate(driverUser.getEmail(), payload))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .hasMessageContaining("INVALID_QR");
+        }
+        verify(ticketRepository, never()).findByTicketNumberForValidation(any());
     }
 
     @Test
@@ -191,7 +305,8 @@ class DriverTicketValidationServiceTests {
         ticket.setUsedAt(LocalDateTime.now());
         when(ticketRepository.findByBookingScheduledTripAndBookingStatusOrderByBookingPassengerNameAsc(
                 trip, BookingStatus.CONFIRMED)).thenReturn(List.of(ticket));
-        when(paymentRepository.existsByBookingAndStatus(booking, PaymentStatus.SUCCESS)).thenReturn(true);
+        when(paymentRepository.existsByBookingAndStatus(
+                booking, PaymentStatus.SUCCESS)).thenReturn(true);
 
         DriverTripManifestResponse manifest = service.manifest(driverUser.getEmail(), 50L);
 
@@ -214,7 +329,8 @@ class DriverTicketValidationServiceTests {
                 .thenReturn(Optional.of(value));
         when(associationRepository.findByDriverAndOperator(driver, trip.getOperator()))
                 .thenReturn(Optional.of(association));
-        when(paymentRepository.existsByBookingAndStatus(booking, PaymentStatus.SUCCESS)).thenReturn(true);
+        lenient().when(paymentRepository.existsByBookingAndStatus(
+                booking, PaymentStatus.SUCCESS)).thenReturn(true);
     }
 
     private String validQr() {
