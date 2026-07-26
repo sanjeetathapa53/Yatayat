@@ -11,13 +11,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
 public class DriverTicketValidationService {
+    public static final int MAX_QR_PAYLOAD_LENGTH = 2048;
     private static final List<TripStatus> BOARDABLE_TRIP_STATUSES =
             List.of(TripStatus.SCHEDULED, TripStatus.BOARDING, TripStatus.IN_PROGRESS);
 
@@ -28,6 +27,7 @@ public class DriverTicketValidationService {
     private final TicketRepository ticketRepository;
     private final ScheduledTripRepository scheduledTripRepository;
     private final PaymentRepository paymentRepository;
+    private final TicketQrTokenService qrTokenService;
 
     public DriverTicketValidationService(ObjectMapper objectMapper,
                                          UserRepository userRepository,
@@ -35,7 +35,8 @@ public class DriverTicketValidationService {
                                          DriverOperatorAssociationRepository associationRepository,
                                          TicketRepository ticketRepository,
                                          ScheduledTripRepository scheduledTripRepository,
-                                         PaymentRepository paymentRepository) {
+                                         PaymentRepository paymentRepository,
+                                         TicketQrTokenService qrTokenService) {
         this.objectMapper = objectMapper;
         this.userRepository = userRepository;
         this.driverProfileRepository = driverProfileRepository;
@@ -43,9 +44,10 @@ public class DriverTicketValidationService {
         this.ticketRepository = ticketRepository;
         this.scheduledTripRepository = scheduledTripRepository;
         this.paymentRepository = paymentRepository;
+        this.qrTokenService = qrTokenService;
     }
 
-    @Transactional
+    @Transactional(dontRollbackOn = TicketValidationException.class)
     public DriverTicketValidationResponse validate(String driverEmail, String qrPayload) {
         DriverProfile driver = requireApprovedDriver(driverEmail);
         requireAnyActiveAssociation(driver);
@@ -54,7 +56,8 @@ public class DriverTicketValidationService {
                 .orElseThrow(() -> validation(HttpStatus.BAD_REQUEST, "INVALID_QR",
                         "This QR ticket could not be verified."));
 
-        if (!validToken(parsedQr.token(), ticket.getQrTokenHash())) {
+        if (!qrTokenService.matches(
+                ticket.getTicketNumber(), parsedQr.token(), ticket.getQrTokenHash())) {
             throw validation(HttpStatus.BAD_REQUEST, "INVALID_QR",
                     "This QR ticket could not be verified.");
         }
@@ -68,6 +71,12 @@ public class DriverTicketValidationService {
                     "This ticket was already used at " + formatUsedAt(ticket.getUsedAt()) + ".");
         }
         if (ticket.getStatus() == TicketStatus.CANCELLED || booking.getStatus() == BookingStatus.CANCELLED) {
+            if (ticket.getStatus() != TicketStatus.CANCELLED) {
+                ticket.setStatus(TicketStatus.CANCELLED);
+                ticket.setCancelledAt(booking.getCancelledAt() == null
+                        ? LocalDateTime.now() : booking.getCancelledAt());
+                ticketRepository.saveAndFlush(ticket);
+            }
             throw validation(HttpStatus.CONFLICT, "CANCELLED",
                     "This ticket has been cancelled.");
         }
@@ -95,7 +104,7 @@ public class DriverTicketValidationService {
         }
         if (ticket.getValidUntil() != null && now.isAfter(ticket.getValidUntil())) {
             ticket.setStatus(TicketStatus.EXPIRED);
-            ticketRepository.save(ticket);
+            ticketRepository.saveAndFlush(ticket);
             throw validation(HttpStatus.CONFLICT, "EXPIRED",
                     "This ticket has expired.");
         }
@@ -189,6 +198,10 @@ public class DriverTicketValidationService {
             throw validation(HttpStatus.BAD_REQUEST, "INVALID_QR",
                     "QR payload is required.");
         }
+        if (qrPayload.length() > MAX_QR_PAYLOAD_LENGTH) {
+            throw validation(HttpStatus.BAD_REQUEST, "INVALID_QR",
+                    "QR payload is too large.");
+        }
         try {
             JsonNode root = objectMapper.readTree(qrPayload);
             if (root.path("version").asInt(-1) != 1) {
@@ -207,29 +220,6 @@ public class DriverTicketValidationService {
         } catch (Exception exception) {
             throw validation(HttpStatus.BAD_REQUEST, "INVALID_QR",
                     "This QR ticket could not be read.");
-        }
-    }
-
-    private boolean validToken(String presentedToken, String storedHash) {
-        if (presentedToken == null || storedHash == null) return false;
-        return constantTimeEquals(presentedToken, storedHash)
-                || constantTimeEquals(sha256(presentedToken), storedHash);
-    }
-
-    private boolean constantTimeEquals(String left, String right) {
-        return MessageDigest.isEqual(
-                left.getBytes(StandardCharsets.UTF_8),
-                right.getBytes(StandardCharsets.UTF_8)
-        );
-    }
-
-    private String sha256(String value) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            return java.util.HexFormat.of().formatHex(
-                    digest.digest(value.getBytes(StandardCharsets.UTF_8)));
-        } catch (Exception exception) {
-            throw new IllegalStateException("Unable to validate QR token");
         }
     }
 
@@ -282,10 +272,16 @@ public class DriverTicketValidationService {
         return usedAt == null ? "an earlier time" : usedAt.toString();
     }
 
-    private ResponseStatusException validation(HttpStatus status, String result, String message) {
-        return new ResponseStatusException(status, result + "|" + message);
+    private TicketValidationException validation(HttpStatus status, String result, String message) {
+        return new TicketValidationException(status, result + "|" + message);
     }
 
     private record ParsedQr(String ticketNumber, String token) {
+    }
+
+    static final class TicketValidationException extends ResponseStatusException {
+        TicketValidationException(HttpStatus status, String reason) {
+            super(status, reason);
+        }
     }
 }

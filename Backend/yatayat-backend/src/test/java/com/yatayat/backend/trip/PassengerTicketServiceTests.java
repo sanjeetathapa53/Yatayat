@@ -9,6 +9,7 @@ import com.yatayat.backend.service.EmailService;
 import com.yatayat.backend.service.NotificationService;
 import com.yatayat.backend.service.PassengerTicketService;
 import com.yatayat.backend.service.TicketPdfService;
+import com.yatayat.backend.service.TicketQrTokenService;
 import jakarta.mail.MessagingException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -39,13 +40,17 @@ class PassengerTicketServiceTests {
     @Mock private NotificationService notificationService;
 
     private PassengerTicketService service;
+    private TicketQrTokenService qrTokens;
     private User passenger;
     private PassengerTripBooking booking;
 
     @BeforeEach
     void setUp() {
+        qrTokens = new TicketQrTokenService(
+                "test-only-ticket-qr-secret-at-least-32-characters");
         service = new PassengerTicketService(ticketRepository, userRepository, paymentRepository,
-                ticketPdfService, emailService, notificationService);
+                ticketPdfService, emailService, notificationService,
+                qrTokens);
         passenger = new User("Passenger A", "a@example.com", "9800000001", "encoded", "PASSENGER");
         passenger.setId(1L);
         booking = confirmedBooking();
@@ -55,7 +60,6 @@ class PassengerTicketServiceTests {
     void confirmedBookingCreatesOneValidTicket() {
         when(ticketRepository.findByBooking(booking)).thenReturn(Optional.empty());
         when(ticketRepository.existsByTicketNumber(anyString())).thenReturn(false);
-        when(ticketRepository.existsByQrTokenHash(anyString())).thenReturn(false);
         when(ticketRepository.saveAndFlush(any(Ticket.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         Ticket ticket = service.issueForConfirmedBooking(booking);
@@ -65,6 +69,60 @@ class PassengerTicketServiceTests {
         assertThat(ticket.getBooking()).isEqualTo(booking);
         assertThat(ticket.getQrTokenHash()).hasSize(64);
         verify(ticketRepository).saveAndFlush(any(Ticket.class));
+    }
+
+    @Test
+    void newlyIssuedTicketStoresOnlyHashAndReturnsRawQrToken() {
+        when(ticketRepository.findByBooking(booking)).thenReturn(Optional.empty());
+        when(ticketRepository.existsByTicketNumber(anyString())).thenReturn(false);
+        when(ticketRepository.saveAndFlush(any(Ticket.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        Ticket created = service.issueForConfirmedBooking(booking);
+        when(userRepository.findByEmailIgnoreCase(passenger.getEmail()))
+                .thenReturn(Optional.of(passenger));
+        when(ticketRepository.findByTicketNumberAndBookingPassengerEmailIgnoreCase(
+                created.getTicketNumber(), passenger.getEmail())).thenReturn(Optional.of(created));
+
+        TicketResponse response =
+                service.getByTicketNumber(passenger.getEmail(), created.getTicketNumber());
+        String rawToken = qrTokens.rawToken(created.getTicketNumber());
+
+        assertThat(created.getQrTokenHash()).isEqualTo(qrTokens.storedHash(created.getTicketNumber()));
+        assertThat(created.getQrTokenHash()).isNotEqualTo(rawToken);
+        assertThat(response.qrPayload()).contains("\"token\":\"" + rawToken + "\"");
+        assertThat(response.qrPayload()).doesNotContain(created.getQrTokenHash());
+    }
+
+    @Test
+    void passengerReadPersistsCancelledAndExpiredLifecycle() {
+        Ticket cancelled = ticket(booking);
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancelledAt(LocalDateTime.now().minusMinutes(1));
+        when(userRepository.findByEmailIgnoreCase(passenger.getEmail()))
+                .thenReturn(Optional.of(passenger));
+        when(ticketRepository.findByTicketNumberAndBookingPassengerEmailIgnoreCase(
+                cancelled.getTicketNumber(), passenger.getEmail()))
+                .thenReturn(Optional.of(cancelled));
+
+        TicketResponse cancelledResponse =
+                service.getByTicketNumber(passenger.getEmail(), cancelled.getTicketNumber());
+
+        assertThat(cancelledResponse.ticketStatus()).isEqualTo("CANCELLED");
+        assertThat(cancelled.getCancelledAt()).isEqualTo(booking.getCancelledAt());
+        verify(ticketRepository).saveAndFlush(cancelled);
+
+        reset(ticketRepository);
+        booking.setStatus(BookingStatus.CONFIRMED);
+        Ticket expired = ticket(booking);
+        expired.setValidUntil(LocalDateTime.now().minusMinutes(1));
+        when(ticketRepository.findByTicketNumberAndBookingPassengerEmailIgnoreCase(
+                expired.getTicketNumber(), passenger.getEmail())).thenReturn(Optional.of(expired));
+
+        TicketResponse expiredResponse =
+                service.getByTicketNumber(passenger.getEmail(), expired.getTicketNumber());
+
+        assertThat(expiredResponse.ticketStatus()).isEqualTo("EXPIRED");
+        verify(ticketRepository).saveAndFlush(expired);
     }
 
     @Test
