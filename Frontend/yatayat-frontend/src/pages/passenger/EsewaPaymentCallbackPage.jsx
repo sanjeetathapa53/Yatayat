@@ -2,7 +2,11 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Clock3, Loader2, ShieldAlert, XCircle } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { handleBookingSession, verifyEsewaBookingPayment } from "../../utils/passengerBookings";
+import {
+  handleBookingSession,
+  isAlreadyPaidBooking,
+  verifyEsewaBookingPayment,
+} from "../../utils/passengerBookings";
 
 export default function EsewaPaymentCallbackPage() {
   const [params] = useSearchParams();
@@ -62,7 +66,16 @@ export default function EsewaPaymentCallbackPage() {
         }
       })
       .catch((error) => {
-        if (!active || handleBookingSession(error, navigate)) return;
+        if (!active) return;
+        if (isAlreadyPaidBooking(error)) {
+          setState({
+            status: "SUCCESS",
+            message: "Your payment has already been processed successfully.",
+            result: null,
+          });
+          return;
+        }
+        if (handleBookingSession(error, navigate)) return;
         setState({
           status: "ERROR",
           message: error.message || "Unable to verify eSewa payment.",
@@ -116,7 +129,7 @@ function StatusIcon({ status }) {
 
 function titleFor(status) {
   if (status === "VERIFYING") return "Verifying eSewa payment";
-  if (status === "SUCCESS") return "Payment confirmed";
+  if (status === "SUCCESS") return "Payment Successful";
   if (["PENDING", "INITIATED"].includes(status)) return "Payment not completed yet";
   if (status === "CANCELLED") return "Payment cancelled";
   if (status === "EXPIRED") return "Payment expired";
