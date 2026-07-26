@@ -11,23 +11,31 @@ import {
   Bus,
   Ticket,
   UserCircle,
+  ChevronDown,
   Menu,
   X,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../services/authService";
 import { useLanguage } from "../../context/LanguageContext";
+import { useAuth } from "../../context/AuthContext";
 
-export default function PassengerLayout({ children, activePage = "Dashboard" }) {
+export default function PassengerLayout({ children, activePage = "Dashboard", title, subtitle }) {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { language, setLanguage, t } = useLanguage();
+  const { user } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const storedUser = localStorage.getItem("yatayatUser");
-  const user = storedUser ? JSON.parse(storedUser) : null;
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const fullName = user?.fullName || "User";
   const role = user?.role || "PASSENGER";
+  const firstName = fullName.split(" ")[0];
+  const fallbackHeader = getPageHeader(pathname, activePage, firstName, language);
+  const pageHeader = {
+    title: title || fallbackHeader.title,
+    subtitle: subtitle || fallbackHeader.subtitle,
+  };
 
   const initials = fullName
     .split(" ")
@@ -39,6 +47,7 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
   const go = (path) => {
     navigate(path);
     setMenuOpen(false);
+    setProfileMenuOpen(false);
   };
 
   const handleLogout = async () => {
@@ -177,34 +186,158 @@ export default function PassengerLayout({ children, activePage = "Dashboard" }) 
       </aside>
 
       <main className="min-h-screen px-4 py-5 pt-20 sm:px-6 lg:ml-64 lg:px-7 lg:py-6 lg:pt-6">
-        <div className="mb-5 flex justify-end gap-3 lg:hidden">
-          <LanguageToggle
-            language={language}
-            setLanguage={setLanguage}
-            label={t("common.changeLanguage")}
-          />
+        <header className="mb-6 flex min-h-20 flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h1 className="safe-wrap text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+              {pageHeader.title}
+            </h1>
+            <p className="mt-1 text-sm text-slate-500">{pageHeader.subtitle}</p>
+          </div>
 
-          <button
-            onClick={() => go("/notifications")}
-            aria-label={t("common.openNotifications")}
-            className="rounded-full bg-white p-2 shadow-sm"
-          >
-            <Bell size={20} />
-          </button>
+          <div className="flex shrink-0 items-center justify-end gap-3">
+            <LanguageToggle
+              language={language}
+              setLanguage={setLanguage}
+              label={t("common.changeLanguage")}
+            />
 
-          <button
-            onClick={() => go("/profile")}
-            aria-label={t("common.openProfile")}
-            className="rounded-xl bg-emerald-100 p-2 text-emerald-700"
-          >
-            <UserCircle size={22} />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => go("/notifications")}
+              aria-label={t("common.openNotifications")}
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#08264a] shadow-sm transition hover:bg-slate-50"
+            >
+              <Bell size={20} />
+            </button>
+
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((open) => !open)}
+                aria-label={t("common.openProfile")}
+                aria-expanded={profileMenuOpen}
+                title={fullName}
+                className="flex h-10 items-center gap-2 rounded-xl bg-emerald-100 px-2.5 text-emerald-700 transition hover:bg-emerald-200"
+              >
+                <UserCircle size={22} />
+                <ChevronDown size={15} />
+              </button>
+
+              {profileMenuOpen && (
+                <div className="absolute right-0 top-12 z-30 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl">
+                  <div className="border-b border-slate-100 px-3 py-2">
+                    <p className="truncate text-sm font-black text-slate-900">{fullName}</p>
+                    <p className="text-xs text-slate-500">{t(`common.${String(role).toLowerCase()}`)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => go("/profile")}
+                    className="mt-1 flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-bold text-slate-700 hover:bg-slate-100"
+                  >
+                    <UserCircle size={17} />
+                    {t("common.profile")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm font-bold text-red-600 hover:bg-red-50"
+                  >
+                    <LogOut size={17} />
+                    {t("common.logout")}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </header>
 
         {children}
       </main>
     </div>
   );
+}
+
+function getPageHeader(pathname, activePage, firstName, language) {
+  const nepali = language === "ne";
+  const page = resolvePage(pathname, activePage);
+  const copy = {
+    dashboard: {
+      title: nepali ? `फेरि स्वागत छ, ${firstName} 👋` : `Welcome back, ${firstName} 👋`,
+      subtitle: nepali ? "आफ्नो यात्रा योजना र व्यवस्थापन गर्नुहोस्।" : "Plan and manage your journeys.",
+    },
+    wallet: {
+      title: nepali ? "वालेट" : "Wallet",
+      subtitle: nepali ? "आफ्नो मौज्दात र कारोबार व्यवस्थापन गर्नुहोस्।" : "Manage your balance and transactions.",
+    },
+    routes: {
+      title: nepali ? "रुटहरू" : "Routes",
+      subtitle: nepali ? "उपलब्ध रुटहरू हेर्नुहोस्।" : "Explore available routes.",
+    },
+    tracking: {
+      title: nepali ? "बस ट्र्याक गर्नुहोस्" : "Track Bus",
+      subtitle: nepali ? "बसहरू वास्तविक समयमा ट्र्याक गर्नुहोस्।" : "Track buses in real time.",
+    },
+    notifications: {
+      title: nepali ? "सूचनाहरू" : "Notifications",
+      subtitle: nepali ? "हालका गतिविधिबारे जानकारी लिनुहोस्।" : "Stay updated with recent activity.",
+    },
+    profile: {
+      title: nepali ? "प्रोफाइल" : "Profile",
+      subtitle: nepali ? "आफ्नो खाता व्यवस्थापन गर्नुहोस्।" : "Manage your account.",
+    },
+    bookings: {
+      title: nepali ? "मेरा बुकिङहरू" : "My Bookings",
+      subtitle: nepali ? "आफ्ना बुकिङ र टिकटहरू हेर्नुहोस्।" : "Review your bookings and tickets.",
+    },
+    booking: {
+      title: nepali ? "टिकट बुक गर्नुहोस्" : "Book Tickets",
+      subtitle: nepali ? "आफ्नो अर्को यात्रा खोज्नुहोस् र बुक गर्नुहोस्।" : "Find and book your next journey.",
+    },
+    farePass: {
+      title: nepali ? "भाडा पास" : "FarePass / QR",
+      subtitle: nepali ? "आफ्नो QR भाडा पास व्यवस्थापन गर्नुहोस्।" : "Manage your QR fare pass.",
+    },
+    history: {
+      title: nepali ? "इतिहास" : "History",
+      subtitle: nepali ? "आफ्नो अघिल्लो यात्रा गतिविधि हेर्नुहोस्।" : "Review your previous travel activity.",
+    },
+    settings: {
+      title: nepali ? "सेटिङहरू" : "Settings",
+      subtitle: nepali ? "आफ्नो प्राथमिकताहरू व्यवस्थापन गर्नुहोस्।" : "Manage your preferences.",
+    },
+  };
+  return copy[page] || copy.dashboard;
+}
+
+function resolvePage(pathname, activePage) {
+  if (pathname === "/passenger/dashboard") return "dashboard";
+  if (pathname.startsWith("/wallet")) return "wallet";
+  if (pathname === "/notifications") return "notifications";
+  if (pathname === "/profile") return "profile";
+  if (pathname.startsWith("/track-bus")) return "tracking";
+  if (pathname.startsWith("/passenger/local-routes") || pathname === "/routes") return "routes";
+  if (pathname === "/fare-pass") return "farePass";
+  if (pathname === "/history") return "history";
+  if (pathname === "/settings") return "settings";
+  if (
+    pathname.startsWith("/passenger/bookings")
+    || pathname.startsWith("/passenger/tickets")
+    || pathname.startsWith("/passenger/payments")
+    || pathname === "/my-bookings"
+    || pathname === "/ticket"
+  ) return "bookings";
+  if (
+    pathname.startsWith("/passenger/trips")
+    || pathname === "/passenger/out-of-valley"
+    || pathname === "/book-ticket"
+    || pathname === "/seat-selection"
+    || pathname === "/booking-summary"
+    || pathname === "/payment"
+  ) return "booking";
+  if (activePage === "Wallet") return "wallet";
+  if (activePage === "History") return "history";
+  if (activePage === "Settings") return "settings";
+  return "dashboard";
 }
 
 function LanguageToggle({ language, setLanguage, label }) {

@@ -27,11 +27,11 @@ const [cancelSuccess, setCancelSuccess] = useState(false);
 
   if (!booking) {
     return (
-      <PassengerLayout activePage="My Bookings">
+      <PassengerLayout activePage="My Bookings" title="Ticket unavailable" subtitle="Return to your bookings to select a valid ticket.">
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <h1 className="text-2xl font-black text-red-600">
+          <h2 className="text-2xl font-black text-red-600">
             No ticket data found
-          </h1>
+          </h2>
           <button
             onClick={() => navigate("/my-bookings")}
             className="mt-4 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-bold text-white"
@@ -83,17 +83,8 @@ const [cancelSuccess, setCancelSuccess] = useState(false);
   };
 
   return (
-    <PassengerLayout activePage="My Bookings">
+    <PassengerLayout activePage="My Bookings" title="Booking Confirmed" subtitle="Your ticket has been generated successfully.">
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            Booking Confirmed
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Your ticket has been generated successfully.
-          </p>
-        </div>
-
         <div className="flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-black text-emerald-700">
           <ShieldCheck size={18} />
           Paid & Confirmed

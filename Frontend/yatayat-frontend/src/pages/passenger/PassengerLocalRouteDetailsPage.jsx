@@ -36,15 +36,13 @@ export default function PassengerLocalRouteDetailsPage() {
   }, [fromStopId, route, toStopId]);
 
   return (
-    <PassengerLayout activePage="Find Local Route">
+    <PassengerLayout activePage="Find Local Route" title={route?.routeName || "Route details"} subtitle={route?.routeCode || "View local route information and stops."}>
       <div className="mx-auto max-w-4xl space-y-6">
         <button type="button" onClick={() => navigate("/passenger/local-routes")} className="tap-target flex items-center gap-2 text-sm font-black"><ArrowLeft size={17} /> Back to local route search</button>
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-5 font-bold text-red-700">{error}</div>}
         {!route && !error ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin" size={40} /></div> : route && <>
           <header className="rounded-3xl bg-[#08264a] p-5 text-white sm:p-7">
             <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs font-black text-emerald-100">LOCAL</span>
-            <h1 className="safe-wrap mt-4 text-3xl font-black">{route.routeName}</h1>
-            <p className="safe-wrap mt-1 text-blue-100">{route.routeCode}</p>
           </header>
 
           <section className="grid gap-4 sm:grid-cols-3">

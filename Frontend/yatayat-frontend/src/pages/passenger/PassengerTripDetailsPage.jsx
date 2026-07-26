@@ -32,11 +32,11 @@ export default function PassengerTripDetailsPage() {
     [t("passenger.booking.boardingNotes"), trip.boardingNotes || t("passenger.booking.noBoardingNotes")],
   ] : [];
 
-  return <PassengerLayout activePage="Find Trips"><div className="mx-auto max-w-5xl space-y-6">
+  return <PassengerLayout activePage="Find Trips" title={trip?.routeName || "Trip details"} subtitle={trip ? t("passenger.booking.routeConnector", { origin: trip.origin, destination: trip.destination }) : "View schedule, bus, fare, and route information."}><div className="mx-auto max-w-5xl space-y-6">
     <button type="button" onClick={() => navigate("/passenger/trips")} className="flex items-center gap-2 text-sm font-black"><ArrowLeft size={17} /> {t("passenger.booking.backToTripSearch")}</button>
     {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-5 font-bold text-red-700">{error}</div>}
     {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin" size={40} /></div> : trip && <>
-      <header className="rounded-3xl bg-[#08264a] p-7 text-white"><div className="flex items-center gap-4"><Bus size={34} /><div><p className="text-sm font-bold text-blue-200">{trip.routeCode}</p><h1 className="text-3xl font-black">{trip.routeName}</h1><p className="mt-2 text-slate-300">{t("passenger.booking.routeConnector", { origin: trip.origin, destination: trip.destination })}</p></div></div></header>
+      <div className="rounded-3xl bg-[#08264a] p-7 text-white"><div className="flex items-center gap-4"><Bus size={34} /><p className="text-sm font-bold text-blue-200">{trip.routeCode}</p></div></div>
       <section className="grid grid-cols-1 gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">{rows.map(([label, value]) => <div key={label} className="rounded-2xl bg-slate-50 p-4"><p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p><p className="mt-2 font-bold text-slate-800">{value}</p></div>)}</section>
       {trip.tripType === "LOCAL" ? <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5"><p className="font-bold text-amber-900">{t("passenger.booking.localBookingUnavailable")}</p><button type="button" disabled className="mt-4 cursor-not-allowed rounded-xl bg-amber-200 px-6 py-3 font-black text-amber-800">{t("passenger.booking.localFareComingNext")}</button></div> : <div className="rounded-2xl border border-blue-200 bg-blue-50 p-5"><p className="font-bold text-blue-900">{t("passenger.booking.selectSeatsHelp")}</p><button type="button" onClick={() => navigate(`/passenger/trips/${tripId}/seats`)} className="mt-4 rounded-xl bg-[#08264a] px-6 py-3 font-black text-white">{t("passenger.booking.selectSeats")}</button></div>}
     </>}

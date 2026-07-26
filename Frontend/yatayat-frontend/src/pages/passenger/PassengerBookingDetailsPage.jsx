@@ -257,7 +257,7 @@ export default function PassengerBookingDetailsPage() {
     }
   };
 
-  return <PassengerLayout activePage="My Bookings"><div className="mx-auto max-w-5xl space-y-6">
+  return <PassengerLayout activePage="My Bookings" title={booking?.bookingReference || "Booking details"} subtitle={booking ? t("passenger.booking.routeConnector", { origin: booking.origin, destination: booking.destination }) : "Review booking, payment, and trip information."}><div className="mx-auto max-w-5xl space-y-6">
     <button type="button" onClick={() => navigate("/passenger/bookings")} className="flex items-center gap-2 text-sm font-black text-[#08264a] transition hover:text-blue-700"><ArrowLeft size={17} /> {t("passenger.booking.backToMyBookings")}</button>
     {location.state?.created && <div className="rounded-3xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-5 text-amber-900 shadow-sm"><div className="flex items-center gap-2 font-black"><CheckCircle2 size={20} /> {t("passenger.booking.seatsReserved")}</div><p className="mt-2 text-sm">{t("passenger.booking.payBeforeHoldExpires")}</p></div>}
     {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-5 font-bold text-red-700">{error}</div>}
@@ -267,8 +267,6 @@ export default function PassengerBookingDetailsPage() {
         <div className="relative flex flex-col justify-between gap-4 sm:flex-row">
           <div>
             <p className="text-sm font-bold text-blue-200">{t("passenger.booking.bookingReference")}</p>
-            <h1 className="mt-1 break-all text-3xl font-black">{booking.bookingReference}</h1>
-            <p className="mt-2 text-slate-300">{t("passenger.booking.routeConnector", { origin: booking.origin, destination: booking.destination })}</p>
           </div>
           <Status value={booking.bookingStatus} t={t} />
         </div>

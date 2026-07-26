@@ -209,21 +209,11 @@ export default function MyBookingsPage() {
   });
 
   return (
-    <PassengerLayout activePage="My Bookings">
+    <PassengerLayout activePage="My Bookings" title="My Bookings" subtitle="Manage your out-of-valley tickets and travel history.">
 
       {/* HEADER */}
 
       <header className="mb-7 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            My Bookings
-          </h1>
-
-          <p className="mt-1 text-sm text-slate-600">
-            Manage your out-of-valley tickets and travel history.
-          </p>
-        </div>
-
         <button
           onClick={() => navigate("/book-ticket")}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white shadow-sm transition hover:bg-[#0d3566] sm:w-auto"

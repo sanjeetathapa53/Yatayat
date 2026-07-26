@@ -4,8 +4,6 @@ import {
   PlusCircle,
   RotateCcw,
   Star,
-  Bell,
-  UserCircle,
   Bus,
   BadgeCheck,
 } from "lucide-react";
@@ -13,12 +11,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { useLanguage } from "../../context/LanguageContext";
-import { getFirstName } from "../../utils/authUser";
 
 export default function PassengerDashboard() {
   const navigate = useNavigate();
-  const { language, setLanguage, t } = useLanguage();
-  const firstName = getFirstName();
+  const { t } = useLanguage();
   const user = JSON.parse(localStorage.getItem("yatayatUser"));
 
   const [walletBalance, setWalletBalance] = useState(0);
@@ -56,59 +52,11 @@ export default function PassengerDashboard() {
 
 
   return (
-    <PassengerLayout activePage="Dashboard">
-      <header className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <h2 className="text-2xl font-black tracking-tight sm:text-3xl">
-  Namaste, {firstName} 👋
-</h2>
-        <div className="hidden items-center gap-4 lg:flex">
-          <div
-            role="group"
-            aria-label={t("common.changeLanguage")}
-            className="relative z-10 flex rounded-full bg-slate-200 p-1 text-xs font-bold"
-          >
-            <button
-              type="button"
-              aria-pressed={language === "en"}
-              onClick={() => setLanguage("en")}
-              className={`rounded-full px-3 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#08264a] focus:ring-offset-2 ${
-                language === "en"
-                  ? "bg-[#08264a] text-white"
-                  : "text-slate-600 hover:text-[#08264a]"
-              }`}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              aria-pressed={language === "ne"}
-              onClick={() => setLanguage("ne")}
-              className={`rounded-full px-3 py-1 transition focus:outline-none focus:ring-2 focus:ring-[#08264a] focus:ring-offset-2 ${
-                language === "ne"
-                  ? "bg-[#08264a] text-white"
-                  : "text-slate-600 hover:text-[#08264a]"
-              }`}
-            >
-              नेपाली
-            </button>
-          </div>
-
-          <button
-            onClick={() => navigate("/notifications")}
-            className="rounded-full p-2 transition hover:bg-white"
-          >
-            <Bell size={20} />
-          </button>
-
-          <button
-            onClick={() => navigate("/profile")}
-            className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700 transition hover:bg-emerald-200"
-          >
-            <UserCircle size={23} />
-          </button>
-        </div>
-      </header>
-
+    <PassengerLayout
+      activePage="Dashboard"
+      title={`Namaste, ${user?.fullName?.split(" ")[0] || "Passenger"} 👋`}
+      subtitle="View your wallet, routes, bookings, passes, and live buses."
+    >
       <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,330px)]">
         <section className="min-w-0 space-y-5">
           <WalletCard

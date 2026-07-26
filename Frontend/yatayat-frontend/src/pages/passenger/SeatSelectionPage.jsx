@@ -51,7 +51,7 @@ export default function SeatSelectionPage() {
   };
 
   return (
-    <PassengerLayout activePage="Out-of-Valley">
+    <PassengerLayout activePage="Out-of-Valley" title="Select Your Seat" subtitle="Choose an available seat for your out-of-valley trip.">
       <button
         onClick={() => navigate("/book-ticket")}
         className="mb-5 flex items-center gap-2 text-sm font-black text-slate-600 hover:text-[#08264a]"
@@ -61,15 +61,6 @@ export default function SeatSelectionPage() {
       </button>
 
       <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            Select Your Seat
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            Choose an available seat for your out-of-valley trip.
-          </p>
-        </div>
-
         <div className="rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white shadow-sm">
           {bus.name}
         </div>

@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { useLanguage } from "../../context/LanguageContext";
+import { logoutUser } from "../../services/authService";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -37,10 +38,10 @@ export default function ProfilePage() {
   const phone = user?.phone || t("passenger.profile.noPhone");
   const role = user?.role === "DRIVER" ? t("passenger.profile.driverAccount") : t("passenger.profile.passengerAccount");
 
-  const handleLogout = () => {
-    localStorage.removeItem("yatayatUser");
-    localStorage.removeItem("loginTime");
-    navigate("/login");
+  const handleLogout = async () => {
+    await logoutUser();
+    toast.success(t("common.loggedOut"));
+    navigate("/", { replace: true });
   };
 
   const handleChangePassword = async () => {
@@ -86,16 +87,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <PassengerLayout activePage="Profile">
-      <div className="mb-5">
-        <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-          {t("passenger.profile.title")}
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
-          {t("passenger.profile.subtitle")}
-        </p>
-      </div>
-
+    <PassengerLayout activePage="Profile" title={t("passenger.profile.title")} subtitle={t("passenger.profile.subtitle")}>
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
         <aside className="space-y-5 xl:col-span-4">
           <div className="rounded-2xl bg-[#08264a] p-6 text-white shadow-sm">

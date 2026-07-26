@@ -48,13 +48,9 @@ export default function PassengerLocalRoutesPage() {
   };
 
   return (
-    <PassengerLayout activePage="Find Local Route">
+    <PassengerLayout activePage="Find Local Route" title={t("passenger.routeSearch.title")} subtitle={t("passenger.routeSearch.subtitle")}>
       <div className="space-y-6">
-        <header>
-          <p className="text-xs font-black uppercase tracking-widest text-emerald-700">{t("passenger.routeSearch.eyebrow")}</p>
-          <h1 className="safe-wrap mt-1 text-3xl font-black text-slate-900">{t("passenger.routeSearch.title")}</h1>
-          <p className="mt-1 text-sm text-slate-500">{t("passenger.routeSearch.subtitle")}</p>
-        </header>
+        <p className="text-xs font-black uppercase tracking-widest text-emerald-700">{t("passenger.routeSearch.eyebrow")}</p>
 
         <form onSubmit={search} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_auto] lg:items-start">

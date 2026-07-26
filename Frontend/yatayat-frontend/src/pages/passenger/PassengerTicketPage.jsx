@@ -71,16 +71,14 @@ export default function PassengerTicketPage() {
     }
   };
 
-  return <PassengerLayout activePage="My Bookings"><div className="mx-auto max-w-5xl space-y-6">
+  return <PassengerLayout activePage="My Bookings" title={t("passenger.tickets.electronicBusTicket")} subtitle={t("passenger.tickets.presentQr")}><div className="mx-auto max-w-5xl space-y-6">
     <button type="button" onClick={() => navigate(-1)} className="flex items-center gap-2 text-sm font-black text-[#08264a]"><ArrowLeft size={17} /> {t("passenger.tickets.back")}</button>
-    {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin text-[#08264a]" size={42} /></div> : error ? <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center"><h1 className="text-2xl font-black text-red-800">{t("passenger.tickets.unableToLoadTicket")}</h1><p className="mt-2 font-semibold text-red-600">{error}</p><button type="button" onClick={() => navigate("/passenger/bookings")} className="mt-5 rounded-xl bg-[#08264a] px-6 py-3 font-black text-white">{t("passenger.tickets.myBookings")}</button></div> : ticket && <>
+    {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin text-[#08264a]" size={42} /></div> : error ? <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center"><h2 className="text-2xl font-black text-red-800">{t("passenger.tickets.unableToLoadTicket")}</h2><p className="mt-2 font-semibold text-red-600">{error}</p><button type="button" onClick={() => navigate("/passenger/bookings")} className="mt-5 rounded-xl bg-[#08264a] px-6 py-3 font-black text-white">{t("passenger.tickets.myBookings")}</button></div> : ticket && <>
       <section className="overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-blue-950/10">
         <div className="bg-[#08264a] p-5 text-white sm:p-7">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
             <div>
               <p className="text-sm font-black uppercase tracking-[0.25em] text-blue-200">Yatayat</p>
-              <h1 className="mt-2 text-2xl font-black sm:text-3xl">{t("passenger.tickets.electronicBusTicket")}</h1>
-              <p className="mt-2 text-blue-100">{t("passenger.tickets.presentQr")}</p>
             </div>
             <span className="rounded-full bg-emerald-400/20 px-4 py-2 text-xs font-black text-emerald-100">{ticket.ticketStatus}</span>
           </div>

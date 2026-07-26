@@ -143,17 +143,8 @@ export default function WalletPage() {
   };
 
   return (
-    <PassengerLayout activePage="Wallet">
-      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            {t("passenger.wallet.pageTitle")}
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
-            {t("passenger.wallet.pageSubtitle")}
-          </p>
-        </div>
-
+    <PassengerLayout activePage="Wallet" title={t("passenger.wallet.pageTitle")} subtitle={t("passenger.wallet.pageSubtitle")}>
+      <div className="mb-5 flex justify-end">
         <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black hover:bg-slate-50 sm:w-auto">
           <Download size={17} />
           {t("passenger.wallet.exportStatement")}
