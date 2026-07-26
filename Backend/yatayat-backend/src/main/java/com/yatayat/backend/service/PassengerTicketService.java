@@ -39,17 +39,20 @@ public class PassengerTicketService {
     private final PaymentRepository paymentRepository;
     private final TicketPdfService ticketPdfService;
     private final EmailService emailService;
+    private final NotificationService notificationService;
 
     public PassengerTicketService(TicketRepository ticketRepository,
                                   UserRepository userRepository,
                                   PaymentRepository paymentRepository,
                                   TicketPdfService ticketPdfService,
-                                  EmailService emailService) {
+                                  EmailService emailService,
+                                  NotificationService notificationService) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.paymentRepository = paymentRepository;
         this.ticketPdfService = ticketPdfService;
         this.emailService = emailService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -58,7 +61,14 @@ public class PassengerTicketService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Complete payment before viewing the ticket.");
         }
-        return ticketRepository.findByBooking(booking).orElseGet(() -> createTicket(booking));
+        Ticket ticket = ticketRepository.findByBooking(booking)
+                .orElseGet(() -> createTicket(booking));
+        notificationService.bookingConfirmed(booking);
+        paymentRepository.findFirstByBookingAndStatusOrderByCreatedAtDesc(
+                booking, PaymentStatus.SUCCESS)
+                .ifPresent(payment -> notificationService.paymentSuccessful(booking, payment));
+        notificationService.ticketGenerated(booking, ticket);
+        return ticket;
     }
 
     public TicketResponse getByBookingReference(String email, String bookingReference) {

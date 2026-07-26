@@ -20,6 +20,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { useLanguage } from "../../context/LanguageContext";
+import { useNotifications } from "../../context/NotificationContext";
 import { apiFetch } from "../../utils/api";
 import {
   cancelPassengerBooking,
@@ -44,6 +45,7 @@ export default function PassengerBookingDetailsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useLanguage();
+  const { refreshUnreadCount } = useNotifications();
   const pinInputRef = useRef(null);
   const user = useMemo(() => {
     const stored = localStorage.getItem("yatayatUser");
@@ -189,6 +191,7 @@ export default function PassengerBookingDetailsPage() {
     setCancelling(true);
     try {
       setBooking(await cancelPassengerBooking(bookingReference));
+      await refreshUnreadCount();
       setShowCancel(false);
       toast.success(t("passenger.booking.bookingCancelledSuccess"));
     } catch (cancelError) {
@@ -210,6 +213,7 @@ export default function PassengerBookingDetailsPage() {
       setPaymentResult(result);
       if (result.ticketNumber) setTicketNumber(result.ticketNumber);
       await loadBooking();
+      await refreshUnreadCount();
       setWalletBalance(Number(result.walletBalance || 0));
       setWalletPin("");
       setPaymentStep(PAYMENT_STEPS.SUCCESS);

@@ -6,6 +6,7 @@ import com.yatayat.backend.repository.PaymentRepository;
 import com.yatayat.backend.repository.TicketRepository;
 import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.service.EmailService;
+import com.yatayat.backend.service.NotificationService;
 import com.yatayat.backend.service.PassengerTicketService;
 import com.yatayat.backend.service.TicketPdfService;
 import jakarta.mail.MessagingException;
@@ -35,6 +36,7 @@ class PassengerTicketServiceTests {
     @Mock private PaymentRepository paymentRepository;
     @Mock private TicketPdfService ticketPdfService;
     @Mock private EmailService emailService;
+    @Mock private NotificationService notificationService;
 
     private PassengerTicketService service;
     private User passenger;
@@ -43,7 +45,7 @@ class PassengerTicketServiceTests {
     @BeforeEach
     void setUp() {
         service = new PassengerTicketService(ticketRepository, userRepository, paymentRepository,
-                ticketPdfService, emailService);
+                ticketPdfService, emailService, notificationService);
         passenger = new User("Passenger A", "a@example.com", "9800000001", "encoded", "PASSENGER");
         passenger.setId(1L);
         booking = confirmedBooking();

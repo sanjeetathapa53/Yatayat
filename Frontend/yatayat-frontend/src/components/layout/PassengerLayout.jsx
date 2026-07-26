@@ -19,12 +19,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../services/authService";
 import { useLanguage } from "../../context/LanguageContext";
 import { useAuth } from "../../context/AuthContext";
+import { useNotifications } from "../../context/NotificationContext";
 
 export default function PassengerLayout({ children, activePage = "Dashboard", title, subtitle }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const { language, setLanguage, t } = useLanguage();
   const { user } = useAuth();
+  const { unreadCount } = useNotifications();
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
@@ -205,9 +207,14 @@ export default function PassengerLayout({ children, activePage = "Dashboard", ti
               type="button"
               onClick={() => go("/notifications")}
               aria-label={t("common.openNotifications")}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#08264a] shadow-sm transition hover:bg-slate-50"
+              className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#08264a] shadow-sm transition hover:bg-slate-50"
             >
               <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-black text-white">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </button>
 
             <div className="relative">

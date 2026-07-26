@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { CheckCircle2, Clock3, Loader2, ShieldAlert, XCircle } from "lucide-react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import { useNotifications } from "../../context/NotificationContext";
 import {
   handleBookingSession,
   isAlreadyPaidBooking,
@@ -12,6 +13,7 @@ export default function EsewaPaymentCallbackPage() {
   const [params] = useSearchParams();
   const pathParams = useParams();
   const navigate = useNavigate();
+  const { refreshUnreadCount } = useNotifications();
   const bookingReference = (
     pathParams.bookingReference || params.get("bookingReference") || ""
   ).trim();
@@ -61,6 +63,7 @@ export default function EsewaPaymentCallbackPage() {
         const status = result.paymentStatus || "FAILED";
         if (status === "SUCCESS" && result.bookingStatus === "CONFIRMED") {
           setState({ status: "SUCCESS", message: "Payment verified successfully.", result });
+          refreshUnreadCount();
         } else {
           setState({ status, message: statusMessage(status, outcome), result });
         }
@@ -73,6 +76,7 @@ export default function EsewaPaymentCallbackPage() {
             message: "Your payment has already been processed successfully.",
             result: null,
           });
+          refreshUnreadCount();
           return;
         }
         if (handleBookingSession(error, navigate)) return;
@@ -83,7 +87,7 @@ export default function EsewaPaymentCallbackPage() {
         });
       });
     return () => { active = false; };
-  }, [bookingReference, data, navigate, outcome, transactionUuid]);
+  }, [bookingReference, data, navigate, outcome, refreshUnreadCount, transactionUuid]);
 
   return <PassengerLayout activePage="My Bookings" title={titleFor(state.status)} subtitle={state.message}>
     <div className="mx-auto flex min-h-[65vh] max-w-xl items-center justify-center">

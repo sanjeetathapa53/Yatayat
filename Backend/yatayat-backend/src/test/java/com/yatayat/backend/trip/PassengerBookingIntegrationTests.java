@@ -9,6 +9,7 @@ import com.yatayat.backend.service.PassengerExternalPaymentService;
 import com.yatayat.backend.service.EsewaPaymentService;
 import com.yatayat.backend.service.KhaltiPaymentService;
 import com.yatayat.backend.service.PassengerTicketService;
+import com.yatayat.backend.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,7 @@ class PassengerBookingIntegrationTests {
     @MockitoBean private WalletTransactionRepository walletTransactionRepository;
     @MockitoBean private PaymentRepository paymentRepository;
     @MockitoBean private PassengerTicketService passengerTicketService;
+    @MockitoBean private NotificationService notificationService;
     @MockitoBean private PassengerExternalPaymentService passengerExternalPaymentService;
     @MockitoBean private KhaltiPaymentService khaltiPaymentService;
     @MockitoBean private EsewaPaymentService esewaPaymentService;
