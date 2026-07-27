@@ -5,6 +5,7 @@ import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.DriverLocalFarePassValidationService;
 import com.yatayat.backend.service.LocalFarePassQrTokenService;
+import com.yatayat.backend.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,7 @@ class DriverLocalFarePassValidationServiceTests {
     @Mock DriverOperatorAssociationRepository associationRepository;
     @Mock LocalServiceRunRepository runRepository;
     @Mock LocalFarePassRepository passRepository;
+    @Mock NotificationService notificationService;
 
     DriverLocalFarePassValidationService service;
     LocalFarePassQrTokenService tokens;
@@ -46,7 +48,7 @@ class DriverLocalFarePassValidationServiceTests {
                 "test-only-local-fare-pass-secret-at-least-32-characters");
         service = new DriverLocalFarePassValidationService(
                 new ObjectMapper(), userRepository, driverProfileRepository,
-                associationRepository, runRepository, passRepository, tokens);
+                associationRepository, runRepository, passRepository, tokens, notificationService);
         driverUser = new User("Driver", "driver@example.com", "9800000001", "encoded", "DRIVER");
         driverUser.setId(1L);
         driver = new DriverProfile(driverUser);
@@ -84,6 +86,7 @@ class DriverLocalFarePassValidationServiceTests {
         assertThat(pass.getValidatedByDriverProfile()).isSameAs(driver);
         assertThat(pass.getValidatedLocalServiceRun()).isSameAs(run);
         verify(passRepository).save(pass);
+        verify(notificationService).localFarePassUsed(pass);
     }
 
     @Test
@@ -100,6 +103,7 @@ class DriverLocalFarePassValidationServiceTests {
         assertThat(pass.getUsedAt()).isEqualTo(original);
         assertThat(pass.getValidatedLocalServiceRun()).isSameAs(run);
         verify(passRepository, never()).save(pass);
+        verify(notificationService, never()).localFarePassUsed(any());
     }
 
     @Test

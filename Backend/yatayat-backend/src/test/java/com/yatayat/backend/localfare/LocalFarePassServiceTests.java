@@ -6,6 +6,7 @@ import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.LocalFarePassQrTokenService;
 import com.yatayat.backend.service.LocalFarePassService;
+import com.yatayat.backend.service.NotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +34,7 @@ class LocalFarePassServiceTests {
     @Mock WalletTransactionRepository transactionRepository;
     @Mock LocalFarePassRepository passRepository;
     @Mock PasswordEncoder passwordEncoder;
+    @Mock NotificationService notificationService;
 
     LocalFarePassService service;
     User passenger;
@@ -47,7 +49,8 @@ class LocalFarePassServiceTests {
                 userRepository, routeRepository, routeStopRepository, walletRepository,
                 transactionRepository, passRepository, passwordEncoder,
                 new LocalFarePassQrTokenService(
-                        "test-only-local-fare-pass-secret-at-least-32-characters"));
+                        "test-only-local-fare-pass-secret-at-least-32-characters"),
+                notificationService);
         passenger = new User("Passenger", "passenger@example.com", "9800000000", "encoded", "PASSENGER");
         passenger.setId(1L);
         route = route();
@@ -98,6 +101,7 @@ class LocalFarePassServiceTests {
         assertThat(transaction.getValue().getType()).isEqualTo("LOCAL_FARE_PAYMENT");
         assertThat(transaction.getValue().getAmount()).isEqualTo(35.5);
         verify(passRepository, times(1)).saveAndFlush(any(LocalFarePass.class));
+        verify(notificationService).localFareQrGenerated(any(LocalFarePass.class));
     }
 
     @Test
@@ -115,6 +119,7 @@ class LocalFarePassServiceTests {
         assertThatThrownBy(() -> purchase("1234")).hasMessageContaining("Insufficient");
         verify(transactionRepository, never()).save(any());
         verify(passRepository, never()).saveAndFlush(any());
+        verify(notificationService, never()).localFareQrGenerated(any());
     }
 
     @Test

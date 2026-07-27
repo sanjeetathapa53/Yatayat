@@ -24,13 +24,14 @@ public class DriverLocalFarePassValidationService {
     private final LocalServiceRunRepository runRepository;
     private final LocalFarePassRepository passRepository;
     private final LocalFarePassQrTokenService tokenService;
+    private final NotificationService notificationService;
 
     public DriverLocalFarePassValidationService(
             ObjectMapper objectMapper, UserRepository userRepository,
             DriverProfileRepository driverProfileRepository,
             DriverOperatorAssociationRepository associationRepository,
             LocalServiceRunRepository runRepository, LocalFarePassRepository passRepository,
-            LocalFarePassQrTokenService tokenService) {
+            LocalFarePassQrTokenService tokenService, NotificationService notificationService) {
         this.objectMapper = objectMapper;
         this.userRepository = userRepository;
         this.driverProfileRepository = driverProfileRepository;
@@ -38,6 +39,7 @@ public class DriverLocalFarePassValidationService {
         this.runRepository = runRepository;
         this.passRepository = passRepository;
         this.tokenService = tokenService;
+        this.notificationService = notificationService;
     }
 
     @Transactional(dontRollbackOn = LocalPassValidationException.class)
@@ -97,6 +99,7 @@ public class DriverLocalFarePassValidationService {
         pass.setValidatedByDriverProfile(driver);
         pass.setValidatedLocalServiceRun(run);
         passRepository.save(pass);
+        notificationService.localFarePassUsed(pass);
         return response("VALID", "Local fare confirmed.", pass);
     }
 

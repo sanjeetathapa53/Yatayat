@@ -65,7 +65,7 @@ public class PassengerTicketService {
         paymentRepository.findFirstByBookingAndStatusOrderByCreatedAtDesc(
                 booking, PaymentStatus.SUCCESS)
                 .ifPresent(payment -> notificationService.paymentSuccessful(booking, payment));
-        notificationService.ticketGenerated(booking, ticket);
+        notificationService.ticketQrGenerated(booking, ticket);
         return ticket;
     }
 

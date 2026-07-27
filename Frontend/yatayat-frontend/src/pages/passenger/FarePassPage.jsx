@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { useAuth } from "../../hooks/useAuth";
 import { useLanguage } from "../../hooks/useLanguage";
+import { useNotifications } from "../../context/NotificationContext";
 import { apiFetch } from "../../utils/api";
 import { getLocalFarePasses, getLocalFareQuote, purchaseLocalFarePass } from "../../utils/localFarePasses";
 import { localRouteRequest } from "../../utils/localRoutes";
@@ -12,6 +13,7 @@ import { localRouteRequest } from "../../utils/localRoutes";
 export default function FarePassPage() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  const { refreshUnreadCount } = useNotifications();
   const userId = user?.id;
   const navigate = useNavigate();
   const location = useLocation();
@@ -95,7 +97,7 @@ export default function FarePassPage() {
       });
       setWalletPin("");
       setSelectedPass(pass);
-      await load();
+      await Promise.all([load(), refreshUnreadCount()]);
     } catch (requestError) {
       setError(requestError.message || "Local fare pass could not be purchased.");
     } finally {

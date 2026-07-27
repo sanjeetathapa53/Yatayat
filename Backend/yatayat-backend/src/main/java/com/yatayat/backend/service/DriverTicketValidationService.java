@@ -28,6 +28,7 @@ public class DriverTicketValidationService {
     private final ScheduledTripRepository scheduledTripRepository;
     private final PaymentRepository paymentRepository;
     private final TicketQrTokenService qrTokenService;
+    private final NotificationService notificationService;
 
     public DriverTicketValidationService(ObjectMapper objectMapper,
                                          UserRepository userRepository,
@@ -36,7 +37,8 @@ public class DriverTicketValidationService {
                                          TicketRepository ticketRepository,
                                          ScheduledTripRepository scheduledTripRepository,
                                          PaymentRepository paymentRepository,
-                                         TicketQrTokenService qrTokenService) {
+                                         TicketQrTokenService qrTokenService,
+                                         NotificationService notificationService) {
         this.objectMapper = objectMapper;
         this.userRepository = userRepository;
         this.driverProfileRepository = driverProfileRepository;
@@ -45,6 +47,7 @@ public class DriverTicketValidationService {
         this.scheduledTripRepository = scheduledTripRepository;
         this.paymentRepository = paymentRepository;
         this.qrTokenService = qrTokenService;
+        this.notificationService = notificationService;
     }
 
     @Transactional(dontRollbackOn = TicketValidationException.class)
@@ -114,6 +117,7 @@ public class DriverTicketValidationService {
         ticket.setValidatedByDriverProfile(driver);
         ticket.setValidatedTrip(trip);
         ticketRepository.save(ticket);
+        notificationService.ticketUsed(ticket);
 
         return response("VALID", "Boarding confirmed.", ticket);
     }
