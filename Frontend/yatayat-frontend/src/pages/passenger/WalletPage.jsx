@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Wallet,
   PlusCircle,
@@ -9,9 +9,14 @@ import {
   ArrowUpRight,
   ShieldCheck,
   Download,
+  Eye,
+  EyeOff,
+  LockKeyhole,
 } from "lucide-react";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import WalletActivationModal from "../../components/passenger/WalletActivationModal";
 import { useLanguage } from "../../hooks/useLanguage";
+import { useWalletBalanceVisibility } from "../../hooks/useWalletBalanceVisibility";
 import { apiFetch } from "../../utils/api";
 import {
   initiateWalletTopUp,
@@ -31,11 +36,12 @@ export default function WalletPage() {
   const [pinStatus, setPinStatus] = useState("");
   const [walletError, setWalletError] = useState("");
   const [processing, setProcessing] = useState(false);
+  const { showBalance, toggleBalance } = useWalletBalanceVisibility();
 
   const success = new URLSearchParams(window.location.search).get("topup") === "success";
   const [showPinModal, setShowPinModal] = useState(false);
-  const [newPin, setNewPin] = useState("");
-  const [confirmPin, setConfirmPin] = useState("");
+  const topUpRef = useRef(null);
+  const historyRef = useRef(null);
 
   const finalAmount = customAmount ? Number(customAmount) : selectedAmount;
   const paymentMethods = getPaymentMethods(t);
@@ -71,13 +77,13 @@ export default function WalletPage() {
   };
 
   const handleRecharge = async () => {
-    if (!finalAmount || finalAmount < 100 || finalAmount > 50000 || processing) {
-      setWalletError("Top-up amount must be between NPR 100.00 and NPR 50,000.00.");
+    if (pinStatus !== "PIN_SET") {
+      setWalletError("Activate your wallet before topping up.");
       return;
     }
 
-    if (pinStatus === "PIN_NOT_SET") {
-      setShowPinModal(true);
+    if (!finalAmount || finalAmount < 100 || finalAmount > 50000 || processing) {
+      setWalletError("Top-up amount must be between NPR 100.00 and NPR 50,000.00.");
       return;
     }
 
@@ -114,32 +120,14 @@ export default function WalletPage() {
     }
   };
 
-  const createWalletPin = async () => {
-    if (newPin.length !== 4 || confirmPin.length !== 4) return;
-    if (newPin !== confirmPin) return;
+  const openPinModal = () => {
+    setWalletError("");
+    setShowPinModal(true);
+  };
 
-    const res = await apiFetch("/api/wallet/create-pin", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        userId: user.id,
-        walletPin: newPin,
-      }),
-    });
-
-    const text = await res.text();
-
-    if (text === "Wallet PIN created") {
-      setShowPinModal(false);
-      setPinStatus("PIN_SET");
-      setNewPin("");
-      setConfirmPin("");
-    } else {
-      alert(text);
-    }
+  const handleWalletActivated = async () => {
+    setPinStatus("PIN_SET");
+    await loadWallet();
   };
 
   return (
@@ -173,18 +161,29 @@ export default function WalletPage() {
                   {t("passenger.wallet.availableBalance")}
                 </p>
 
-                <h2 className="mt-3 text-4xl font-black sm:text-5xl">
-                  NPR{" "}
-                  {balance.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </h2>
+                <div className="mt-3 flex items-center gap-3">
+                  <h2 className="text-4xl font-black sm:text-5xl">
+                    {showBalance
+                      ? `NPR ${balance.toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}`
+                      : "NPR ••••••"}
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={toggleBalance}
+                    aria-label={showBalance ? "Hide wallet balance" : "Show wallet balance"}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-slate-200 transition hover:bg-white/20 hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  >
+                    {showBalance ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
 
                 <p className="mt-3 text-sm text-slate-300">
                   {t("passenger.wallet.walletStatus")}:{" "}
                   <span className={pinStatus === "PIN_SET" ? "font-black text-emerald-300" : "font-black text-yellow-300"}>
-                    {pinStatus === "PIN_SET" ? t("common.active") : t("passenger.wallet.notActivated")}
+                    {pinStatus === "PIN_SET" ? t("common.active") : t("common.inactive")}
                   </span>
                 </p>
               </div>
@@ -194,13 +193,47 @@ export default function WalletPage() {
               </div>
             </div>
 
-            {pinStatus === "PIN_NOT_SET" && (
+            {pinStatus !== "PIN_SET" && (
               <div className="mt-6 rounded-2xl bg-white/10 p-4">
                 <p className="text-sm font-bold">
                   {t("passenger.wallet.activationPrompt")}
                 </p>
               </div>
             )}
+
+            <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-white/15 pt-5">
+              {pinStatus === "PIN_SET" ? (
+                <button
+                  type="button"
+                  onClick={() => topUpRef.current?.scrollIntoView({ behavior: "smooth" })}
+                  className="rounded-xl bg-white px-4 py-2.5 text-sm font-black text-[#08264a] transition hover:bg-slate-100"
+                >
+                  {t("passenger.wallet.rechargeWallet")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openPinModal}
+                  className="rounded-xl bg-white px-4 py-2.5 text-sm font-black text-[#08264a] transition hover:bg-slate-100"
+                >
+                  {t("passenger.wallet.activateWallet")}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => historyRef.current?.scrollIntoView({ behavior: "smooth" })}
+                className="rounded-xl border border-white/30 px-4 py-2.5 text-sm font-black text-white transition hover:bg-white/10"
+              >
+                {t("passenger.wallet.transactions")}
+              </button>
+              <span className={`rounded-full px-3 py-2 text-xs font-black ${
+                pinStatus === "PIN_SET"
+                  ? "bg-emerald-400/20 text-emerald-200"
+                  : "bg-yellow-400/20 text-yellow-200"
+              }`}>
+                {pinStatus === "PIN_SET" ? t("common.active") : t("common.inactive")}
+              </span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -212,7 +245,28 @@ export default function WalletPage() {
             />
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div ref={topUpRef} className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            {pinStatus !== "PIN_SET" ? (
+              <div className="flex min-h-64 flex-col items-center justify-center text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-100 text-amber-700">
+                  <LockKeyhole size={26} />
+                </div>
+                <h2 className="mt-4 text-xl font-black text-slate-900">
+                  {t("passenger.wallet.activateWallet")}
+                </h2>
+                <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+                  {t("passenger.wallet.activationPrompt")}
+                </p>
+                <button
+                  type="button"
+                  onClick={openPinModal}
+                  className="mt-5 rounded-xl bg-[#08264a] px-6 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+                >
+                  {t("passenger.wallet.activateWallet")}
+                </button>
+              </div>
+            ) : (
+              <>
             <div className="mb-5 flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
                 <PlusCircle size={21} />
@@ -300,21 +354,21 @@ export default function WalletPage() {
 
             <button
               onClick={handleRecharge}
-              disabled={processing}
+              disabled={processing || pinStatus !== "PIN_SET"}
               className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-3 text-sm font-black text-white transition hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <PlusCircle size={18} />
               {processing
                 ? "Opening secure checkout…"
-                : pinStatus === "PIN_NOT_SET"
-                  ? t("passenger.wallet.activateWallet")
-                  : t("passenger.wallet.rechargeWallet")}
+                : t("passenger.wallet.rechargeWallet")}
             </button>
+              </>
+            )}
           </div>
         </section>
 
         <aside className="space-y-5 xl:col-span-5">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div ref={historyRef} className="scroll-mt-24 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-xl font-black text-slate-900">
               {t("passenger.wallet.recentTransactions")}
             </h2>
@@ -351,56 +405,12 @@ export default function WalletPage() {
         </aside>
       </div>
 
-      {showPinModal && (
-        <div className="fixed inset-0 z-999 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#08264a] text-white">
-                🔐
-              </div>
-
-              <h2 className="mt-4 text-2xl font-black text-slate-900">
-                {t("passenger.wallet.activateWallet")}
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-slate-500">
-                {t("passenger.wallet.activateWalletDesc")}
-              </p>
-            </div>
-
-            <PinInput label={t("passenger.wallet.enterPin")} inputId="wallet-pin" value={newPin} setValue={setNewPin} />
-            <PinInput label={t("passenger.wallet.confirmPin")} inputId="confirm-wallet-pin" value={confirmPin} setValue={setConfirmPin} />
-
-            {confirmPin.length === 4 && newPin !== confirmPin && (
-              <p className="mt-3 text-center text-sm font-bold text-red-600">
-                {t("passenger.wallet.pinMismatch")}
-              </p>
-            )}
-
-            <div className="mt-5 rounded-xl bg-slate-50 p-4 text-xs font-bold text-slate-500">
-              {t("passenger.wallet.pinRules")} <br />
-              {t("passenger.wallet.pinUsage")}
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              <button
-                onClick={() => setShowPinModal(false)}
-                className="flex-1 rounded-xl border border-slate-300 py-3 text-sm font-black text-slate-600 hover:bg-slate-50"
-              >
-                {t("common.cancel")}
-              </button>
-
-              <button
-                onClick={createWalletPin}
-                disabled={newPin.length !== 4 || confirmPin.length !== 4 || newPin !== confirmPin}
-                className="flex-1 rounded-xl bg-[#08264a] py-3 text-sm font-black text-white hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:bg-slate-300"
-              >
-                {t("passenger.wallet.activateWallet")}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <WalletActivationModal
+        open={showPinModal}
+        userId={user.id}
+        onClose={() => setShowPinModal(false)}
+        onActivated={handleWalletActivated}
+      />
     </PassengerLayout>
   );
 }
@@ -463,52 +473,6 @@ function Transaction({ item, t }) {
           <Clock size={12} />
           {item.status}
         </p>
-      </div>
-    </div>
-  );
-}
-
-function PinInput({ label, inputId, value, setValue }) {
-  const handleChange = (index, digit) => {
-    if (!/^\d?$/.test(digit)) return;
-
-    const pinArray = value.padEnd(4, "").split("");
-    pinArray[index] = digit;
-
-    const newPin = pinArray.join("").trim();
-    setValue(newPin);
-
-    if (digit && index < 3) {
-      document.getElementById(`${inputId}-${index + 1}`)?.focus();
-    }
-  };
-
-  const handleKeyDown = (index, e) => {
-    if (e.key === "Backspace" && !value[index] && index > 0) {
-      document.getElementById(`${inputId}-${index - 1}`)?.focus();
-    }
-  };
-
-  return (
-    <div className="mt-6">
-      <p className="mb-3 text-center text-xs font-black uppercase tracking-widest text-slate-500">
-        {label}
-      </p>
-
-      <div className="flex justify-center gap-3">
-        {[0, 1, 2, 3].map((index) => (
-          <input
-            key={index}
-            id={`${inputId}-${index}`}
-            type="password"
-            inputMode="numeric"
-            maxLength={1}
-            value={value[index] || ""}
-            onChange={(e) => handleChange(index, e.target.value)}
-            onKeyDown={(e) => handleKeyDown(index, e)}
-            className="h-14 w-14 rounded-2xl border border-slate-300 bg-slate-50 text-center text-2xl font-black outline-none transition focus:border-[#08264a] focus:bg-white"
-          />
-        ))}
       </div>
     </div>
   );
