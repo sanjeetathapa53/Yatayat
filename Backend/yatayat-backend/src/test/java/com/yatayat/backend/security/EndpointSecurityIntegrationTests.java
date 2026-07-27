@@ -724,6 +724,58 @@ class EndpointSecurityIntegrationTests {
     }
 
     @Test
+    void anonymousCannotReadDetailedAnalytics() throws Exception {
+        for (String section : List.of("users", "operations", "bookings", "revenue")) {
+            mockMvc.perform(get("/api/admin/analytics/" + section))
+                    .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotReadDetailedAnalytics() throws Exception {
+        assertDetailedAnalyticsForbidden();
+    }
+
+    @Test
+    @WithMockUser(roles = "DRIVER")
+    void driverCannotReadDetailedAnalytics() throws Exception {
+        assertDetailedAnalyticsForbidden();
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERATOR")
+    void operatorCannotReadDetailedAnalytics() throws Exception {
+        assertDetailedAnalyticsForbidden();
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanReadEveryDetailedAnalyticsEndpoint() throws Exception {
+        for (String section : List.of("users", "operations", "bookings", "revenue")) {
+            mockMvc.perform(get("/api/admin/analytics/" + section))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void detailedAnalyticsRejectInvalidRange() throws Exception {
+        when(adminDashboardAnalyticsService.users("INVALID"))
+                .thenThrow(new IllegalArgumentException(
+                        "Range must be LAST_7_DAYS or LAST_30_DAYS."));
+        mockMvc.perform(get("/api/admin/analytics/users").param("range", "INVALID"))
+                .andExpect(status().isBadRequest());
+    }
+
+    private void assertDetailedAnalyticsForbidden() throws Exception {
+        for (String section : List.of("users", "operations", "bookings", "revenue")) {
+            mockMvc.perform(get("/api/admin/analytics/" + section))
+                    .andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
     void adminLoginCreatesRoleBearingSessionForProtectedReads() throws Exception {
         User admin = new User(
                 "Administrator",
