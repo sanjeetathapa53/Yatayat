@@ -312,9 +312,10 @@ export default function App() {
     element={<AdminRoutesPage />}
   />
   <Route
-    path="/admin/live-tracking"
+    path="/admin/live-monitoring"
     element={<AdminLiveMonitoringPage />}
   />
+  <Route path="/admin/live-tracking" element={<Navigate to="/admin/live-monitoring" replace />} />
         </Route>
 
         {/* PUBLIC ROUTE AND TRACKING PAGES */}

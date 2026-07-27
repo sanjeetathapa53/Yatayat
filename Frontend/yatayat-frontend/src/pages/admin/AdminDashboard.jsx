@@ -160,7 +160,7 @@ export default function AdminDashboard() {
                     <QuickLink label={`Drivers (${summary.pendingDriverApplications} pending)`} onClick={() => navigate("/admin/driver-applications")} />
                     <QuickLink label={`Buses (${summary.pendingBusApprovals} pending)`} onClick={() => navigate("/admin/buses")} />
                     <QuickLink label="Routes" onClick={() => navigate("/admin/routes")} />
-                    <QuickLink label="Live Monitoring" onClick={() => navigate("/admin/live-tracking")} />
+                    <QuickLink label="Live Monitoring" onClick={() => navigate("/admin/live-monitoring")} />
                   </div>
                 </div>
               </aside>

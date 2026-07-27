@@ -87,6 +87,16 @@ public interface LocalServiceRunRepository extends JpaRepository<LocalServiceRun
             LocalServiceRunStatus status
     );
 
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
+    @Query("""
+            select run from LocalServiceRun run
+            where run.status = :status
+              and run.operator.verificationStatus =
+                    com.yatayat.backend.entity.OperatorVerificationStatus.APPROVED
+            order by run.serviceDate asc, run.plannedStartTime asc
+            """)
+    List<LocalServiceRun> findAdminMonitoredRuns(@Param("status") LocalServiceRunStatus status);
+
     @EntityGraph(attributePaths = {"route", "operator", "driver", "driver.user"})
     List<LocalServiceRun> findByDriverAndStatusOrderByActualStartedAtDesc(
             DriverProfile driver,
