@@ -6,16 +6,21 @@ import {
   Star,
   Bus,
   BadgeCheck,
+  Clock3,
+  MapPin,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { CircleMarker, MapContainer, TileLayer, useMap } from "react-leaflet";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { useLanguage } from "../../context/LanguageContext";
+import { getActiveLocalServices } from "../../utils/passengerLocalLiveTracking";
 
 export default function PassengerDashboard() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const user = JSON.parse(localStorage.getItem("yatayatUser"));
+  const userId = user?.id;
 
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletStatus, setWalletStatus] = useState("");
@@ -24,7 +29,7 @@ export default function PassengerDashboard() {
     const fetchWalletSummary = async () => {
       try {
         const response = await fetch(
-          `http://localhost:8080/api/wallet/balance/${user.id}`,
+          `http://localhost:8080/api/wallet/balance/${userId}`,
           { credentials: "include" }
         );
 
@@ -32,7 +37,7 @@ export default function PassengerDashboard() {
         setWalletBalance(Number(balance));
 
         const statusResponse = await fetch(
-          `http://localhost:8080/api/wallet/pin-status/${user.id}`,
+          `http://localhost:8080/api/wallet/pin-status/${userId}`,
           { credentials: "include" }
         );
 
@@ -44,10 +49,10 @@ export default function PassengerDashboard() {
       }
     };
 
-    if (user?.id) {
+    if (userId) {
       fetchWalletSummary();
     }
-  }, []);
+  }, [userId]);
 
 
 
@@ -82,8 +87,8 @@ export default function PassengerDashboard() {
             <ActionCard
               icon={<Map size={26} />}
               title={t("passenger.dashboard.trackLocalBus")}
-              desc={t("passenger.dashboard.comingSoon")}
-              disabled
+              desc="View active local buses in real time."
+              onClick={() => navigate("/track-bus")}
             />
 
             <ActionCard
@@ -213,41 +218,7 @@ export default function PassengerDashboard() {
         </section>
 
         <aside className="min-w-0">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h3 className="mb-4 text-xl font-black text-slate-900 sm:text-2xl">
-              {t("passenger.dashboard.recentMapSearch")}
-            </h3>
-
-            <button
-              onClick={() => navigate("/track-bus")}
-              className="relative flex h-56 w-full items-center justify-center overflow-hidden rounded-xl bg-[#1f2f46] text-slate-300 transition hover:scale-[1.01] sm:h-64"
-            >
-              {t("passenger.dashboard.mapPreview")}
-              <p className="absolute bottom-4 left-4 text-sm text-white">
-                📍 Current Location: Koteshwor
-              </p>
-            </button>
-
-            <div className="mt-5 space-y-4">
-              <InfoRow
-                dot="bg-emerald-600"
-                left={t("passenger.dashboard.nextBusArriving", { minutes: 4 })}
-                right="Route 14"
-              />
-              <InfoRow
-                dot="bg-slate-500"
-                left={t("passenger.dashboard.expectedFareTo", { destination: "Kalanki" })}
-                right="NPR 25"
-              />
-            </div>
-
-            <button
-              onClick={() => navigate("/passenger/local-routes")}
-              className="mt-6 w-full rounded-xl border-2 border-[#08264a] py-3 text-sm font-black uppercase transition hover:bg-[#08264a] hover:text-white"
-            >
-              {t("passenger.layout.findLocalRoute")}
-            </button>
-          </div>
+          <NearbyLocalBusPreview onViewAll={() => navigate("/track-bus")} />
         </aside>
       </div>
 
@@ -268,6 +239,177 @@ export default function PassengerDashboard() {
       </footer>
     </PassengerLayout>
   );
+}
+
+function NearbyLocalBusPreview({ onViewAll }) {
+  const [passengerPosition, setPassengerPosition] = useState(null);
+  const [activeBuses, setActiveBuses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [locationState, setLocationState] = useState("WAITING");
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const load = async () => {
+      try {
+        setActiveBuses(await getActiveLocalServices(controller.signal));
+      } catch (error) {
+        if (error.name !== "AbortError") setActiveBuses([]);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+    Promise.resolve().then(load);
+    const timer = window.setInterval(load, 30000);
+    return () => {
+      controller.abort();
+      window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (!navigator.geolocation) {
+      Promise.resolve().then(() => {
+        if (active) setLocationState("UNAVAILABLE");
+      });
+      return () => { active = false; };
+    }
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        if (!active) return;
+        setPassengerPosition([coords.latitude, coords.longitude]);
+        setLocationState("AVAILABLE");
+      },
+      () => {
+        if (active) setLocationState("UNAVAILABLE");
+      },
+      { enableHighAccuracy: false, maximumAge: 60000, timeout: 8000 },
+    );
+    return () => { active = false; };
+  }, []);
+
+  const nearest = useMemo(() => {
+    if (!passengerPosition) return null;
+    return activeBuses
+      .filter((bus) => Number.isFinite(bus.latitude) && Number.isFinite(bus.longitude))
+      .map((bus) => ({
+        ...bus,
+        distanceKm: distanceKm(
+          passengerPosition[0], passengerPosition[1], bus.latitude, bus.longitude,
+        ),
+      }))
+      .sort((left, right) => left.distanceKm - right.distanceKm)[0] || null;
+  }, [activeBuses, passengerPosition]);
+
+  const busPosition = nearest ? [nearest.latitude, nearest.longitude] : null;
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4">
+        <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Live local tracking</p>
+        <h3 className="text-xl font-black text-slate-900 sm:text-2xl">Nearest active bus</h3>
+      </div>
+
+      <div className="relative h-56 overflow-hidden rounded-xl bg-slate-100 sm:h-64">
+        {passengerPosition ? (
+          <MapContainer
+            center={passengerPosition}
+            zoom={13}
+            dragging={false}
+            scrollWheelZoom={false}
+            doubleClickZoom={false}
+            zoomControl={false}
+            attributionControl={false}
+            className="h-full w-full"
+          >
+            <TileLayer attribution="© OpenStreetMap contributors" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+            <CircleMarker center={passengerPosition} radius={7} pathOptions={{ color: "#2563eb", fillColor: "#3b82f6", fillOpacity: 1 }} />
+            {busPosition && <CircleMarker center={busPosition} radius={9} pathOptions={{ color: "#047857", fillColor: "#10b981", fillOpacity: 1 }} />}
+            <FitPreviewBounds passengerPosition={passengerPosition} busPosition={busPosition} />
+          </MapContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center px-5 text-center text-sm font-bold text-slate-500">
+            {locationState === "UNAVAILABLE"
+              ? "Location is unavailable. Open Live Tracking to browse active buses."
+              : "Detecting your current location…"}
+          </div>
+        )}
+      </div>
+
+      <div className="mt-4">
+        {loading ? (
+          <p className="text-sm font-bold text-slate-500">Loading active local buses…</p>
+        ) : nearest ? (
+          <div className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-black text-slate-900">{nearest.busNumber}</p>
+                <p className="text-sm font-semibold text-slate-500">
+                  {nearest.routeName || `${nearest.origin} → ${nearest.destination}`}
+                </p>
+              </div>
+              <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[10px] font-black text-blue-700">LOCAL</span>
+            </div>
+            <p className="flex items-center gap-2 text-sm font-bold text-slate-600">
+              <MapPin size={16} className="text-emerald-700" />
+              {formatDistance(nearest.distanceKm)} away
+            </p>
+            <p className="flex items-center gap-2 text-sm font-bold text-slate-600">
+              <Clock3 size={16} className="text-emerald-700" />
+              {formatLastUpdate(nearest.updatedAt)}
+            </p>
+          </div>
+        ) : passengerPosition ? (
+          <div>
+            <p className="font-black text-slate-900">No nearby active buses.</p>
+            <p className="mt-1 text-sm font-semibold text-slate-500">View all active buses.</p>
+          </div>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        onClick={onViewAll}
+        className="mt-5 w-full rounded-xl bg-[#08264a] py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+      >
+        View all active buses
+      </button>
+    </div>
+  );
+}
+
+function FitPreviewBounds({ passengerPosition, busPosition }) {
+  const map = useMap();
+  useEffect(() => {
+    if (busPosition) {
+      map.fitBounds([passengerPosition, busPosition], { padding: [28, 28], maxZoom: 15 });
+    } else {
+      map.setView(passengerPosition, 13);
+    }
+  }, [busPosition, map, passengerPosition]);
+  return null;
+}
+
+function distanceKm(latitudeA, longitudeA, latitudeB, longitudeB) {
+  const radians = (value) => value * Math.PI / 180;
+  const latitudeDelta = radians(latitudeB - latitudeA);
+  const longitudeDelta = radians(longitudeB - longitudeA);
+  const value = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(radians(latitudeA)) * Math.cos(radians(latitudeB))
+    * Math.sin(longitudeDelta / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
+}
+
+function formatDistance(value) {
+  return value < 1 ? `${Math.round(value * 1000)} m` : `${value.toFixed(1)} km`;
+}
+
+function formatLastUpdate(value) {
+  if (!value) return "Waiting for GPS update";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? "Last update unavailable"
+    : `Last update ${new Intl.DateTimeFormat("en-NP", { timeStyle: "short" }).format(date)}`;
 }
 
 function WalletCard({ balance, status, onWallet, t }) {
@@ -399,17 +541,5 @@ function FavoriteRoute({ route, title, time, onClick }) {
       <h4 className="mt-5 font-black text-slate-900">{title}</h4>
       <p className="text-sm text-slate-500">{time}</p>
     </button>
-  );
-}
-
-function InfoRow({ dot, left, right }) {
-  return (
-    <div className="flex items-center justify-between text-sm">
-      <div className="flex items-center gap-3">
-        <span className={`h-2 w-2 rounded-full ${dot}`}></span>
-        <span>{left}</span>
-      </div>
-      <span className="font-bold">{right}</span>
-    </div>
   );
 }
