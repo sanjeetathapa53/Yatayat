@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "../hooks/useAuth";
 import { getPassengerNotificationUnreadCount } from "../utils/notifications";
 
 const NotificationContext = createContext(null);

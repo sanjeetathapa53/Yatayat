@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   ArrowRight,
@@ -15,8 +15,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/layout/AdminLayout";
-
-const API_BASE_URL = "http://localhost:8080";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function DriverApplicationsPage() {
   const navigate = useNavigate();
@@ -27,7 +26,7 @@ export default function DriverApplicationsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchApplications = async (manualRefresh = false) => {
+  const fetchApplications = useCallback(async (manualRefresh = false) => {
     try {
       if (manualRefresh) {
         setRefreshing(true);
@@ -71,11 +70,14 @@ export default function DriverApplicationsPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchApplications();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void fetchApplications();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchApplications]);
 
   const filteredApplications = useMemo(() => {
     const query = searchText.trim().toLowerCase();

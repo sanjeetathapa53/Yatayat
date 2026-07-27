@@ -4,7 +4,6 @@ import {
   LayoutDashboard,
   Route,
   Wallet,
-  History,
   Settings,
   LogOut,
   Bell,
@@ -17,8 +16,8 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../services/authService";
-import { useLanguage } from "../../context/LanguageContext";
-import { useAuth } from "../../context/AuthContext";
+import { useLanguage } from "../../hooks/useLanguage";
+import { useAuth } from "../../hooks/useAuth";
 import { useNotifications } from "../../context/NotificationContext";
 
 export default function PassengerLayout({ children, activePage = "Dashboard", title, subtitle }) {
@@ -88,12 +87,6 @@ export default function PassengerLayout({ children, activePage = "Dashboard", ti
       activeKey: "My Bookings",
       icon: <Ticket size={20} />,
       path: "/passenger/bookings",
-    },
-    {
-      label: t("common.history"),
-      activeKey: "History",
-      icon: <History size={20} />,
-      path: "/history",
     },
     {
       label: t("common.settings"),
@@ -324,7 +317,6 @@ function resolvePage(pathname, activePage) {
   if (pathname.startsWith("/track-bus")) return "tracking";
   if (pathname.startsWith("/passenger/local-routes") || pathname === "/routes") return "routes";
   if (pathname === "/fare-pass") return "farePass";
-  if (pathname === "/history") return "history";
   if (pathname === "/settings") return "settings";
   if (
     pathname.startsWith("/passenger/bookings")
@@ -342,7 +334,6 @@ function resolvePage(pathname, activePage) {
     || pathname === "/payment"
   ) return "booking";
   if (activePage === "Wallet") return "wallet";
-  if (activePage === "History") return "history";
   if (activePage === "Settings") return "settings";
   return "dashboard";
 }

@@ -117,7 +117,7 @@ export const passengerDriverTranslations = {
         transactions: "Transactions",
         ticketPayments: "Ticket Payments",
         rechargeWallet: "Recharge Wallet",
-        rechargeSubtitle: "Add balance using mock eSewa/Khalti payment for now.",
+        rechargeSubtitle: "Add balance securely using Khalti or eSewa.",
         selectAmount: "Select Amount",
         customAmountPlaceholder: "Enter custom amount",
         paymentMethodDesc: "Digital wallet payment",
@@ -312,7 +312,7 @@ passengerDriverTranslations.ne.passenger.wallet = {
   transactions: "कारोबारहरू",
   ticketPayments: "टिकट भुक्तानीहरू",
   rechargeWallet: "वालेट रिचार्ज",
-  rechargeSubtitle: "अहिलेका लागि mock eSewa/Khalti भुक्तानी प्रयोग गरेर ब्यालेन्स थप्नुहोस्।",
+  rechargeSubtitle: "Khalti वा eSewa प्रयोग गरेर सुरक्षित रूपमा ब्यालेन्स थप्नुहोस्।",
   selectAmount: "रकम छान्नुहोस्",
   customAmountPlaceholder: "आफ्नो रकम लेख्नुहोस्",
   paymentMethodDesc: "डिजिटल वालेट भुक्तानी",
@@ -354,7 +354,7 @@ passengerDriverTranslations.en.passenger.routeSearch = {
   noLandmark: "No landmark",
   search: "Find Route",
   searching: "Searching...",
-  helper: "Local travel currently supports direct routes only. Seat booking, wallet payment, QR ticketing and live GPS are not part of this local foundation phase.",
+  helper: "Search direct local routes, buy a wallet-funded fare pass, and track active buses.",
   chooseBothStops: "Choose both boarding and destination stops from the suggestions.",
   differentStops: "Boarding and destination stops must be different.",
   noResultsTitle: "No direct local route found.",
@@ -366,7 +366,7 @@ passengerDriverTranslations.en.passenger.routeSearch = {
   estimatedFare: "NPR {{fare}}",
   operating: "Operating: {{start}} to {{end}}",
   viewRoute: "View Route",
-  liveGpsComingSoon: "Live GPS — Coming Soon",
+  liveGpsComingSoon: "Track Active Buses",
 };
 
 passengerDriverTranslations.ne.passenger.routeSearch = {
@@ -391,7 +391,7 @@ passengerDriverTranslations.ne.passenger.routeSearch = {
   estimatedFare: "NPR {{fare}}",
   operating: "सञ्चालन समय: {{start}} देखि {{end}} सम्म",
   viewRoute: "रुट हेर्नुहोस्",
-  liveGpsComingSoon: "Live GPS — छिट्टै आउँदैछ",
+  liveGpsComingSoon: "सक्रिय बसहरू ट्र्याक गर्नुहोस्",
 };
 
 passengerDriverTranslations.en.passenger.liveTracking = {
@@ -499,8 +499,8 @@ passengerDriverTranslations.en.passenger.booking = {
   notSpecified: "Not specified",
   boardingNotes: "Boarding notes",
   noBoardingNotes: "No boarding notes provided",
-  localBookingUnavailable: "Local fare ticket support is coming in a later phase. Seat reservations are not available for local trips.",
-  localFareComingNext: "Local Fare Ticket - Coming Next",
+  localBookingUnavailable: "Local trips use wallet-funded fare passes instead of reserved seats.",
+  localFareComingNext: "Open Local Fare Pass",
   selectSeatsHelp: "Choose seats before confirming your passenger details. Your selection will be held temporarily.",
   selectSeats: "Select Seats",
   backToTripDetails: "Back to trip details",
@@ -533,7 +533,7 @@ passengerDriverTranslations.en.passenger.booking = {
   holdMissingToast: "Your seat hold is missing or expired. Select seats again.",
   createFailed: "Unable to create booking. Please try again.",
   seatBookingNotAvailable: "Seat booking is not available",
-  localTripLater: "This is a local trip. Local fare ticket support will be added in a later phase.",
+  localTripLater: "Local trips use wallet-funded fare passes instead of reserved seats.",
   returnToTripDetails: "Return to Trip Details",
   seatHoldRequired: "Seat hold required",
   seatHoldRequiredDesc: "Your seat hold is missing or expired. Select available seats before creating the booking.",
@@ -1132,7 +1132,7 @@ passengerDriverTranslations.en.passenger.settings = {
   paymentPreferencesDesc: "Set default payment behavior for ticket bookings.",
   defaultWallet: "Use Yatayat Wallet as default payment method",
   savedPaymentMethods: "Saved Payment Methods",
-  savedPaymentMethodsDesc: "eSewa, Khalti, Mobile Banking integration will be added later.",
+  savedPaymentMethodsDesc: "Khalti and eSewa are available for verified booking payments and wallet top-ups.",
   manage: "Manage",
   accountProtected: "Account Protected",
   accountProtectedDesc: "Two-factor authentication and wallet PIN are currently enabled.",

@@ -11,11 +11,6 @@ import FarePassPage from "./pages/passenger/FarePassPage";
 import WalletPage from "./pages/passenger/WalletPage";
 import NotificationsPage from "./pages/passenger/NotificationsPage";
 import ProfilePage from "./pages/passenger/ProfilePage";
-import SeatSelectionPage from "./pages/passenger/SeatSelectionPage";
-import BookingSummaryPage from "./pages/passenger/BookingSummaryPage";
-import PaymentPage from "./pages/passenger/PaymentPage";
-import TicketPage from "./pages/passenger/TicketPage";
-import HistoryPage from "./pages/passenger/HistoryPage";
 import SettingsPage from "./pages/passenger/SettingsPage";
 import PassengerTripSearchPage from "./pages/passenger/PassengerTripSearchPage";
 import PassengerTripDetailsPage from "./pages/passenger/PassengerTripDetailsPage";
@@ -35,11 +30,9 @@ import DriverApplicationStatusPage from "./pages/driver/DriverApplicationStatusP
 import DriverDashboard from "./pages/driver/DriverDashboard";
 import DriverScannerPage from "./pages/driver/DriverScannerPage";
 import TripManagementPage from "./pages/driver/TripManagementPage";
-import DriverPassengerListPage from "./pages/driver/DriverPassengerListPage";
 import DriverNotificationsPage from "./pages/driver/DriverNotificationsPage";
 import DriverProfilePage from "./pages/driver/DriverProfilePage";
 import DriverSettingsPage from "./pages/driver/DriverSettingsPage";
-import TripSummaryPage from "./pages/driver/TripSummaryPage";
 import DriverTripManifestPage from "./pages/driver/DriverTripManifestPage";
 import DriverLocalServicesPage from "./pages/driver/DriverLocalServicesPage";
 
@@ -171,41 +164,10 @@ export default function App() {
         <Route path="/wallet/topup/esewa/callback/:outcome/:topUpReference/:transactionUuid" element={<ProtectedRoute allowedRole="PASSENGER"><WalletTopUpCallbackPage provider="ESEWA" /></ProtectedRoute>} />
         <Route path="/passenger/tickets/:ticketNumber" element={<ProtectedRoute allowedRole="PASSENGER"><PassengerTicketPage /></ProtectedRoute>} />
 
-        <Route
-          path="/seat-selection"
-          element={
-            <ProtectedRoute allowedRole="PASSENGER">
-              <SeatSelectionPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/booking-summary"
-          element={
-            <ProtectedRoute allowedRole="PASSENGER">
-              <BookingSummaryPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/payment"
-          element={
-            <ProtectedRoute allowedRole="PASSENGER">
-              <PaymentPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/ticket"
-          element={
-            <ProtectedRoute allowedRole="PASSENGER">
-              <TicketPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/seat-selection" element={<Navigate to="/passenger/trips" replace />} />
+        <Route path="/booking-summary" element={<Navigate to="/passenger/bookings" replace />} />
+        <Route path="/payment" element={<Navigate to="/passenger/bookings" replace />} />
+        <Route path="/ticket" element={<Navigate to="/passenger/bookings" replace />} />
 
         <Route
           path="/my-bookings"
@@ -216,14 +178,7 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/history"
-          element={
-            <ProtectedRoute allowedRole="PASSENGER">
-              <HistoryPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/history" element={<Navigate to="/passenger/bookings" replace />} />
 
         <Route
           path="/settings"
@@ -293,14 +248,7 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/driver/passengers"
-          element={
-            <ProtectedRoute allowedRole="DRIVER">
-              <DriverPassengerListPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/driver/passengers" element={<Navigate to="/driver/trip" replace />} />
 
         <Route
           path="/driver/notifications"
@@ -329,14 +277,7 @@ export default function App() {
           }
         />
 
-        <Route
-          path="/driver/trip-summary"
-          element={
-            <ProtectedRoute allowedRole="DRIVER">
-              <TripSummaryPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/driver/trip-summary" element={<Navigate to="/driver/trip" replace />} />
 
         {/* PROTECTED ADMIN ROUTES */}
 

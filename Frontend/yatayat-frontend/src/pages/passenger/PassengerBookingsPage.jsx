@@ -3,7 +3,7 @@ import { Bus, Eye, Loader2, Plus, RefreshCw, Ticket, XCircle } from "lucide-reac
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import {
   cancelPassengerBooking,
   formatBookingDate,

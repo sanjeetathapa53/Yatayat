@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AuthLayout from "../../components/auth/AuthLayout";
+import { apiFetch } from "../../utils/api";
 
 const steps = [
   "Personal Details",
@@ -218,8 +219,8 @@ export default function DriverApplicationPage() {
       payload.append("licenseFront", form.licenseFront);
       payload.append("licenseBack", form.licenseBack);
 
-      const response = await fetch(
-        "http://localhost:8080/api/drivers/application",
+      const response = await apiFetch(
+        "/api/drivers/application",
         {
           method: "POST",
           credentials: "include",

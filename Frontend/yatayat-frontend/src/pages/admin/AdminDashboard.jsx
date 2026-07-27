@@ -4,32 +4,20 @@ import {
   ArrowRight,
   Building2,
   Bus,
-  CalendarDays,
   CheckCircle2,
-  Clock3,
-  CreditCard,
   FileCheck2,
   MapPinned,
   RefreshCw,
   Route,
-  Ticket,
   UserCheck,
-  Users,
-  Wallet,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../components/layout/AdminLayout";
+import { apiFetch } from "../../utils/api";
 
 const initialStats = {
-  passengers: 0,
-  totalDrivers: 0,
   pendingDrivers: 0,
   pendingOperators: 0,
-  approvedDrivers: 0,
-  buses: 0,
-  activeTrips: 0,
-  todayBookings: 0,
-  todayRevenue: 0,
 };
 
 export default function AdminDashboard() {
@@ -47,14 +35,9 @@ export default function AdminDashboard() {
       manualRefresh ? setRefreshing(true) : setLoading(true);
       setError("");
 
-      /*
-       * These APIs will be created progressively.
-       * The pending-driver API may already exist once we finish admin approval.
-       */
-
       const [pendingResponse, operatorsResponse] = await Promise.all([
-        fetch("http://localhost:8080/api/admin/drivers/pending", { credentials: "include" }),
-        fetch("http://localhost:8080/api/admin/operators", { credentials: "include" }),
+        apiFetch("/api/admin/drivers/pending"),
+        apiFetch("/api/admin/operators"),
       ]);
 
       let pendingData = [];
@@ -78,12 +61,6 @@ export default function AdminDashboard() {
         : [];
 
       setPendingOperators(pendingOperatorData);
-
-      /*
-       * Temporary calculated values.
-       * Later these will come from:
-       * GET /api/admin/dashboard/summary
-       */
 
       setStats((previous) => ({
         ...previous,
@@ -170,40 +147,13 @@ export default function AdminDashboard() {
 
         {/* STAT CARDS */}
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
-            label="Registered Passengers"
-            value={stats.passengers}
-            description="Passenger accounts"
-            icon={<Users size={23} />}
-            tone="blue"
-            loading={loading}
-          />
-
-          <StatCard
-            label="Total Drivers"
-            value={stats.totalDrivers}
-            description={`${stats.approvedDrivers} approved`}
-            icon={<UserCheck size={23} />}
-            tone="emerald"
-            loading={loading}
-          />
-
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <StatCard
             label="Pending Applications"
             value={stats.pendingDrivers}
             description="Require admin review"
             icon={<FileCheck2 size={23} />}
             tone="amber"
-            loading={loading}
-          />
-
-          <StatCard
-            label="Registered Buses"
-            value={stats.buses}
-            description={`${stats.activeTrips} active trips`}
-            icon={<Bus size={23} />}
-            tone="violet"
             loading={loading}
           />
 
@@ -216,41 +166,6 @@ export default function AdminDashboard() {
             loading={loading}
           />
 
-          <StatCard
-            label="Today's Bookings"
-            value={stats.todayBookings}
-            description="Confirmed tickets today"
-            icon={<Ticket size={23} />}
-            tone="cyan"
-            loading={loading}
-          />
-
-          <StatCard
-            label="Today's Revenue"
-            value={`NPR ${Number(stats.todayRevenue).toLocaleString()}`}
-            description="Wallet and ticket payments"
-            icon={<Wallet size={23} />}
-            tone="emerald"
-            loading={loading}
-          />
-
-          <StatCard
-            label="Active Trips"
-            value={stats.activeTrips}
-            description="Currently operating"
-            icon={<MapPinned size={23} />}
-            tone="blue"
-            loading={loading}
-          />
-
-          <StatCard
-            label="Approved Drivers"
-            value={stats.approvedDrivers}
-            description="Operational accounts"
-            icon={<CheckCircle2 size={23} />}
-            tone="emerald"
-            loading={loading}
-          />
         </section>
 
         {/* MAIN CONTENT */}
@@ -404,12 +319,6 @@ export default function AdminDashboard() {
                   onClick={() => navigate("/admin/routes")}
                 />
 
-                <QuickAction
-                  icon={<CalendarDays size={20} />}
-                  label="Manage Trips"
-                  description="Create and monitor scheduled trips"
-                  onClick={() => navigate("/admin/trips")}
-                />
               </div>
             </div>
 
@@ -439,33 +348,6 @@ export default function AdminDashboard() {
           </aside>
         </section>
 
-        {/* SECONDARY OVERVIEW */}
-
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <OverviewCard
-            icon={<CreditCard size={22} />}
-            title="Payments & Refunds"
-            text="Monitor wallet recharges, ticket payments, cancellations, and refunds."
-            button="View Payments"
-            onClick={() => navigate("/admin/payments")}
-          />
-
-          <OverviewCard
-            icon={<Ticket size={22} />}
-            title="Bookings"
-            text="Review passenger bookings, booking status, used tickets, and cancellations."
-            button="View Bookings"
-            onClick={() => navigate("/admin/bookings")}
-          />
-
-          <OverviewCard
-            icon={<Clock3 size={22} />}
-            title="System Activity"
-            text="Operational logs and recent platform actions will appear here later."
-            button="View Reports"
-            onClick={() => navigate("/admin/reports")}
-          />
-        </section>
       </div>
     </AdminLayout>
   );
@@ -599,39 +481,6 @@ function QuickAction({
 
       <ArrowRight size={18} className="shrink-0 text-slate-400" />
     </button>
-  );
-}
-
-function OverviewCard({
-  icon,
-  title,
-  text,
-  button,
-  onClick,
-}) {
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-[#08264a]">
-        {icon}
-      </div>
-
-      <h2 className="mt-5 text-lg font-black text-slate-900">
-        {title}
-      </h2>
-
-      <p className="mt-2 text-sm leading-6 text-slate-500">
-        {text}
-      </p>
-
-      <button
-        type="button"
-        onClick={onClick}
-        className="mt-5 flex items-center gap-2 text-sm font-black text-[#08264a] hover:underline"
-      >
-        {button}
-        <ArrowRight size={16} />
-      </button>
-    </div>
   );
 }
 

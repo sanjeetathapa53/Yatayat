@@ -15,7 +15,7 @@ import { toast } from "react-toastify";
 import AuthLayout from "../../components/auth/AuthLayout";
 import RoleTabs from "../../components/auth/RoleTabs";
 import { API_BASE_URL, apiFetch } from "../../utils/api";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 import { logoutUser } from "../../services/authService";
 
 export default function LoginPage() {

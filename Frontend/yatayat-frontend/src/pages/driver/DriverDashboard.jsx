@@ -23,11 +23,10 @@ import {
 import { toast } from "react-toastify";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import DriverLayout from "../../components/layout/DriverLayout";
-import { apiFetch } from "../../utils/api";
+import { API_BASE_URL, apiFetch } from "../../utils/api";
 import { beginDriverTripBoarding, finishDriverTrip, getCurrentDriverTrip, startDriverTrip, tripStatusLabel, tripStatusTone } from "../../utils/driverTrips";
 import { GPS_STATUS, useDriverLocationTracking } from "../../hooks/useDriverLocationTracking";
 
-const API_BASE_URL = "http://localhost:8080";
 
 export default function DriverProfilePage() {
   const loggedInUser = useMemo(() => {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Shield,
   Palette,
@@ -25,8 +25,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import DriverLayout from "../../components/layout/DriverLayout";
-
-const API_BASE_URL = "http://localhost:8080";
+import { API_BASE_URL } from "../../utils/api";
 
 const defaultSettings = {
   twoFactor: false,
@@ -71,7 +70,7 @@ export default function DriverSettingsPage() {
     }
   });
 
-  const fetchDriver = async () => {
+  const fetchDriver = useCallback(async () => {
     if (!loggedInUser?.id) {
       setLoadingDriver(false);
       return;
@@ -112,11 +111,14 @@ export default function DriverSettingsPage() {
     } finally {
       setLoadingDriver(false);
     }
-  };
+  }, [loggedInUser]);
 
   useEffect(() => {
-    fetchDriver();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void fetchDriver();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchDriver]);
 
   const updateSetting = (field, value) => {
     setSettings((current) => ({

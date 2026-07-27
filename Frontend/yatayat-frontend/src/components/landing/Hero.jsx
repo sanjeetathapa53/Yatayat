@@ -1,6 +1,6 @@
 import Button from "../common/Button";
 import Badge from "../common/Badge";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import mapBg from "../../assets/images/map-bg.png";
 
 export default function Hero() {

@@ -1,5 +1,5 @@
 import { CheckCircle, Bus, CreditCard, Radio } from "lucide-react";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 
 export default function Features() {
   const { t } = useLanguage();

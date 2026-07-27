@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -17,8 +17,7 @@ import {
 import { toast } from "react-toastify";
 
 import AuthLayout from "../../components/auth/AuthLayout";
-
-const API_BASE_URL = "http://localhost:8080";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function OperatorApplicationStatusPage() {
   const navigate = useNavigate();
@@ -56,7 +55,7 @@ export default function OperatorApplicationStatusPage() {
     useState(false);
   const [error, setError] = useState("");
 
-  const fetchStatus = async (
+  const fetchStatus = useCallback(async (
     manualRefresh = false
   ) => {
     if (!loggedInUser?.id) {
@@ -139,11 +138,14 @@ export default function OperatorApplicationStatusPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [loggedInUser, navigate]);
 
   useEffect(() => {
-    fetchStatus();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void fetchStatus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchStatus]);
 
   const openDashboard = () => {
     if (status !== "APPROVED") {

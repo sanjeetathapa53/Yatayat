@@ -11,7 +11,7 @@ import {
   Download,
 } from "lucide-react";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { apiFetch } from "../../utils/api";
 import {
   initiateWalletTopUp,
@@ -118,7 +118,7 @@ export default function WalletPage() {
     if (newPin.length !== 4 || confirmPin.length !== 4) return;
     if (newPin !== confirmPin) return;
 
-    const res = await fetch("http://localhost:8080/api/wallet/create-pin", {
+    const res = await apiFetch("/api/wallet/create-pin", {
       method: "POST",
       credentials: "include",
       headers: {

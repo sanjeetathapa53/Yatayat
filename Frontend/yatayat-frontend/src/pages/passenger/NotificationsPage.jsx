@@ -10,7 +10,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { useNotifications } from "../../context/NotificationContext";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import {

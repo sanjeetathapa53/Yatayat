@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   Building2,
@@ -19,8 +19,7 @@ import {
 import { toast } from "react-toastify";
 
 import AdminLayout from "../../components/layout/AdminLayout";
-
-const API_BASE_URL = "http://localhost:8080";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function TransportOperatorsPage() {
   const [operators, setOperators] = useState([]);
@@ -43,7 +42,7 @@ export default function TransportOperatorsPage() {
 
   const [error, setError] = useState("");
 
-  const loadOperators = async () => {
+  const loadOperators = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -74,11 +73,14 @@ export default function TransportOperatorsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadOperators();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void loadOperators();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadOperators]);
 
   const filteredOperators = useMemo(() => {
     const query = searchText.trim().toLowerCase();

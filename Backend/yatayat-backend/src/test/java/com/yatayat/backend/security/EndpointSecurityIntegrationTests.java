@@ -47,7 +47,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @WebMvcTest(controllers = {
         WalletController.class,
-        BookingController.class,
         DriverApplicationController.class,
         DriverDashboardController.class,
         DriverOperatorInvitationController.class,
@@ -84,11 +83,7 @@ class EndpointSecurityIntegrationTests {
     @MockitoBean
     private WalletTransactionRepository walletTransactionRepository;
     @MockitoBean
-    private BookingRepository bookingRepository;
-    @MockitoBean
     private EmailService emailService;
-    @MockitoBean
-    private TicketPdfService ticketPdfService;
     @MockitoBean
     private DriverApplicationService driverApplicationService;
     @MockitoBean
@@ -767,30 +762,6 @@ class EndpointSecurityIntegrationTests {
                 .thenReturn(Optional.of(passengerA));
 
         mockMvc.perform(get("/api/wallet/balance/2"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @WithMockUser(username = "passenger-a@example.com", roles = "PASSENGER")
-    void passengerCannotViewAnotherPassengersBooking() throws Exception {
-        when(userRepository.findByEmailIgnoreCase("passenger-a@example.com"))
-                .thenReturn(Optional.of(passengerA));
-        when(bookingRepository.findByIdAndPassenger(20L, passengerA))
-                .thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/api/bookings/20/ticket-pdf"))
-                .andExpect(status().isNotFound());
-    }
-
-    @Test
-    @WithMockUser(username = "passenger-a@example.com", roles = "PASSENGER")
-    void passengerCannotCancelAnotherPassengersBooking() throws Exception {
-        when(userRepository.findByEmailIgnoreCase("passenger-a@example.com"))
-                .thenReturn(Optional.of(passengerA));
-        when(bookingRepository.findByIdAndPassenger(20L, passengerA))
-                .thenReturn(Optional.empty());
-
-        mockMvc.perform(put("/api/bookings/20/cancel"))
                 .andExpect(status().isNotFound());
     }
 

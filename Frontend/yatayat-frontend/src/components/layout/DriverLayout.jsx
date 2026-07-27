@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LayoutDashboard,
   QrCode,
-  Users,
   Route,
   Bell,
   UserCircle,
@@ -17,9 +16,8 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { logoutUser } from "../../services/authService";
-import { useLanguage } from "../../context/LanguageContext";
-
-const API_BASE_URL = "http://localhost:8080";
+import { useLanguage } from "../../hooks/useLanguage";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function DriverLayout({
   children,
@@ -45,7 +43,7 @@ export default function DriverLayout({
     }
   }, []);
 
-  const fetchDriverProfile = async () => {
+  const fetchDriverProfile = useCallback(async () => {
     if (!loggedInUser?.id) {
       setLoadingDriver(false);
       return;
@@ -103,11 +101,14 @@ export default function DriverLayout({
     } finally {
       setLoadingDriver(false);
     }
-  };
+  }, [loggedInUser, t]);
 
   useEffect(() => {
-    fetchDriverProfile();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void fetchDriverProfile();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchDriverProfile]);
 
   const go = (path) => {
     navigate(path);
@@ -135,12 +136,6 @@ export default function DriverLayout({
       activeKey: "Scanner",
       icon: <QrCode size={20} />,
       path: "/driver/scanner",
-    },
-    {
-      label: t("driver.layout.passengerList"),
-      activeKey: "Passenger List",
-      icon: <Users size={20} />,
-      path: "/driver/passengers",
     },
     {
       label: t("driver.layout.tripManagement"),
