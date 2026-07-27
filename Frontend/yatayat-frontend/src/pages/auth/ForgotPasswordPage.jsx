@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Mail, KeyRound, Lock, ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
@@ -14,9 +14,22 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resendSeconds, setResendSeconds] = useState(0);
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return undefined;
+    const timer = window.setInterval(
+      () => setResendSeconds((value) => Math.max(0, value - 1)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [resendSeconds]);
 
   const sendOtp = async () => {
+    if (loading || resendSeconds > 0 || !email.trim()) return;
     try {
+      setLoading(true);
       const res = await apiFetch(
         "/api/auth/send-forgot-password-otp",
         {
@@ -28,22 +41,25 @@ export default function ForgotPasswordPage() {
         }
       );
 
-      const text = await res.text();
-
-      if (text === "Email not registered") {
-        toast.error("Email not registered.");
+      const text = await readResponseMessage(res);
+      if (!res.ok) {
+        toast.error(text || "Reset instructions could not be requested.");
         return;
       }
-
-      toast.success("OTP sent to your email.");
+      toast.success(text);
       setStep(2);
+      setResendSeconds(60);
     } catch {
       toast.error("Failed to send OTP.");
+    } finally {
+      setLoading(false);
     }
   };
 
   const resetPassword = async () => {
+    if (loading) return;
     try {
+      setLoading(true);
       const res = await apiFetch(
         "/api/auth/reset-password",
         {
@@ -59,15 +75,9 @@ export default function ForgotPasswordPage() {
         }
       );
 
-      const text = await res.text();
-
-      if (text === "Invalid OTP") {
-        toast.error("Invalid OTP.");
-        return;
-      }
-
-      if (text === "OTP not found") {
-        toast.error("OTP expired.");
+      const text = await readResponseMessage(res);
+      if (!res.ok) {
+        toast.error(text || "Password reset could not be completed.");
         return;
       }
 
@@ -78,6 +88,8 @@ export default function ForgotPasswordPage() {
       }, 1200);
     } catch {
       toast.error("Something went wrong.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -126,9 +138,10 @@ export default function ForgotPasswordPage() {
 
             <button
               onClick={sendOtp}
+              disabled={loading || !email.trim()}
               className="w-full rounded-2xl bg-[#08264a] py-3 font-bold text-white hover:bg-[#0d3566]"
             >
-              Send OTP
+              {loading ? "Sending..." : "Send OTP"}
             </button>
 
           </div>
@@ -147,8 +160,11 @@ export default function ForgotPasswordPage() {
 
                 <input
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
                   placeholder="Enter OTP"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
                   className="w-full bg-transparent outline-none"
                 />
               </div>
@@ -174,9 +190,19 @@ export default function ForgotPasswordPage() {
 
             <button
               onClick={resetPassword}
+              disabled={loading || otp.length !== 6 || newPassword.length < 6}
               className="w-full rounded-2xl bg-emerald-600 py-3 font-bold text-white hover:bg-emerald-700"
             >
-              Reset Password
+              {loading ? "Resetting..." : "Reset Password"}
+            </button>
+
+            <button
+              type="button"
+              onClick={sendOtp}
+              disabled={loading || resendSeconds > 0}
+              className="w-full text-sm font-bold text-[#08264a] disabled:text-slate-400"
+            >
+              {resendSeconds > 0 ? `Resend OTP in ${resendSeconds}s` : "Resend OTP"}
             </button>
 
           </div>
@@ -184,4 +210,14 @@ export default function ForgotPasswordPage() {
       </div>
     </AuthLayout>
   );
+}
+
+async function readResponseMessage(response) {
+  const text = await response.text();
+  try {
+    const body = JSON.parse(text);
+    return body.detail || body.message || text;
+  } catch {
+    return text;
+  }
 }

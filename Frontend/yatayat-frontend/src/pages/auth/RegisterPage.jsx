@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Eye,
@@ -46,6 +46,16 @@ export default function RegisterPage() {
     useState(false);
   const [verifyingOtp, setVerifyingOtp] =
     useState(false);
+  const [resendSeconds, setResendSeconds] = useState(0);
+
+  useEffect(() => {
+    if (resendSeconds <= 0) return undefined;
+    const timer = window.setInterval(
+      () => setResendSeconds((value) => Math.max(0, value - 1)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [resendSeconds]);
 
   const getBackendRole = () => {
     switch (role) {
@@ -119,9 +129,9 @@ export default function RegisterPage() {
         }
       );
 
-      const message = await response.text();
+      const message = await readResponseMessage(response);
 
-      if (message !== "OTP sent to email") {
+      if (!response.ok || message !== "OTP sent to email") {
         toast.error(message || "Unable to send OTP.");
         return;
       }
@@ -129,6 +139,7 @@ export default function RegisterPage() {
       setPendingUserData(userData);
       setOtp("");
       setShowOtpModal(true);
+      setResendSeconds(60);
 
       toast.success(
         `OTP sent to ${normalizedEmail}`
@@ -174,10 +185,9 @@ export default function RegisterPage() {
         }
       );
 
-      const verifyMessage =
-        await verifyResponse.text();
+      const verifyMessage = await readResponseMessage(verifyResponse);
 
-      if (verifyMessage !== "OTP verified") {
+      if (!verifyResponse.ok || verifyMessage !== "OTP verified") {
         toast.error(
           verifyMessage || "OTP verification failed."
         );
@@ -196,11 +206,10 @@ export default function RegisterPage() {
         }
       );
 
-      const registerMessage =
-        await registerResponse.text();
+      const registerMessage = await readResponseMessage(registerResponse);
 
       if (
-        registerMessage !==
+        !registerResponse.ok || registerMessage !==
         "Successfully registered"
       ) {
         toast.error(
@@ -555,10 +564,24 @@ export default function RegisterPage() {
             }
           }}
           loading={verifyingOtp}
+          onResend={() => {
+            if (!sendingOtp && resendSeconds === 0) handleRegister({ preventDefault() {} });
+          }}
+          resendSeconds={resendSeconds}
         />
       )}
     </AuthLayout>
   );
+}
+
+async function readResponseMessage(response) {
+  const text = await response.text();
+  try {
+    const body = JSON.parse(text);
+    return body.detail || body.message || text;
+  } catch {
+    return text;
+  }
 }
 
 function getRegistrationSuccessMessage(role) {
