@@ -2,6 +2,7 @@ package com.yatayat.backend.entity;
 
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import java.time.LocalDateTime;
 
 
 @Entity
@@ -23,6 +24,9 @@ public class User {
     private String role; // PASSENGER, DRIVER, OPERATOR, ADMIN
 
     private String phone;
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "authentication_provider", nullable = false,
@@ -112,5 +116,18 @@ public class User {
 
     public void setWallet(Wallet wallet) {
         this.wallet = wallet;
+    }
+
+    @PrePersist
+    void recordCreationTime() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }
