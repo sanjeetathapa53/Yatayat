@@ -20,6 +20,8 @@ async function driverTripRequest(path, options = {}) {
 }
 
 export const getCurrentDriverTrip = () => driverTripRequest("/api/driver/trips/current");
+export const beginDriverTripBoarding = (scheduledTripId) =>
+  driverTripRequest(`/api/driver/trips/${encodeURIComponent(scheduledTripId)}/boarding`, { method: "POST" });
 export const startDriverTrip = (scheduledTripId) =>
   driverTripRequest(`/api/driver/trips/${encodeURIComponent(scheduledTripId)}/start`, { method: "POST" });
 export const finishDriverTrip = (scheduledTripId) =>

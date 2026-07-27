@@ -281,6 +281,86 @@ class LocalServiceRunIntegrationTests {
 
     @Test
     @WithMockUser(username = "driver@example.com", roles = "DRIVER")
+    void currentLocalServicePrioritizesRepositoryOperationalResult() throws Exception {
+        mockOperationalDriver();
+        LocalServiceRun active = existingRun(LocalServiceRunStatus.IN_SERVICE);
+        active.setServiceDate(LocalDate.now());
+        active.setActualStartedAt(LocalDateTime.now().minusMinutes(10));
+        when(localRunRepository.findDriverOperationalRuns(driver, LocalDate.now()))
+                .thenReturn(List.of(active));
+
+        mockMvc.perform(get("/api/driver/local-services/current"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(20))
+                .andExpect(jsonPath("$.status").value("IN_SERVICE"));
+    }
+
+    @Test
+    @WithMockUser(username = "driver@example.com", roles = "DRIVER")
+    void assignedDriverCanStartAndFinishLocalService() throws Exception {
+        mockOperationalDriver();
+        LocalServiceRun run = existingRun(LocalServiceRunStatus.PLANNED);
+        run.setServiceDate(LocalDate.now());
+        when(localRunRepository.findByIdAndDriverForOperation(20L, driver))
+                .thenReturn(Optional.of(run));
+        when(associationRepository.findByDriverAndOperator(driver, operator))
+                .thenReturn(Optional.of(association));
+        when(localRunRepository.saveAndFlush(run)).thenReturn(run);
+
+        mockMvc.perform(post("/api/driver/local-services/20/start"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_SERVICE"))
+                .andExpect(jsonPath("$.actualStartedAt").isNotEmpty());
+
+        mockMvc.perform(post("/api/driver/local-services/20/finish"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.actualCompletedAt").isNotEmpty());
+    }
+
+    @Test
+    @WithMockUser(username = "driver@example.com", roles = "DRIVER")
+    void driverCannotOperateAnotherDriversLocalService() throws Exception {
+        mockOperationalDriver();
+        when(localRunRepository.findByIdAndDriverForOperation(88L, driver))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/driver/local-services/88/start"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "driver@example.com", roles = "DRIVER")
+    void inactiveOperatorAssociationPreventsLocalServiceStart() throws Exception {
+        mockOperationalDriver();
+        LocalServiceRun run = existingRun(LocalServiceRunStatus.PLANNED);
+        run.setServiceDate(LocalDate.now());
+        association.setStatus(DriverOperatorAssociationStatus.REMOVED);
+        when(localRunRepository.findByIdAndDriverForOperation(20L, driver))
+                .thenReturn(Optional.of(run));
+        when(associationRepository.findByDriverAndOperator(driver, operator))
+                .thenReturn(Optional.of(association));
+
+        mockMvc.perform(post("/api/driver/local-services/20/start"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message")
+                        .value("Active operator association is required for this local service."));
+    }
+
+    @Test
+    @WithMockUser(username = "driver@example.com", roles = "DRIVER")
+    void expiredDriverLicencePreventsLocalServiceStart() throws Exception {
+        driver.setLicenseExpiryDate(LocalDate.now().minusDays(1));
+        when(userRepository.findByEmailIgnoreCase("driver@example.com"))
+                .thenReturn(Optional.of(driver.getUser()));
+        when(driverRepository.findByUser(driver.getUser())).thenReturn(Optional.of(driver));
+
+        mockMvc.perform(post("/api/driver/local-services/20/start"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "driver@example.com", roles = "DRIVER")
     void unrelatedDriverCannotReadRun() throws Exception {
         when(userRepository.findByEmailIgnoreCase("driver@example.com")).thenReturn(Optional.of(driver.getUser()));
         when(driverRepository.findByUser(driver.getUser())).thenReturn(Optional.of(driver));
@@ -314,6 +394,12 @@ class LocalServiceRunIntegrationTests {
                 .thenReturn(List.of());
         when(scheduledTripRepository.findDriverConflictsForUpdate(any(), any(), any(), any()))
                 .thenReturn(List.of());
+    }
+
+    private void mockOperationalDriver() {
+        when(userRepository.findByEmailIgnoreCase("driver@example.com"))
+                .thenReturn(Optional.of(driver.getUser()));
+        when(driverRepository.findByUser(driver.getUser())).thenReturn(Optional.of(driver));
     }
 
     private LocalServiceRun existingRun(LocalServiceRunStatus status) {

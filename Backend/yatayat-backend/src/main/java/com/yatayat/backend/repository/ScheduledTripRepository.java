@@ -27,7 +27,12 @@ public interface ScheduledTripRepository extends JpaRepository<ScheduledTrip, Lo
             select trip from ScheduledTrip trip
             where trip.driver = :driver
               and trip.status in :statuses
-            order by trip.departureAt asc
+            order by case trip.status
+                       when com.yatayat.backend.entity.TripStatus.IN_PROGRESS then 0
+                       when com.yatayat.backend.entity.TripStatus.BOARDING then 1
+                       else 2
+                     end,
+                     trip.departureAt asc
             """)
     List<ScheduledTrip> findDriverOperationalTrips(
             @Param("driver") DriverProfile driver,

@@ -1,13 +1,22 @@
 import { useCallback, useEffect, useState } from "react";
 import { Bus, CalendarDays, Clock3, Loader2, MapPin, RefreshCw, Route } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import DriverLayout from "../../components/layout/DriverLayout";
-import { formatServiceDate, handleDriverLocalAccess, localServiceRequest, serviceStatusLabel, serviceStatusTone } from "../../utils/localServices";
+import {
+  formatServiceDate,
+  handleDriverLocalAccess,
+  localServiceRequest,
+  serviceStatusLabel,
+  serviceStatusTone,
+  startDriverLocalService,
+} from "../../utils/localServices";
 
 export default function DriverLocalServicesPage() {
   const navigate = useNavigate();
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [startingId, setStartingId] = useState(null);
   const [error, setError] = useState("");
 
   const load = useCallback(async () => {
@@ -26,6 +35,23 @@ export default function DriverLocalServicesPage() {
     Promise.resolve().then(load);
   }, [load]);
 
+  const startService = async (run) => {
+    if (startingId !== null) return;
+    setStartingId(run.id);
+    setError("");
+    try {
+      await startDriverLocalService(run.id);
+      toast.success("Local service started.");
+      navigate("/driver/trip");
+    } catch (startError) {
+      if (!handleDriverLocalAccess(startError, navigate)) {
+        setError(startError.message || "Local service could not be started.");
+      }
+    } finally {
+      setStartingId(null);
+    }
+  };
+
   return (
     <DriverLayout activePage="Local Services">
       <div className="space-y-6">
@@ -39,10 +65,6 @@ export default function DriverLocalServicesPage() {
           </button>
         </header>
 
-        <div className="rounded-3xl border border-blue-100 bg-blue-50 p-4 text-sm font-bold text-blue-900">
-          Service start/finish controls and live GPS tracking will be added in the next local operations phase.
-        </div>
-
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
 
         {loading ? (
@@ -55,7 +77,15 @@ export default function DriverLocalServicesPage() {
           </div>
         ) : (
           <div className="grid gap-4">
-            {runs.map((run) => <DriverLocalServiceCard key={run.id} run={run} />)}
+            {runs.map((run) => (
+              <DriverLocalServiceCard
+                key={run.id}
+                run={run}
+                starting={startingId === run.id}
+                onStart={() => startService(run)}
+                onOpen={() => navigate("/driver/trip")}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -63,7 +93,7 @@ export default function DriverLocalServicesPage() {
   );
 }
 
-function DriverLocalServiceCard({ run }) {
+function DriverLocalServiceCard({ run, starting, onStart, onOpen }) {
   return (
     <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
@@ -102,6 +132,33 @@ function DriverLocalServiceCard({ run }) {
           </div>
         </div>
       )}
+
+      <div className="mt-5 flex flex-wrap gap-3">
+        {run.status === "PLANNED" && (
+          <button
+            type="button"
+            disabled={starting}
+            onClick={onStart}
+            className="rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white disabled:opacity-60"
+          >
+            {starting ? "Starting..." : "Start Service"}
+          </button>
+        )}
+        {run.status === "IN_SERVICE" && (
+          <button
+            type="button"
+            onClick={onOpen}
+            className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white"
+          >
+            Open Trip Management
+          </button>
+        )}
+        {run.status === "COMPLETED" && (
+          <span className="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-600">
+            Completed
+          </span>
+        )}
+      </div>
     </article>
   );
 }

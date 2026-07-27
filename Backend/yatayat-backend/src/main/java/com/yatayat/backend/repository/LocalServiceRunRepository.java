@@ -23,6 +23,43 @@ public interface LocalServiceRunRepository extends JpaRepository<LocalServiceRun
     @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
     Optional<LocalServiceRun> findByIdAndDriver(Long id, DriverProfile driver);
 
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
+    @Query("""
+            select run from LocalServiceRun run
+            join DriverOperatorAssociation association
+              on association.driver = run.driver and association.operator = run.operator
+            where run.driver = :driver
+              and association.status = com.yatayat.backend.entity.DriverOperatorAssociationStatus.ACTIVE
+              and (
+                    run.status = com.yatayat.backend.entity.LocalServiceRunStatus.IN_SERVICE
+                    or (
+                        run.status = com.yatayat.backend.entity.LocalServiceRunStatus.PLANNED
+                        and run.serviceDate >= :today
+                    )
+                  )
+            order by case run.status
+                       when com.yatayat.backend.entity.LocalServiceRunStatus.IN_SERVICE then 0
+                       else 1
+                     end,
+                     run.serviceDate asc,
+                     run.plannedStartTime asc
+            """)
+    List<LocalServiceRun> findDriverOperationalRuns(
+            @Param("driver") DriverProfile driver,
+            @Param("today") LocalDate today
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
+    @Query("""
+            select run from LocalServiceRun run
+            where run.id = :id and run.driver = :driver
+            """)
+    Optional<LocalServiceRun> findByIdAndDriverForOperation(
+            @Param("id") Long id,
+            @Param("driver") DriverProfile driver
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select run from LocalServiceRun run

@@ -82,7 +82,7 @@ class TripOperationServiceTests {
     }
 
     @Test
-    void assignedDriverCanStartAndFinishTrip() {
+    void assignedDriverCanBoardStartAndFinishTrip() {
         mockApprovedDriver();
         mockAssociations();
         when(tripRepository.findByIdForOperation(50L)).thenReturn(Optional.of(trip));
@@ -90,8 +90,11 @@ class TripOperationServiceTests {
         when(bookingRepository.sumConfirmedSeatsByTrip(trip)).thenReturn(3L);
         when(ticketRepository.countByBookingScheduledTripAndStatus(trip, TicketStatus.USED)).thenReturn(1L);
 
-        DriverTripOperationResponse started = service.start("driver@example.com", 50L);
+        DriverTripOperationResponse boarding = service.beginBoarding("driver@example.com", 50L);
+        assertThat(boarding.status()).isEqualTo("BOARDING");
+        assertThat(boarding.startedAt()).isNull();
 
+        DriverTripOperationResponse started = service.start("driver@example.com", 50L);
         assertThat(started.status()).isEqualTo("IN_PROGRESS");
         assertThat(started.startedAt()).isNotNull();
         assertThat(started.confirmedPassengers()).isEqualTo(3L);
@@ -122,6 +125,34 @@ class TripOperationServiceTests {
                 .isInstanceOf(ResponseStatusException.class)
                 .extracting("statusCode")
                 .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void scheduledTripCannotSkipBoarding() {
+        mockApprovedDriver();
+        mockAssociations();
+        when(tripRepository.findByIdForOperation(50L)).thenReturn(Optional.of(trip));
+
+        assertThatThrownBy(() -> service.start("driver@example.com", 50L))
+                .isInstanceOf(ResponseStatusException.class)
+                .extracting("statusCode")
+                .isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void currentTripUsesRepositoryPriorityOrder() {
+        mockApprovedDriver();
+        when(associationRepository.findByDriverAndStatus(
+                driver, DriverOperatorAssociationStatus.ACTIVE))
+                .thenReturn(Optional.of(new DriverOperatorAssociation()));
+        trip.setStatus(TripStatus.IN_PROGRESS);
+        when(tripRepository.findDriverOperationalTrips(
+                driver, List.of(TripStatus.SCHEDULED, TripStatus.BOARDING, TripStatus.IN_PROGRESS)))
+                .thenReturn(List.of(trip));
+
+        assertThat(service.currentDriverTrip("driver@example.com"))
+                .hasValueSatisfying(current -> assertThat(current.status())
+                        .isEqualTo("IN_PROGRESS"));
     }
 
     @Test

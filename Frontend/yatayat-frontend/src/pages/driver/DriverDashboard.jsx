@@ -21,9 +21,10 @@ import {
   Radio,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 import DriverLayout from "../../components/layout/DriverLayout";
 import { apiFetch } from "../../utils/api";
-import { finishDriverTrip, getCurrentDriverTrip, startDriverTrip, tripStatusLabel, tripStatusTone } from "../../utils/driverTrips";
+import { beginDriverTripBoarding, finishDriverTrip, getCurrentDriverTrip, startDriverTrip, tripStatusLabel, tripStatusTone } from "../../utils/driverTrips";
 import { GPS_STATUS, useDriverLocationTracking } from "../../hooks/useDriverLocationTracking";
 
 const API_BASE_URL = "http://localhost:8080";
@@ -47,6 +48,7 @@ export default function DriverProfilePage() {
   const [operatorAssociation, setOperatorAssociation] = useState(null);
   const [currentTrip, setCurrentTrip] = useState(null);
   const [operatingTrip, setOperatingTrip] = useState(false);
+  const [confirmFinish, setConfirmFinish] = useState(false);
   const gps = useDriverLocationTracking(
     currentTrip?.scheduledTripId,
     currentTrip?.status === "IN_PROGRESS",
@@ -195,11 +197,16 @@ export default function DriverProfilePage() {
     setOperatingTrip(true);
     setError("");
     try {
-      const updated = action === "start"
-        ? await startDriverTrip(currentTrip.scheduledTripId)
-        : await finishDriverTrip(currentTrip.scheduledTripId);
+      const updated = action === "boarding"
+        ? await beginDriverTripBoarding(currentTrip.scheduledTripId)
+        : action === "start"
+          ? await startDriverTrip(currentTrip.scheduledTripId)
+          : await finishDriverTrip(currentTrip.scheduledTripId);
       setCurrentTrip(updated);
-      toast.success(action === "start" ? "Trip started." : "Trip completed.");
+      setConfirmFinish(false);
+      toast.success(action === "boarding"
+        ? "Boarding started."
+        : action === "start" ? "Trip started." : "Trip completed.");
     } catch (operationError) {
       setError(operationError.message || "Trip operation could not be completed.");
       toast.error(operationError.message || "Trip operation could not be completed.");
@@ -284,13 +291,18 @@ export default function DriverProfilePage() {
             </div>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               {currentTrip.status === "SCHEDULED" && (
+                <button type="button" disabled={operatingTrip} onClick={() => operateTrip("boarding")} className="rounded-2xl bg-amber-600 px-5 py-3 font-black text-white shadow-lg shadow-amber-600/20 disabled:cursor-not-allowed disabled:opacity-60">
+                  {operatingTrip ? "Starting..." : "Begin Boarding"}
+                </button>
+              )}
+              {currentTrip.status === "BOARDING" && (
                 <button type="button" disabled={operatingTrip} onClick={() => operateTrip("start")} className="rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-600/20 disabled:cursor-not-allowed disabled:opacity-60">
                   {operatingTrip ? "Starting..." : "Start Trip"}
                 </button>
               )}
-              {["BOARDING", "IN_PROGRESS"].includes(currentTrip.status) && (
-                <button type="button" disabled={operatingTrip} onClick={() => operateTrip("finish")} className="rounded-2xl bg-[#08264a] px-5 py-3 font-black text-white shadow-lg shadow-blue-950/20 disabled:cursor-not-allowed disabled:opacity-60">
-                  {operatingTrip ? "Finishing..." : "Finish Trip"}
+              {currentTrip.status === "IN_PROGRESS" && (
+                <button type="button" disabled={operatingTrip} onClick={() => setConfirmFinish(true)} className="rounded-2xl bg-red-600 px-5 py-3 font-black text-white shadow-lg shadow-red-600/20 disabled:cursor-not-allowed disabled:opacity-60">
+                  Finish Trip
                 </button>
               )}
             </div>
@@ -391,11 +403,23 @@ export default function DriverProfilePage() {
 
         <StatCard
           title="Assigned Bus"
-          value="Not Assigned"
-          description="Bus assignment comes next"
+          value={currentTrip?.busNumber || "Not Assigned"}
+          description={currentTrip?.busName || "No active trip assignment"}
           icon={<Briefcase size={25} />}
         />
       </section>
+
+      <ConfirmationModal
+        open={confirmFinish}
+        title="Finish Trip?"
+        message="Confirm that this trip has reached its destination. GPS tracking will stop and the trip will be marked as completed."
+        confirmLabel="Finish Trip"
+        busyLabel="Finishing..."
+        destructive
+        busy={operatingTrip}
+        onClose={() => setConfirmFinish(false)}
+        onConfirm={() => operateTrip("finish")}
+      />
 
       <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
         <div className="space-y-6 xl:col-span-8">
