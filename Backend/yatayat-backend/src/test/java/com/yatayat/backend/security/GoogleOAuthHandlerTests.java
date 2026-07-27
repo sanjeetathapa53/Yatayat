@@ -13,6 +13,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(OutputCaptureExtension.class)
 class GoogleOAuthHandlerTests {
     private UserRepository users; private GoogleOAuthHandler handler;
 
@@ -44,6 +48,10 @@ class GoogleOAuthHandlerTests {
         assertThat(created.getRole()).isEqualTo("PASSENGER"); assertThat(created.getPassword()).isNull();
         assertThat(created.getWallet()).isNotNull(); assertThat(response.getRedirectedUrl()).isEqualTo("http://localhost:5173/google-success");
         assertThat(request.getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
+        var persistedContext = new HttpSessionSecurityContextRepository()
+                .loadDeferredContext(request).get();
+        assertThat(persistedContext.getAuthentication().getName()).isEqualTo("new@example.com");
+        assertThat(persistedContext.getAuthentication().isAuthenticated()).isTrue();
         assertThat(SecurityContextHolder.getContext().getAuthentication().getAuthorities())
                 .extracting(authority -> authority.getAuthority()).containsExactly("ROLE_PASSENGER");
     }
@@ -70,6 +78,23 @@ class GoogleOAuthHandlerTests {
                 new UsernamePasswordAuthenticationToken(new DefaultOAuth2User(
                         java.util.List.of(new SimpleGrantedAuthority("OIDC_USER")), Map.of("name", "No Email"), "name"), null));
         verifyNoInteractions(users); assertThat(response.getRedirectedUrl()).contains("googleError=oauth");
+    }
+
+    @Test void providerFailureLogsSafeErrorCodeAndRedirectsWithoutSensitiveValues(
+            CapturedOutput output) throws Exception {
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        handler.onAuthenticationFailure(new MockHttpServletRequest(), response,
+                new org.springframework.security.oauth2.core.OAuth2AuthenticationException(
+                        new org.springframework.security.oauth2.core.OAuth2Error(
+                                "invalid_token_response",
+                                "client_secret=sensitive authorization_code=sensitive",
+                                null)));
+        assertThat(response.getRedirectedUrl())
+                .isEqualTo("http://localhost:5173/login?googleError=oauth");
+        assertThat(output).contains("errorCode=invalid_token_response")
+                .contains("path=")
+                .doesNotContain("client_secret=sensitive")
+                .doesNotContain("authorization_code=sensitive");
     }
 
     private UsernamePasswordAuthenticationToken oauth(String name, String email, boolean verified) {
