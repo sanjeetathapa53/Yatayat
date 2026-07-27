@@ -10,6 +10,7 @@ import com.yatayat.backend.dto.PassengerTripLocationResponse;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.entity.Wallet;
 import com.yatayat.backend.entity.WalletTransaction;
+import com.yatayat.backend.entity.AuthenticationProvider;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -227,6 +228,24 @@ class EndpointSecurityIntegrationTests {
         assertNotNull(context);
         assertTrue(context.getAuthentication().getAuthorities().stream()
                 .anyMatch(authority -> "ROLE_PASSENGER".equals(authority.getAuthority())));
+    }
+
+    @Test
+    void googleAccountCannotUsePasswordLogin() throws Exception {
+        User googleUser = new User(
+                "Google Passenger", "google@example.com", "", null, "PASSENGER");
+        googleUser.setAuthenticationProvider(AuthenticationProvider.GOOGLE);
+        when(userRepository.findByEmail("google@example.com"))
+                .thenReturn(Optional.of(googleUser));
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType("application/json")
+                        .content("""
+                                {"email":"google@example.com","password":"irrelevant"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(content().string(
+                        "This account uses Google Sign-In. Please continue with Google."));
     }
 
     @Test

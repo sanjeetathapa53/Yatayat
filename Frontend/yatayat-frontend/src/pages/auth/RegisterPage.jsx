@@ -513,7 +513,7 @@ export default function RegisterPage() {
             className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             <FcGoogle size={21} />
-            Google
+            Register with Google
           </button>
 
           <button

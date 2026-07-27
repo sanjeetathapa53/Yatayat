@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import {
+  useNavigate,
+  Link,
+  useSearchParams,
+} from "react-router-dom";
 import {
   Eye,
   EyeOff,
@@ -28,44 +32,57 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+    const googleError = searchParams.get("googleError");
+    const googleRegistered = searchParams.get("googleRegistered");
+    let handledParameter = null;
 
-    if (params.get("googleError") === "notRegistered") {
+    if (googleError === "notRegistered") {
       toast.error(
-        "This Google account is not registered. Please register first."
+        "No Yatayat account is associated with this Google account. Please register first.",
+        { toastId: "oauth-not-registered" },
       );
-
-      window.history.replaceState({}, "", "/login");
-    }
-
-    if (params.get("googleRegistered") === "true") {
+      handledParameter = "googleError";
+    } else if (googleRegistered === "true") {
       toast.success(
-        "Google registration successful. Please login with Google."
+        "Account created successfully. Please sign in with Google.",
+        { toastId: "oauth-registration-success" },
       );
-
-      window.history.replaceState({}, "", "/login");
-    }
-
-    if (params.get("googleRegistered") === "alreadyExists") {
+      handledParameter = "googleRegistered";
+    } else if (googleRegistered === "alreadyExists") {
       toast.info(
-        "This Google account is already registered. Please login."
+        "This Google account is already registered. Please sign in.",
+        { toastId: "oauth-already-registered" },
       );
-
-      window.history.replaceState({}, "", "/login");
+      handledParameter = "googleRegistered";
+    } else if (googleError === "localAccount") {
+      toast.error(
+        "This account is registered with email and password. Please sign in using your email.",
+        { toastId: "oauth-local-account" },
+      );
+      handledParameter = "googleError";
+    } else if (googleError === "oauth") {
+      toast.error(
+        "Google sign-in was cancelled or could not be completed.",
+        { toastId: "oauth-provider-failure" },
+      );
+      handledParameter = "googleError";
+    } else if (googleError === "session") {
+      toast.error(
+        "Google sign-in session could not be restored. Please try again.",
+        { toastId: "oauth-session-failure" },
+      );
+      handledParameter = "googleError";
     }
 
-    if (params.get("googleError") === "oauth") {
-      toast.error("Google sign-in was cancelled or could not be completed.");
-      window.history.replaceState({}, "", "/login");
+    if (handledParameter) {
+      const remainingParams = new URLSearchParams(searchParams);
+      remainingParams.delete(handledParameter);
+      setSearchParams(remainingParams, { replace: true });
     }
-
-    if (params.get("googleError") === "session") {
-      toast.error("Google sign-in session could not be restored. Please try again.");
-      window.history.replaceState({}, "", "/login");
-    }
-  }, []);
+  }, [searchParams, setSearchParams]);
 
   const redirectDriverByStatus = async (user) => {
     const statusResponse = await apiFetch(
@@ -242,6 +259,11 @@ export default function LoginPage() {
 
       if (text === "Invalid password") {
         toast.error("Incorrect password");
+        return;
+      }
+
+      if (text === "This account uses Google Sign-In. Please continue with Google.") {
+        toast.error(text);
         return;
       }
 
@@ -450,7 +472,7 @@ to continue.
             className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             <FcGoogle size={20} />
-            Google
+            Continue with Google
           </button>
 
           <button

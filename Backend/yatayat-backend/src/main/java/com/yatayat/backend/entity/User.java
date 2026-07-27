@@ -24,6 +24,11 @@ public class User {
 
     private String phone;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "authentication_provider", nullable = false,
+            columnDefinition = "varchar(16) default 'LOCAL'")
+    private AuthenticationProvider authenticationProvider = AuthenticationProvider.LOCAL;
+
     @JsonIgnore
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     private Wallet wallet;
@@ -42,6 +47,7 @@ public class User {
         this.phone = phone;
         this.password = password;
         this.role = role;
+        this.authenticationProvider = AuthenticationProvider.LOCAL;
     }
 
     public Long getId() {
@@ -90,6 +96,14 @@ public class User {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public AuthenticationProvider getAuthenticationProvider() {
+        return authenticationProvider;
+    }
+
+    public void setAuthenticationProvider(AuthenticationProvider authenticationProvider) {
+        this.authenticationProvider = authenticationProvider;
     }
 
     public Wallet getWallet() {
