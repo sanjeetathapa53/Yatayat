@@ -27,6 +27,14 @@ export const finishDriverLocalService = (id) =>
     method: "POST",
   });
 
+export const updateDriverLocalServiceLocation = (id, location, options = {}) =>
+  localServiceRequest(`/api/driver/local-services/${encodeURIComponent(id)}/location`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(location),
+    signal: options.signal,
+  });
+
 export function localServicePayload(form) {
   return {
     routeId: Number(form.routeId),

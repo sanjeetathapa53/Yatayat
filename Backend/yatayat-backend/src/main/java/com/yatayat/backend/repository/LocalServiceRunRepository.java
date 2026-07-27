@@ -60,6 +60,33 @@ public interface LocalServiceRunRepository extends JpaRepository<LocalServiceRun
             @Param("driver") DriverProfile driver
     );
 
+    @EntityGraph(attributePaths = {"route", "bus"})
+    List<LocalServiceRun> findByStatusOrderByServiceDateAscPlannedStartTimeAsc(
+            LocalServiceRunStatus status
+    );
+
+    @EntityGraph(attributePaths = {"route", "bus"})
+    List<LocalServiceRun> findByStatusAndRouteIdOrderByServiceDateAscPlannedStartTimeAsc(
+            LocalServiceRunStatus status,
+            Long routeId
+    );
+
+    @EntityGraph(attributePaths = {"route", "bus"})
+    Optional<LocalServiceRun> findByIdAndStatus(Long id, LocalServiceRunStatus status);
+
+    @EntityGraph(attributePaths = {"route", "bus", "driver", "driver.user"})
+    List<LocalServiceRun> findByOperatorAndStatusOrderByServiceDateAscPlannedStartTimeAsc(
+            TransportOperator operator,
+            LocalServiceRunStatus status
+    );
+
+    @EntityGraph(attributePaths = {"route", "bus", "driver", "driver.user"})
+    Optional<LocalServiceRun> findByIdAndOperatorAndStatus(
+            Long id,
+            TransportOperator operator,
+            LocalServiceRunStatus status
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select run from LocalServiceRun run

@@ -6,6 +6,7 @@ import com.yatayat.backend.controller.OperatorLocalServiceController;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.LocalServiceRunService;
+import com.yatayat.backend.service.LocalServiceLocationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -41,6 +43,7 @@ class LocalServiceRunIntegrationTests {
     @MockitoBean private DriverOperatorAssociationRepository associationRepository;
     @MockitoBean private ScheduledTripRepository scheduledTripRepository;
     @MockitoBean private LocalServiceRunRepository localRunRepository;
+    @MockitoBean private LocalServiceLocationService localServiceLocationService;
 
     private User operatorUser;
     private TransportOperator operator;
@@ -128,6 +131,34 @@ class LocalServiceRunIntegrationTests {
     @WithMockUser(roles = "PASSENGER")
     void passengerCannotUseOperatorLocalServices() throws Exception {
         mockMvc.perform(get("/api/operator/local-services")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unauthenticatedDriverCannotUpdateLocalServiceLocation() throws Exception {
+        mockMvc.perform(put("/api/driver/local-services/20/location")
+                        .contentType("application/json")
+                        .content("{\"latitude\":27.7,\"longitude\":85.3}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotUpdateLocalServiceLocation() throws Exception {
+        mockMvc.perform(put("/api/driver/local-services/20/location")
+                        .contentType("application/json")
+                        .content("{\"latitude\":27.7,\"longitude\":85.3}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "driver@example.com", roles = "DRIVER")
+    void invalidLocalServiceCoordinatesReturnBadRequest() throws Exception {
+        mockMvc.perform(put("/api/driver/local-services/20/location")
+                        .contentType("application/json")
+                        .content("{\"latitude\":91,\"longitude\":85.3}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+        verifyNoInteractions(localServiceLocationService);
     }
 
     @Test

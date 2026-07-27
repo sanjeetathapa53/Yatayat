@@ -11,7 +11,7 @@ export const GPS_STATUS = Object.freeze({
   NETWORK_ERROR: "Network Error",
 });
 
-export function useDriverLocationTracking(tripId, isActive) {
+export function useLocationTracking(operationId, isActive, publishLocation) {
   const [status, setStatus] = useState(GPS_STATUS.WAITING);
   const [message, setMessage] = useState("");
   const latestLocationRef = useRef(null);
@@ -40,13 +40,13 @@ export function useDriverLocationTracking(tripId, isActive) {
 
   const sendLatestLocation = useCallback(async () => {
     const location = latestLocationRef.current;
-    if (!tripId || !location || requestInFlightRef.current) return;
+    if (!operationId || !location || requestInFlightRef.current) return;
 
     requestInFlightRef.current = true;
     const requestController = new AbortController();
     requestControllerRef.current = requestController;
     try {
-      await updateDriverTripLocation(tripId, location, { signal: requestController.signal });
+      await publishLocation(operationId, location, { signal: requestController.signal });
       networkErrorRef.current = false;
       if (mountedRef.current) {
         setStatus(GPS_STATUS.ACTIVE);
@@ -65,7 +65,7 @@ export function useDriverLocationTracking(tripId, isActive) {
         requestInFlightRef.current = false;
       }
     }
-  }, [tripId]);
+  }, [operationId, publishLocation]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -78,7 +78,7 @@ export function useDriverLocationTracking(tripId, isActive) {
   useEffect(() => {
     stopTracking();
 
-    if (!isActive || !tripId) return undefined;
+    if (!isActive || !operationId) return undefined;
 
     if (!("geolocation" in navigator)) {
       Promise.resolve().then(() => {
@@ -137,7 +137,11 @@ export function useDriverLocationTracking(tripId, isActive) {
       window.removeEventListener("yatayat-auth-cleared", handleLogout);
       stopTracking();
     };
-  }, [isActive, sendLatestLocation, stopTracking, tripId]);
+  }, [isActive, operationId, sendLatestLocation, stopTracking]);
 
   return { status, message };
+}
+
+export function useDriverLocationTracking(tripId, isActive) {
+  return useLocationTracking(tripId, isActive, updateDriverTripLocation);
 }

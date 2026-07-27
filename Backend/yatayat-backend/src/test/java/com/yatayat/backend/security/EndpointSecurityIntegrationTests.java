@@ -59,7 +59,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         DriverTicketController.class,
         DriverTripOperationController.class,
         PassengerLiveTrackingController.class,
+        PassengerLocalLiveServiceController.class,
         OperatorLiveFleetController.class,
+        OperatorLocalLiveFleetController.class,
         AdminLiveFleetController.class,
         AuthController.class
 })
@@ -99,7 +101,11 @@ class EndpointSecurityIntegrationTests {
     @MockitoBean
     private PassengerLiveTrackingService passengerLiveTrackingService;
     @MockitoBean
+    private PassengerLocalLiveServiceService passengerLocalLiveServiceService;
+    @MockitoBean
     private OperatorLiveFleetService operatorLiveFleetService;
+    @MockitoBean
+    private OperatorLocalLiveFleetService operatorLocalLiveFleetService;
     @MockitoBean
     private AdminLiveFleetService adminLiveFleetService;
     @MockitoBean
@@ -451,9 +457,56 @@ class EndpointSecurityIntegrationTests {
     }
 
     @Test
+    void anonymousUserCannotReadPassengerLocalLiveServices() throws Exception {
+        mockMvc.perform(get("/api/passenger/local-live-services"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "DRIVER")
+    void driverCannotReadPassengerLocalLiveServices() throws Exception {
+        mockMvc.perform(get("/api/passenger/local-live-services"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCanReadLocalLiveServices() throws Exception {
+        when(passengerLocalLiveServiceService.activeServices(null)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/passenger/local-live-services"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
+    }
+
+    @Test
     void anonymousUserCannotReadOperatorLiveFleet() throws Exception {
         mockMvc.perform(get("/api/operator/live-fleet"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void anonymousUserCannotReadOperatorLocalLiveFleet() throws Exception {
+        mockMvc.perform(get("/api/operator/local-live-fleet"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotReadOperatorLocalLiveFleet() throws Exception {
+        mockMvc.perform(get("/api/operator/local-live-fleet"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(username = "operator@example.com", roles = "OPERATOR")
+    void operatorCanReadOwnLocalLiveFleet() throws Exception {
+        when(operatorLocalLiveFleetService.activeFleet("operator@example.com"))
+                .thenReturn(List.of());
+
+        mockMvc.perform(get("/api/operator/local-live-fleet"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
     }
 
     @Test
