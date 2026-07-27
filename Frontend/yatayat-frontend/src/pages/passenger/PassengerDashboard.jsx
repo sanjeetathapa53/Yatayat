@@ -8,12 +8,16 @@ import {
   BadgeCheck,
   Clock3,
   MapPin,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CircleMarker, MapContainer, TileLayer, useMap } from "react-leaflet";
 import PassengerLayout from "../../components/layout/PassengerLayout";
+import WalletActivationModal from "../../components/passenger/WalletActivationModal";
 import { useLanguage } from "../../hooks/useLanguage";
+import { useWalletBalanceVisibility } from "../../hooks/useWalletBalanceVisibility";
 import { getLocalFarePasses } from "../../utils/localFarePasses";
 import { getActiveLocalServices } from "../../utils/passengerLocalLiveTracking";
 import { apiFetch } from "../../utils/api";
@@ -26,6 +30,7 @@ export default function PassengerDashboard() {
 
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletStatus, setWalletStatus] = useState("");
+  const [showWalletActivation, setShowWalletActivation] = useState(false);
   const [activeFarePass, setActiveFarePass] = useState(null);
 
   useEffect(() => {
@@ -71,6 +76,7 @@ export default function PassengerDashboard() {
             balance={walletBalance}
             status={walletStatus}
             onWallet={() => navigate("/wallet")}
+            onActivate={() => setShowWalletActivation(true)}
             t={t}
           />
 
@@ -240,6 +246,13 @@ export default function PassengerDashboard() {
           </button>
         </div>
       </footer>
+
+      <WalletActivationModal
+        open={showWalletActivation}
+        userId={userId}
+        onClose={() => setShowWalletActivation(false)}
+        onActivated={() => setWalletStatus("PIN_SET")}
+      />
     </PassengerLayout>
   );
 }
@@ -415,8 +428,9 @@ function formatLastUpdate(value) {
     : `Last update ${new Intl.DateTimeFormat("en-NP", { timeStyle: "short" }).format(date)}`;
 }
 
-function WalletCard({ balance, status, onWallet, t }) {
+function WalletCard({ balance, status, onWallet, onActivate, t }) {
   const isActive = status === "PIN_SET";
+  const { showBalance, toggleBalance } = useWalletBalanceVisibility();
   const statusLabel =
     status === "PIN_SET"
       ? t("common.active")
@@ -446,23 +460,34 @@ function WalletCard({ balance, status, onWallet, t }) {
             <p className="text-sm font-bold text-blue-100">
               {t("passenger.dashboard.availableBalance")}
             </p>
-            <h3 className="mt-1.5 break-words text-3xl font-black leading-tight sm:text-4xl xl:whitespace-nowrap xl:text-[46px]">
-              NPR{" "}
-              {balance.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </h3>
+            <div className="mt-1.5 flex items-center gap-2">
+              <h3 className="break-words text-3xl font-black leading-tight sm:text-4xl xl:whitespace-nowrap xl:text-[46px]">
+                {showBalance
+                  ? `NPR ${balance.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}`
+                  : "NPR ••••••"}
+              </h3>
+              <button
+                type="button"
+                onClick={toggleBalance}
+                aria-label={showBalance ? "Hide wallet balance" : "Show wallet balance"}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-blue-100 transition hover:bg-white/15 hover:text-white focus:outline-none focus:ring-2 focus:ring-white"
+              >
+                {showBalance ? <EyeOff size={17} /> : <Eye size={17} />}
+              </button>
+            </div>
           </div>
 
           <div className="mt-4 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
             <button
               type="button"
-              onClick={onWallet}
+              onClick={isActive ? onWallet : onActivate}
               className="flex min-h-10 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-2.5 text-sm font-black text-[#08264a] transition hover:bg-emerald-300 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:ring-offset-2 focus:ring-offset-[#08264a]"
             >
               <PlusCircle size={17} />
-              {t("common.topUp")}
+              {isActive ? t("common.topUp") : t("passenger.wallet.activateWallet")}
             </button>
 
             <span
