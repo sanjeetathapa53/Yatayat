@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  AlertTriangle,
   Bus,
   CheckCircle,
   ChevronDown,
@@ -15,6 +14,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { useNavigate } from "react-router-dom";
 import DriverLayout from "../../components/layout/DriverLayout";
 import { manifestIdFromReference, validateDriverTicket } from "../../utils/driverTickets";
+import { validateDriverLocalFarePass } from "../../utils/localFarePasses";
 
 const scannerRegionId = "driver-qr-reader";
 
@@ -99,7 +99,10 @@ export default function DriverScannerPage() {
     setResult(null);
 
     try {
-      const data = await validateDriverTicket(qrPayload.trim());
+      const parsed = JSON.parse(qrPayload.trim());
+      const data = parsed.type === "LOCAL_FARE_PASS"
+        ? await validateDriverLocalFarePass(qrPayload.trim())
+        : await validateDriverTicket(qrPayload.trim());
       setResult(data);
       rememberScan(data, source);
     } catch (error) {
@@ -120,7 +123,7 @@ export default function DriverScannerPage() {
     setRecentScans((current) => [
       {
         result: scanResult.result,
-        ticketNumber: scanResult.ticketNumber,
+        ticketNumber: scanResult.ticketNumber || scanResult.passNumber,
         passengerName: scanResult.passengerName,
         time: new Date().toLocaleTimeString(),
         source,
@@ -316,13 +319,14 @@ function ResultCard({ result, onReset, onManifest, hasManifest }) {
       </div>
 
       <div className="space-y-3 p-5">
-        {result.ticketNumber && (
+        {(result.ticketNumber || result.passNumber) && (
           <>
             <Info label="Passenger" value={result.passengerName} />
-            <Info label="Route" value={`${result.route?.origin || ""} → ${result.route?.destination || ""}`} />
-            <Info label="Seats" value={(result.seatNumbers || []).join(", ")} />
-            <Info label="Ticket" value={result.ticketNumber} />
-            <Info label="Boarded At" value={formatDateTime(result.boardedAt)} />
+            <Info label="Route" value={result.passNumber ? `${result.boardingStopName || ""} → ${result.destinationStopName || ""}` : `${result.route?.origin || ""} → ${result.route?.destination || ""}`} />
+            {result.ticketNumber && <Info label="Seats" value={(result.seatNumbers || []).join(", ")} />}
+            <Info label={result.passNumber ? "Local Fare Pass" : "Ticket"} value={result.passNumber || result.ticketNumber} />
+            {result.fare != null && <Info label="Fare" value={`NPR ${result.fare}`} />}
+            <Info label="Boarded At" value={formatDateTime(result.boardedAt || result.usedAt)} />
           </>
         )}
 
@@ -403,12 +407,17 @@ function validateManualQrPayload(payload) {
   try {
     const parsed = JSON.parse(trimmed);
     const keys = Object.keys(parsed).sort();
-    const expected = ["ticketNumber", "token", "version"];
-    const hasOnlyQrFields = keys.length === expected.length && expected.every((key, index) => keys[index] === key);
-    if (!hasOnlyQrFields || parsed.version !== 1 || !parsed.ticketNumber || !parsed.token) {
+    const scheduledFields = ["ticketNumber", "token", "version"];
+    const localFields = ["passNumber", "token", "type", "version"];
+    const matchesFields = (expected) => keys.length === expected.length
+      && expected.every((key, index) => keys[index] === key);
+    const scheduled = matchesFields(scheduledFields) && parsed.ticketNumber;
+    const local = matchesFields(localFields)
+      && parsed.type === "LOCAL_FARE_PASS" && parsed.passNumber;
+    if (parsed.version !== 1 || !parsed.token || (!scheduled && !local)) {
       return {
         valid: false,
-        message: "Paste the complete QR payload containing only version, ticketNumber, and token.",
+        message: "Paste a complete scheduled-ticket or local fare-pass QR payload.",
       };
     }
     return { valid: true, message: "" };

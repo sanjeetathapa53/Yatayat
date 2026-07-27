@@ -968,6 +968,16 @@ passengerDriverTranslations.en.passenger.farePass = {
   qrValidity: "QR Validity",
   qrValidityDescription: "Valid for 24 hours, but once scanned by the driver, it becomes used immediately.",
   resetPass: "Reset Pass",
+  buyTitle: "Buy Local Fare Pass",
+  buyDescription: "Choose an active route and an ordered stop segment.",
+  localRoute: "Local route",
+  boardingStop: "Boarding stop",
+  destinationStop: "Destination stop",
+  walletPin: "Wallet PIN",
+  payAndGenerate: "Pay and Generate QR",
+  issuing: "Issuing secure pass…",
+  myLocalTickets: "My Local Tickets",
+  noPasses: "No local fare passes yet.",
 };
 
 passengerDriverTranslations.ne.passenger.farePass = {
@@ -1000,6 +1010,16 @@ passengerDriverTranslations.ne.passenger.farePass = {
   qrValidity: "QR मान्यता",
   qrValidityDescription: "२४ घण्टाका लागि मान्य हुन्छ, तर चालकले स्क्यान गरेपछि तुरुन्त प्रयोग भएको मानिन्छ।",
   resetPass: "पास रिसेट गर्नुहोस्",
+  buyTitle: "स्थानीय भाडा पास किन्नुहोस्",
+  buyDescription: "सक्रिय रुट र क्रमबद्ध स्टप खण्ड छान्नुहोस्।",
+  localRoute: "स्थानीय रुट",
+  boardingStop: "चढ्ने स्टप",
+  destinationStop: "गन्तव्य स्टप",
+  walletPin: "वालेट PIN",
+  payAndGenerate: "भुक्तानी गरी QR बनाउनुहोस्",
+  issuing: "सुरक्षित पास जारी हुँदैछ…",
+  myLocalTickets: "मेरा स्थानीय टिकटहरू",
+  noPasses: "अहिलेसम्म स्थानीय भाडा पास छैन।",
 };
 
 passengerDriverTranslations.en.passenger.profile = {

@@ -76,13 +76,22 @@ export default function PassengerLocalRouteDetailsPage() {
 
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-xl font-black">Stop timeline</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-500">Pay on bus. Seat booking, wallet payment and digital ticket are not used for local travel yet.</p>
+            <p className="mt-1 text-sm font-semibold text-slate-500">Choose an ordered segment, then purchase a secure 24-hour local fare pass with your wallet.</p>
             <div className="mt-6 space-y-3">
               {(route.orderedStops?.length ? route.orderedStops : route.stopSummary.map((name, index) => ({ stopOrder: index + 1, stopName: name }))).map((stop) => {
                 const highlighted = selectedSegment && stop.stopOrder >= selectedSegment.fromOrder && stop.stopOrder <= selectedSegment.toOrder;
                 return <div key={`${stop.stopOrder}-${stop.stopName}`} className={`flex gap-3 rounded-2xl border p-4 ${highlighted ? "border-emerald-200 bg-emerald-50" : "border-slate-100 bg-slate-50"}`}><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#08264a] text-sm font-black text-white">{stop.stopOrder}</div><div className="min-w-0"><p className="safe-wrap font-black text-slate-900">{stop.stopName}</p><p className="safe-wrap text-sm font-semibold text-slate-500">{stop.landmark || "Local route stop"} · {stop.estimatedMinutesFromStart ?? "--"} min · NPR {stop.cumulativeFare ?? "--"}</p></div></div>;
               })}
             </div>
+            {selectedSegment && (
+              <button
+                type="button"
+                onClick={() => navigate("/fare-pass", { state: { routeId: route.routeId, boardingStopId: fromStopId, destinationStopId: toStopId } })}
+                className="mt-5 w-full rounded-xl bg-[#08264a] px-5 py-3 font-black text-white"
+              >
+                Buy Fare Pass · NPR {selectedSegment.fare}
+              </button>
+            )}
           </section>
 
           <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
