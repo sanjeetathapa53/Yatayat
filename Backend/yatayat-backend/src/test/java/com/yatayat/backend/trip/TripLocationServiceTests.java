@@ -26,6 +26,7 @@ class TripLocationServiceTests {
 
     @Mock private UserRepository userRepository;
     @Mock private DriverProfileRepository driverRepository;
+    @Mock private DriverOperatorAssociationRepository associationRepository;
     @Mock private ScheduledTripRepository tripRepository;
     @Mock private TripLocationRepository locationRepository;
 
@@ -37,7 +38,8 @@ class TripLocationServiceTests {
     @BeforeEach
     void setUp() {
         service = new TripLocationService(
-                userRepository, driverRepository, tripRepository, locationRepository);
+                userRepository, driverRepository, associationRepository,
+                tripRepository, locationRepository);
 
         driverUser = new User("Driver", "driver@example.com", "9800000000", "encoded", "DRIVER");
         driverUser.setId(1L);
@@ -49,12 +51,16 @@ class TripLocationServiceTests {
         trip = new ScheduledTrip();
         trip.setId(50L);
         trip.setDriver(driver);
+        TransportOperator operator = new TransportOperator();
+        operator.setId(3L);
+        trip.setOperator(operator);
         trip.setStatus(TripStatus.IN_PROGRESS);
     }
 
     @Test
     void validUpdateStoresAndReturnsLatestLocation() {
         mockApprovedDriver();
+        mockActiveAssociation();
         when(tripRepository.findByIdForOperation(50L)).thenReturn(Optional.of(trip));
         when(locationRepository.findByTrip(trip)).thenReturn(Optional.empty());
         when(locationRepository.saveAndFlush(any(TripLocation.class))).thenAnswer(invocation -> {
@@ -110,6 +116,7 @@ class TripLocationServiceTests {
     @Test
     void inactiveTripIsRejected() {
         mockApprovedDriver();
+        mockActiveAssociation();
         trip.setStatus(TripStatus.COMPLETED);
         when(tripRepository.findByIdForOperation(50L)).thenReturn(Optional.of(trip));
 
@@ -121,8 +128,27 @@ class TripLocationServiceTests {
     }
 
     @Test
+    void inactiveOperatorAssociationIsForbidden() {
+        when(userRepository.findByEmailIgnoreCase("driver@example.com"))
+                .thenReturn(Optional.of(driverUser));
+        when(driverRepository.findByUser(driverUser)).thenReturn(Optional.of(driver));
+        DriverOperatorAssociation inactive = new DriverOperatorAssociation();
+        inactive.setStatus(DriverOperatorAssociationStatus.REMOVED);
+        when(associationRepository.findByDriverAndOperator(driver, trip.getOperator()))
+                .thenReturn(Optional.of(inactive));
+        when(tripRepository.findByIdForOperation(50L)).thenReturn(Optional.of(trip));
+
+        assertStatus(
+                () -> service.update("driver@example.com", 50L, validRequest()),
+                HttpStatus.FORBIDDEN
+        );
+        verifyNoInteractions(locationRepository);
+    }
+
+    @Test
     void secondUpdateReusesExistingLocationRecord() {
         mockApprovedDriver();
+        mockActiveAssociation();
         TripLocation existing = new TripLocation();
         existing.setId(10L);
         existing.setTrip(trip);
@@ -154,6 +180,15 @@ class TripLocationServiceTests {
         when(userRepository.findByEmailIgnoreCase("driver@example.com"))
                 .thenReturn(Optional.of(driverUser));
         when(driverRepository.findByUser(driverUser)).thenReturn(Optional.of(driver));
+    }
+
+    private void mockActiveAssociation() {
+        DriverOperatorAssociation association = new DriverOperatorAssociation();
+        association.setDriver(driver);
+        association.setOperator(trip.getOperator());
+        association.setStatus(DriverOperatorAssociationStatus.ACTIVE);
+        when(associationRepository.findByDriverAndOperator(driver, trip.getOperator()))
+                .thenReturn(Optional.of(association));
     }
 
     private void assertStatus(Runnable operation, HttpStatus status) {

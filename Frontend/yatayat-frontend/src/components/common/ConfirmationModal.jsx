@@ -8,6 +8,7 @@ export default function ConfirmationModal({
   cancelLabel = "Cancel",
   destructive = false,
   busy = false,
+  busyLabel = "Removing...",
   onConfirm,
   onClose,
 }) {
@@ -70,7 +71,7 @@ export default function ConfirmationModal({
                 : "bg-[#08264a] hover:bg-[#0b3565] focus:ring-[#08264a]"
             }`}
           >
-            {busy ? "Removing..." : confirmLabel}
+            {busy ? busyLabel : confirmLabel}
           </button>
         </div>
       </div>

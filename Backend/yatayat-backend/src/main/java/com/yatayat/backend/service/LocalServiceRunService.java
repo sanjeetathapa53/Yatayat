@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class LocalServiceRunService {
@@ -157,6 +158,63 @@ public class LocalServiceRunService {
         DriverProfile driver = approvedDriver(email);
         return toResponse(localRunRepository.findByIdAndDriver(id, driver)
                 .orElseThrow(() -> notFound("Local service not found.")));
+    }
+
+    public Optional<LocalServiceRunResponse> currentDriverRun(String email) {
+        DriverProfile driver = operationalDriver(email);
+        return localRunRepository.findDriverOperationalRuns(driver, LocalDate.now())
+                .stream()
+                .findFirst()
+                .map(this::toResponse);
+    }
+
+    @Transactional
+    public LocalServiceRunResponse startDriverRun(String email, Long id) {
+        DriverProfile driver = operationalDriver(email);
+        LocalServiceRun run = lockedDriverRun(driver, id);
+        requireActiveAssociation(driver, run);
+
+        if (run.getStatus() == LocalServiceRunStatus.CANCELLED) {
+            conflict("Cancelled local services cannot be started.");
+        }
+        if (run.getStatus() == LocalServiceRunStatus.COMPLETED) {
+            conflict("Completed local services cannot be started.");
+        }
+        if (run.getStatus() == LocalServiceRunStatus.IN_SERVICE) {
+            conflict("This local service has already started.");
+        }
+        if (run.getStatus() != LocalServiceRunStatus.PLANNED) {
+            conflict("Only planned local services can be started.");
+        }
+        if (!LocalDate.now().equals(run.getServiceDate())) {
+            conflict("This local service can only be started on its service date.");
+        }
+
+        run.setActualStartedAt(LocalDateTime.now());
+        run.setStatus(LocalServiceRunStatus.IN_SERVICE);
+        return toResponse(localRunRepository.saveAndFlush(run));
+    }
+
+    @Transactional
+    public LocalServiceRunResponse finishDriverRun(String email, Long id) {
+        DriverProfile driver = operationalDriver(email);
+        LocalServiceRun run = lockedDriverRun(driver, id);
+        requireActiveAssociation(driver, run);
+
+        if (run.getStatus() == LocalServiceRunStatus.CANCELLED) {
+            conflict("Cancelled local services cannot be completed.");
+        }
+        if (run.getStatus() == LocalServiceRunStatus.COMPLETED) {
+            conflict("This local service is already completed.");
+        }
+        if (run.getStatus() != LocalServiceRunStatus.IN_SERVICE ||
+                run.getActualStartedAt() == null) {
+            conflict("Start this local service before completing it.");
+        }
+
+        run.setActualCompletedAt(LocalDateTime.now());
+        run.setStatus(LocalServiceRunStatus.COMPLETED);
+        return toResponse(localRunRepository.saveAndFlush(run));
     }
 
     private List<BusEligibilityResponse> eligibleBuses(TransportOperator operator, LocalDate serviceDate) {
@@ -359,6 +417,30 @@ public class LocalServiceRunService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Driver profile is not approved.");
         }
         return driver;
+    }
+
+    private DriverProfile operationalDriver(String email) {
+        DriverProfile driver = approvedDriver(email);
+        if (driver.isLicenseExpired()) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Approved active driver profile is required.");
+        }
+        return driver;
+    }
+
+    private LocalServiceRun lockedDriverRun(DriverProfile driver, Long id) {
+        if (id == null) throw notFound("Local service not found.");
+        return localRunRepository.findByIdAndDriverForOperation(id, driver)
+                .orElseThrow(() -> notFound("Local service not found."));
+    }
+
+    private void requireActiveAssociation(DriverProfile driver, LocalServiceRun run) {
+        associationRepository.findByDriverAndOperator(driver, run.getOperator())
+                .filter(value -> value.getStatus() == DriverOperatorAssociationStatus.ACTIVE)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Active operator association is required for this local service."
+                ));
     }
 
     private LocalServiceRun ownedRun(TransportOperator operator, Long id) {

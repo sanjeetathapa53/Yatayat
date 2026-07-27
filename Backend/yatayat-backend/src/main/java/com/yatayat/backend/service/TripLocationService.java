@@ -14,17 +14,20 @@ public class TripLocationService {
 
     private final UserRepository userRepository;
     private final DriverProfileRepository driverRepository;
+    private final DriverOperatorAssociationRepository associationRepository;
     private final ScheduledTripRepository tripRepository;
     private final TripLocationRepository locationRepository;
 
     public TripLocationService(
             UserRepository userRepository,
             DriverProfileRepository driverRepository,
+            DriverOperatorAssociationRepository associationRepository,
             ScheduledTripRepository tripRepository,
             TripLocationRepository locationRepository
     ) {
         this.userRepository = userRepository;
         this.driverRepository = driverRepository;
+        this.associationRepository = associationRepository;
         this.tripRepository = tripRepository;
         this.locationRepository = locationRepository;
     }
@@ -41,6 +44,13 @@ public class TripLocationService {
         if (trip.getDriver() == null || !trip.getDriver().getId().equals(driver.getId())) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip not found.");
         }
+        associationRepository.findByDriverAndOperator(driver, trip.getOperator())
+                .filter(association ->
+                        association.getStatus() == DriverOperatorAssociationStatus.ACTIVE)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Active operator association is required for this trip."
+                ));
         if (trip.getStatus() != TripStatus.IN_PROGRESS) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,

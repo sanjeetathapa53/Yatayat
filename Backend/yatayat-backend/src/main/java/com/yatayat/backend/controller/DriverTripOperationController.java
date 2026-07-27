@@ -35,6 +35,14 @@ public class DriverTripOperationController {
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
 
+    @PostMapping("/{scheduledTripId}/boarding")
+    public DriverTripOperationResponse beginBoarding(
+            Authentication authentication,
+            @PathVariable Long scheduledTripId
+    ) {
+        return tripOperationService.beginBoarding(authentication.getName(), scheduledTripId);
+    }
+
     @PostMapping("/{scheduledTripId}/start")
     public DriverTripOperationResponse start(Authentication authentication,
                                              @PathVariable Long scheduledTripId) {

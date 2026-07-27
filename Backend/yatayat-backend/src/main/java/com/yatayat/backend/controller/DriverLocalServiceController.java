@@ -29,6 +29,23 @@ public class DriverLocalServiceController {
         return service.getDriverRun(authentication.getName(), id);
     }
 
+    @GetMapping("/current")
+    public ResponseEntity<?> current(Authentication authentication) {
+        return service.currentDriverRun(authentication.getName())
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @PostMapping("/{id}/start")
+    public LocalServiceRunResponse start(Authentication authentication, @PathVariable Long id) {
+        return service.startDriverRun(authentication.getName(), id);
+    }
+
+    @PostMapping("/{id}/finish")
+    public LocalServiceRunResponse finish(Authentication authentication, @PathVariable Long id) {
+        return service.finishDriverRun(authentication.getName(), id);
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> handleStatus(ResponseStatusException exception) {
         return ResponseEntity.status(exception.getStatusCode()).body(Map.of(

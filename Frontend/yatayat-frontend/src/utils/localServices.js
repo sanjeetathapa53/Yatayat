@@ -14,6 +14,19 @@ export async function localServiceRequest(path, options = {}) {
   return data;
 }
 
+export const getCurrentDriverLocalService = () =>
+  localServiceRequest("/api/driver/local-services/current");
+
+export const startDriverLocalService = (id) =>
+  localServiceRequest(`/api/driver/local-services/${encodeURIComponent(id)}/start`, {
+    method: "POST",
+  });
+
+export const finishDriverLocalService = (id) =>
+  localServiceRequest(`/api/driver/local-services/${encodeURIComponent(id)}/finish`, {
+    method: "POST",
+  });
+
 export function localServicePayload(form) {
   return {
     routeId: Number(form.routeId),

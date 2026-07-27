@@ -54,6 +54,34 @@ public class TripOperationService {
     }
 
     @Transactional
+    public DriverTripOperationResponse beginBoarding(String driverEmail, Long scheduledTripId) {
+        DriverProfile driver = requireApprovedDriver(driverEmail);
+        requireAnyActiveAssociation(driver);
+        ScheduledTrip trip = lockedTrip(scheduledTripId);
+        requireAssignedDriver(driver, trip);
+
+        if (trip.getStatus() == TripStatus.CANCELLED) {
+            conflict("Cancelled trips cannot begin boarding.");
+        }
+        if (trip.getStatus() == TripStatus.COMPLETED) {
+            conflict("Completed trips cannot begin boarding.");
+        }
+        if (trip.getStatus() == TripStatus.BOARDING) {
+            conflict("Boarding has already started for this trip.");
+        }
+        if (trip.getStatus() == TripStatus.IN_PROGRESS) {
+            conflict("This trip is already in progress.");
+        }
+        if (trip.getStatus() != TripStatus.SCHEDULED) {
+            conflict("Only scheduled trips can begin boarding.");
+        }
+
+        trip.setStatus(TripStatus.BOARDING);
+        publishTripUpdate(trip, "BOARDING");
+        return driverResponse(tripRepository.saveAndFlush(trip));
+    }
+
+    @Transactional
     public DriverTripOperationResponse start(String driverEmail, Long scheduledTripId) {
         DriverProfile driver = requireApprovedDriver(driverEmail);
         requireAnyActiveAssociation(driver);
@@ -66,11 +94,11 @@ public class TripOperationService {
         if (trip.getStatus() == TripStatus.COMPLETED) {
             conflict("Completed trips cannot be started.");
         }
-        if (trip.getStatus() == TripStatus.BOARDING || trip.getStatus() == TripStatus.IN_PROGRESS) {
+        if (trip.getStatus() == TripStatus.IN_PROGRESS) {
             conflict("This trip has already been started.");
         }
-        if (trip.getStatus() != TripStatus.SCHEDULED) {
-            conflict("Only scheduled trips can be started.");
+        if (trip.getStatus() != TripStatus.BOARDING) {
+            conflict("Boarding must begin before this trip can be started.");
         }
 
         LocalDateTime now = LocalDateTime.now();
