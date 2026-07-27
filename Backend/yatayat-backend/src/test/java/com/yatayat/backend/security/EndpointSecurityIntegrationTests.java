@@ -7,6 +7,7 @@ import com.yatayat.backend.dto.DriverLocalFarePassValidationResponse;
 import com.yatayat.backend.dto.DriverTicketValidationResponse;
 import com.yatayat.backend.dto.TripLocationResponse;
 import com.yatayat.backend.dto.PassengerTripLocationResponse;
+import com.yatayat.backend.dto.AdminDashboardAnalyticsResponse;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.entity.Wallet;
 import com.yatayat.backend.entity.WalletTransaction;
@@ -33,6 +34,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.math.BigDecimal;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -66,6 +69,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         OperatorLiveFleetController.class,
         OperatorLocalLiveFleetController.class,
         AdminLiveFleetController.class,
+        AdminDashboardAnalyticsController.class,
         AuthController.class
 })
 @Import({SecurityConfig.class, AuthenticatedUserService.class, SessionLogoutService.class})
@@ -114,6 +118,8 @@ class EndpointSecurityIntegrationTests {
     private OperatorLocalLiveFleetService operatorLocalLiveFleetService;
     @MockitoBean
     private AdminLiveFleetService adminLiveFleetService;
+    @MockitoBean
+    private AdminDashboardAnalyticsService adminDashboardAnalyticsService;
     @MockitoBean
     private OperatorApplicationService operatorApplicationService;
     @MockitoBean
@@ -657,6 +663,64 @@ class EndpointSecurityIntegrationTests {
 
         mockMvc.perform(put("/api/admin/drivers/9/approve"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void anonymousCannotReadAdminAnalytics() throws Exception {
+        mockMvc.perform(get("/api/admin/analytics/dashboard"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotReadAdminAnalytics() throws Exception {
+        mockMvc.perform(get("/api/admin/analytics/dashboard"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "DRIVER")
+    void driverCannotReadAdminAnalytics() throws Exception {
+        mockMvc.perform(get("/api/admin/analytics/dashboard"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERATOR")
+    void operatorCannotReadAdminAnalytics() throws Exception {
+        mockMvc.perform(get("/api/admin/analytics/dashboard"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanReadDashboardAnalytics() throws Exception {
+        AdminDashboardAnalyticsResponse.Summary summary =
+                new AdminDashboardAnalyticsResponse.Summary(
+                        10, 5, 2, 2, 1, 1, 4, 3, 2, 6, 1, 2, 1,
+                        1, 1, 1, 8, 2, 5, 1,
+                        new BigDecimal("1200.00"), new BigDecimal("500.00"),
+                        new BigDecimal("1700.00"));
+        when(adminDashboardAnalyticsService.dashboard("LAST_7_DAYS"))
+                .thenReturn(new AdminDashboardAnalyticsResponse(
+                        "LAST_7_DAYS", summary,
+                        List.of(new AdminDashboardAnalyticsResponse.DailyPoint(
+                                LocalDate.now(), 1)),
+                        List.of(new AdminDashboardAnalyticsResponse.DailyPoint(
+                                LocalDate.now(), 2)),
+                        new AdminDashboardAnalyticsResponse.TripBreakdown(1, 2),
+                        List.of(new AdminDashboardAnalyticsResponse.RecentActivity(
+                                "PAYMENT_VERIFIED", "Ticket payment verified",
+                                "PAY-1", LocalDateTime.now()))));
+
+        mockMvc.perform(get("/api/admin/analytics/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary.totalUsers").value(10))
+                .andExpect(jsonPath("$.summary.totalVerifiedPaymentAmount").value(1700.00))
+                .andExpect(jsonPath("$.recentActivity[0].title")
+                        .value("Ticket payment verified"))
+                .andExpect(jsonPath("$.recentActivity[0].email").doesNotExist())
+                .andExpect(jsonPath("$.recentActivity[0].password").doesNotExist());
     }
 
     @Test

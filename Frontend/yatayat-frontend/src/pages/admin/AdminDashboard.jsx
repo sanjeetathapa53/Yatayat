@@ -1,561 +1,201 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
-  AlertTriangle,
-  ArrowRight,
-  Building2,
-  Bus,
-  CheckCircle2,
-  FileCheck2,
-  MapPinned,
-  RefreshCw,
-  Route,
-  UserCheck,
+  Activity, AlertTriangle, ArrowRight, Banknote, Bus,
+  CalendarDays, CreditCard, MapPinned, RefreshCw, Route, TicketCheck,
+  UserCheck, Users,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from "recharts";
 import AdminLayout from "../../components/layout/AdminLayout";
 import { apiFetch } from "../../utils/api";
 
-const initialStats = {
-  pendingDrivers: 0,
-  pendingOperators: 0,
-};
+const ranges = [
+  ["LAST_7_DAYS", "7 Days"],
+  ["LAST_30_DAYS", "30 Days"],
+];
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-
-  const [stats, setStats] = useState(initialStats);
-  const [pendingDrivers, setPendingDrivers] = useState([]);
-  const [pendingOperators, setPendingOperators] = useState([]);
+  const [range, setRange] = useState("LAST_7_DAYS");
+  const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const loadDashboard = async (manualRefresh = false) => {
+  const loadDashboard = useCallback(async () => {
     try {
-      manualRefresh ? setRefreshing(true) : setLoading(true);
+      setLoading(true);
       setError("");
-
-      const [pendingResponse, operatorsResponse] = await Promise.all([
-        apiFetch("/api/admin/drivers/pending"),
-        apiFetch("/api/admin/operators"),
-      ]);
-
-      let pendingData = [];
-
-      if (pendingResponse.ok) {
-        pendingData = await pendingResponse.json();
-      }
-
-      setPendingDrivers(Array.isArray(pendingData) ? pendingData : []);
-
-      let operatorsData = [];
-
-      if (operatorsResponse.ok) {
-        operatorsData = await operatorsResponse.json();
-      }
-
-      const pendingOperatorData = Array.isArray(operatorsData)
-        ? operatorsData.filter(
-            (operator) => operator.verificationStatus === "PENDING"
-          )
-        : [];
-
-      setPendingOperators(pendingOperatorData);
-
-      setStats((previous) => ({
-        ...previous,
-        pendingDrivers: Array.isArray(pendingData)
-          ? pendingData.length
-          : 0,
-        pendingOperators: pendingOperatorData.length,
-      }));
-    } catch (fetchError) {
-      console.error("Admin dashboard loading error:", fetchError);
-
-      setError(
-        "Some dashboard information could not be loaded. Make sure the backend is running."
+      const response = await apiFetch(
+        `/api/admin/analytics/dashboard?range=${encodeURIComponent(range)}`,
       );
+      if (!response.ok) throw new Error("Unable to load admin analytics.");
+      setAnalytics(await response.json());
+    } catch (loadError) {
+      setError(loadError.message || "Unable to load admin analytics.");
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
-  };
+  }, [range]);
 
   useEffect(() => {
-    Promise.resolve().then(() => loadDashboard());
-  }, []);
+    Promise.resolve().then(loadDashboard);
+  }, [loadDashboard]);
 
-  const latestApplications = useMemo(
-    () => pendingDrivers.slice(0, 5),
-    [pendingDrivers]
-  );
-
-  const latestOperatorApplications = useMemo(
-    () => pendingOperators.slice(0, 5),
-    [pendingOperators]
-  );
+  const summary = analytics?.summary;
 
   return (
     <AdminLayout
       title="Admin Dashboard"
-      subtitle="Monitor driver applications, users, buses, trips, bookings and platform operations."
+      subtitle="Real-time platform analytics, operations, revenue, and administrative work."
     >
       <div className="space-y-6">
-        {/* WELCOME SECTION */}
-
-        <section className="overflow-hidden rounded-3xl bg-[#08264a] px-6 py-7 text-white shadow-sm sm:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200">
-                Yatayat Control Centre
-              </p>
-
-              <h1 className="mt-3 text-2xl font-black sm:text-3xl">
-                Manage the transport platform from one place
-              </h1>
-
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">
-                Review driver applications, manage buses and routes, supervise
-                trips, monitor bookings, and track the overall performance of
-                the Yatayat system.
-              </p>
-            </div>
-
+        <section className="flex flex-col gap-5 rounded-3xl bg-[#08264a] px-6 py-7 text-white shadow-sm sm:px-8 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200">
+              Yatayat Control Centre
+            </p>
+            <h1 className="mt-3 text-2xl font-black sm:text-3xl">
+              Platform performance at a glance
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm text-slate-300">
+              Database-backed user, fleet, trip, booking, payment, and approval metrics.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {ranges.map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setRange(value)}
+                className={`rounded-xl px-4 py-2.5 text-sm font-black ${
+                  range === value ? "bg-white text-[#08264a]" : "bg-white/10 text-white hover:bg-white/20"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
             <button
               type="button"
-              onClick={() => loadDashboard(true)}
-              disabled={refreshing}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#08264a] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70 lg:w-auto"
+              onClick={loadDashboard}
+              disabled={loading}
+              aria-label="Refresh analytics"
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 disabled:opacity-50"
             >
-              <RefreshCw
-                size={18}
-                className={refreshing ? "animate-spin" : ""}
-              />
-              {refreshing ? "Refreshing..." : "Refresh Dashboard"}
+              <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
             </button>
           </div>
         </section>
 
-        {/* ERROR */}
-
         {error && (
-          <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-            <AlertTriangle size={20} className="mt-0.5 shrink-0" />
-            <p>{error}</p>
+          <div className="flex flex-col gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 sm:flex-row sm:items-center sm:justify-between">
+            <span className="flex items-center gap-2"><AlertTriangle size={19} />{error}</span>
+            <button type="button" onClick={loadDashboard} className="rounded-lg bg-red-700 px-4 py-2 text-white">Retry</button>
           </div>
         )}
 
-        {/* STAT CARDS */}
+        {loading && !analytics ? <DashboardSkeleton /> : analytics && (
+          <>
+            <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <Metric label="Total Users" value={summary.totalUsers} note={`${summary.usersRegisteredInRange} in selected range`} icon={<Users />} />
+              <Metric label="Passengers" value={summary.totalPassengers} note={`${summary.totalDrivers} drivers • ${summary.totalOperators} operators`} icon={<UserCheck />} />
+              <Metric label="Buses" value={summary.totalBuses} note={`${summary.activeBuses} active`} icon={<Bus />} />
+              <Metric label="Routes" value={summary.totalRoutes} note={`${summary.activeLocalTrips} local services running`} icon={<Route />} />
+              <Metric label="Total Bookings" value={summary.totalBookings} note={`${summary.bookingsToday} today`} icon={<TicketCheck />} />
+              <Metric label="Confirmed Bookings" value={summary.confirmedBookings} note={`${summary.cancelledBookings} cancelled`} icon={<CalendarDays />} />
+              <Metric label="Trips Today" value={summary.scheduledOutOfValleyTripsToday} note={`${summary.completedTripsToday} completed today`} icon={<MapPinned />} />
+              <Metric label="Pending Reviews" value={summary.pendingOperatorApplications + summary.pendingDriverApplications + summary.pendingBusApprovals} note="Operators, drivers, and buses" icon={<Activity />} />
+            </section>
 
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <StatCard
-            label="Pending Applications"
-            value={stats.pendingDrivers}
-            description="Require admin review"
-            icon={<FileCheck2 size={23} />}
-            tone="amber"
-            loading={loading}
-          />
+            <section className="grid gap-4 md:grid-cols-3">
+              <MoneyCard label="Verified Ticket Revenue" value={summary.verifiedTicketRevenue} icon={<CreditCard />} />
+              <MoneyCard label="Verified Wallet Top-ups" value={summary.verifiedWalletTopUpAmount} icon={<Banknote />} />
+              <MoneyCard label="Total Verified Payments" value={summary.totalVerifiedPaymentAmount} icon={<Banknote />} />
+            </section>
 
-          <StatCard
-            label="Pending Operators"
-            value={stats.pendingOperators}
-            description="Require admin review"
-            icon={<Building2 size={23} />}
-            tone="amber"
-            loading={loading}
-          />
+            <section className="grid gap-6 xl:grid-cols-2">
+              <DailyChart title="User registrations" points={analytics.userRegistrations} />
+              <DailyChart title="Bookings" points={analytics.bookings} />
+            </section>
 
-        </section>
-
-        {/* MAIN CONTENT */}
-
-        <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-          {/* DRIVER APPLICATIONS */}
-
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:col-span-8">
-            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <div>
-                <h2 className="text-xl font-black text-slate-900">
-                  Pending Driver Applications
-                </h2>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Review identity, licence, experience, and uploaded documents.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() =>
-                  navigate("/admin/driver-applications")
-                }
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
-              >
-                View All
-                <ArrowRight size={17} />
-              </button>
-            </div>
-
-            {loading ? (
-              <ApplicationSkeleton />
-            ) : latestApplications.length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700">
-                  <CheckCircle2 size={30} />
+            <section className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+              <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+                <h2 className="text-xl font-black text-slate-900">Recent activity</h2>
+                <p className="mt-1 text-sm text-slate-500">Latest safe operational events.</p>
+                <div className="mt-5 divide-y divide-slate-100">
+                  {analytics.recentActivity.length === 0 ? (
+                    <EmptyState text="No recent activity is available." />
+                  ) : analytics.recentActivity.map((item, index) => (
+                    <div key={`${item.type}-${item.referenceId}-${index}`} className="flex items-center justify-between gap-4 py-4">
+                      <div>
+                        <p className="font-black text-slate-900">{item.title}</p>
+                        <p className="mt-1 text-xs font-bold uppercase tracking-wide text-slate-400">{item.type.replaceAll("_", " ")}</p>
+                      </div>
+                      <time className="shrink-0 text-xs font-semibold text-slate-500">{formatDateTime(item.occurredAt)}</time>
+                    </div>
+                  ))}
                 </div>
-
-                <h3 className="mt-4 text-lg font-black text-slate-900">
-                  No pending applications
-                </h3>
-
-                <p className="mt-2 text-sm text-slate-500">
-                  All submitted driver applications have been reviewed.
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {latestApplications.map((application) => (
-                  <DriverApplicationRow
-                    key={application.id}
-                    application={application}
-                    onView={() =>
-                      navigate(
-                        `/admin/driver-applications/${application.id}`
-                      )
-                    }
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:col-span-8">
-            <div className="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-              <div>
-                <h2 className="text-xl font-black text-slate-900">
-                  Pending Operator Applications
-                </h2>
-                <p className="mt-1 text-sm text-slate-500">
-                  Review submitted transport operator registrations.
-                </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => navigate("/admin/operators")}
-                className="flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
-              >
-                View All
-                <ArrowRight size={17} />
-              </button>
-            </div>
-
-            {loading ? (
-              <ApplicationSkeleton />
-            ) : latestOperatorApplications.length === 0 ? (
-              <div className="px-6 py-12 text-center">
-                <CheckCircle2
-                  size={30}
-                  className="mx-auto text-emerald-700"
-                />
-                <h3 className="mt-4 text-lg font-black text-slate-900">
-                  No pending operator applications
-                </h3>
-              </div>
-            ) : (
-              <div className="divide-y divide-slate-100">
-                {latestOperatorApplications.map((operator) => (
-                  <OperatorApplicationRow
-                    key={operator.id}
-                    operator={operator}
-                    onView={() => navigate("/admin/operators")}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* QUICK ACTIONS */}
-
-          <aside className="space-y-6 xl:col-span-4">
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-xl font-black text-slate-900">
-                Quick Actions
-              </h2>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Open frequently used admin modules.
-              </p>
-
-              <div className="mt-5 space-y-3">
-                <QuickAction
-                  icon={<UserCheck size={20} />}
-                  label="Review Driver Applications"
-                  description={`${stats.pendingDrivers} currently pending`}
-                  onClick={() =>
-                    navigate("/admin/driver-applications")
-                  }
-                />
-
-                <QuickAction
-                  icon={<Building2 size={20} />}
-                  label="Review Operator Applications"
-                  description={`${stats.pendingOperators} currently pending`}
-                  onClick={() => navigate("/admin/operators")}
-                />
-
-                <QuickAction
-                  icon={<Bus size={20} />}
-                  label="Manage Buses"
-                  description="Register, assign, and verify buses"
-                  onClick={() => navigate("/admin/buses")}
-                />
-
-                <QuickAction
-                  icon={<Route size={20} />}
-                  label="Manage Routes"
-                  description="Create routes, stops, and fares"
-                  onClick={() => navigate("/admin/routes")}
-                />
-
-              </div>
-            </div>
-
-            <div className="rounded-3xl bg-linear-to-br from-[#08264a] to-[#164b82] p-6 text-white shadow-sm">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
-                <MapPinned size={24} />
-              </div>
-
-              <h2 className="mt-5 text-xl font-black">
-                Live Operations
-              </h2>
-
-              <p className="mt-2 text-sm leading-6 text-slate-300">
-                Monitor running trips, delayed services, driver status, and
-                vehicle locations from the live tracking module.
-              </p>
-
-              <button
-                type="button"
-                onClick={() => navigate("/admin/live-tracking")}
-                className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-sm font-black text-[#08264a] transition hover:bg-slate-100"
-              >
-                Open Live Monitoring
-                <ArrowRight size={17} />
-              </button>
-            </div>
-          </aside>
-        </section>
-
+              <aside className="space-y-6">
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h2 className="text-xl font-black text-slate-900">Trip mix</h2>
+                  <Breakdown label="Local services" value={analytics.tripBreakdown.localServices} />
+                  <Breakdown label="Out-of-valley trips" value={analytics.tripBreakdown.outOfValleyTrips} />
+                </div>
+                <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <h2 className="text-xl font-black text-slate-900">Quick links</h2>
+                  <div className="mt-4 space-y-2">
+                    <QuickLink label={`Operators (${summary.pendingOperatorApplications} pending)`} onClick={() => navigate("/admin/operators")} />
+                    <QuickLink label={`Drivers (${summary.pendingDriverApplications} pending)`} onClick={() => navigate("/admin/driver-applications")} />
+                    <QuickLink label={`Buses (${summary.pendingBusApprovals} pending)`} onClick={() => navigate("/admin/buses")} />
+                    <QuickLink label="Routes" onClick={() => navigate("/admin/routes")} />
+                    <QuickLink label="Live Monitoring" onClick={() => navigate("/admin/live-tracking")} />
+                  </div>
+                </div>
+              </aside>
+            </section>
+          </>
+        )}
       </div>
     </AdminLayout>
   );
 }
 
-function StatCard({
-  label,
-  value,
-  description,
-  icon,
-  tone,
-  loading,
-}) {
-  const toneStyles = {
-    blue: "bg-blue-100 text-blue-700",
-    emerald: "bg-emerald-100 text-emerald-700",
-    amber: "bg-amber-100 text-amber-700",
-    violet: "bg-violet-100 text-violet-700",
-    cyan: "bg-cyan-100 text-cyan-700",
-  };
-
-  return (
-    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-            {label}
-          </p>
-
-          {loading ? (
-            <div className="mt-4 h-9 w-24 animate-pulse rounded-lg bg-slate-200" />
-          ) : (
-            <h3 className="mt-3 wrap-break-word text-3xl font-black text-slate-900">
-              {value}
-            </h3>
-          )}
-
-          <p className="mt-2 text-sm text-slate-500">
-            {description}
-          </p>
-        </div>
-
-        <div
-          className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-            toneStyles[tone] || toneStyles.blue
-          }`}
-        >
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
+function Metric({ label, value, note, icon }) {
+  return <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-widest text-slate-500">{label}</p><p className="mt-3 text-3xl font-black text-slate-900">{Number(value).toLocaleString()}</p><p className="mt-2 text-sm text-slate-500">{note}</p></div><div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-blue-700">{icon}</div></div></div>;
 }
 
-function DriverApplicationRow({ application, onView }) {
-  return (
-    <div className="flex flex-col gap-4 px-5 py-5 transition hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <div className="flex min-w-0 items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-sm font-black text-[#08264a]">
-          {getInitials(application.fullName || "Driver")}
-        </div>
-
-        <div className="min-w-0">
-          <h3 className="truncate font-black text-slate-900">
-            {application.fullName || "Driver Applicant"}
-          </h3>
-
-          <p className="mt-1 truncate text-sm text-slate-500">
-            {application.email || "Email unavailable"}
-          </p>
-
-          <div className="mt-2 flex flex-wrap gap-2">
-            <SmallBadge>
-              Licence {application.licenseCategory || "N/A"}
-            </SmallBadge>
-
-            <SmallBadge>
-              {application.yearsOfExperience || 0} year(s)
-            </SmallBadge>
-
-            <SmallBadge>
-              {application.preferredOperatingArea ||
-                "Area not specified"}
-            </SmallBadge>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-3 sm:justify-end">
-        <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-700">
-          PENDING
-        </span>
-
-        <button
-          type="button"
-          onClick={onView}
-          className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-700 transition hover:border-[#08264a] hover:bg-[#08264a] hover:text-white"
-        >
-          Review
-        </button>
-      </div>
-    </div>
-  );
+function MoneyCard({ label, value, icon }) {
+  return <div className="rounded-3xl bg-linear-to-br from-emerald-700 to-emerald-900 p-5 text-white shadow-sm"><div className="flex items-center justify-between"><p className="text-xs font-black uppercase tracking-widest text-emerald-100">{label}</p>{icon}</div><p className="mt-4 text-2xl font-black">{formatMoney(value)}</p><p className="mt-2 text-xs text-emerald-100">Verified backend transactions only</p></div>;
 }
 
-function QuickAction({
-  icon,
-  label,
-  description,
-  onClick,
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-4 rounded-2xl border border-slate-200 p-4 text-left transition hover:border-[#08264a] hover:bg-blue-50"
-    >
-      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-[#08264a]">
-        {icon}
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <p className="font-black text-slate-900">
-          {label}
-        </p>
-
-        <p className="mt-1 text-sm text-slate-500">
-          {description}
-        </p>
-      </div>
-
-      <ArrowRight size={18} className="shrink-0 text-slate-400" />
-    </button>
-  );
+function DailyChart({ title, points }) {
+  return <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><h2 className="text-xl font-black text-slate-900">{title}</h2><div className="mt-5 h-56 w-full"><ResponsiveContainer width="100%" height="100%"><AreaChart data={points} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}><defs><linearGradient id={`chart-${title.replaceAll(" ", "-")}`} x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#0d6b78" stopOpacity={0.4} /><stop offset="95%" stopColor="#0d6b78" stopOpacity={0.04} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" /><XAxis dataKey="date" tickFormatter={(value) => new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: "short", day: "numeric" })} tick={{ fontSize: 10 }} minTickGap={18} /><YAxis allowDecimals={false} tick={{ fontSize: 10 }} /><Tooltip labelFormatter={(value) => new Date(`${value}T00:00:00`).toLocaleDateString()} formatter={(value) => [value, title]} /><Area type="monotone" dataKey="count" stroke="#0d6b78" strokeWidth={3} fill={`url(#chart-${title.replaceAll(" ", "-")})`} /></AreaChart></ResponsiveContainer></div></div>;
 }
 
-function SmallBadge({ children }) {
-  return (
-    <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-bold text-slate-600">
-      {children}
-    </span>
-  );
+function Breakdown({ label, value }) {
+  return <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3"><span className="text-sm font-bold text-slate-600">{label}</span><span className="text-lg font-black text-[#08264a]">{Number(value).toLocaleString()}</span></div>;
 }
 
-function ApplicationSkeleton() {
-  return (
-    <div className="space-y-1 p-5">
-      {[1, 2, 3].map((item) => (
-        <div
-          key={item}
-          className="flex animate-pulse items-center gap-4 rounded-2xl p-4"
-        >
-          <div className="h-12 w-12 rounded-2xl bg-slate-200" />
-
-          <div className="flex-1">
-            <div className="h-4 w-40 rounded bg-slate-200" />
-            <div className="mt-2 h-3 w-56 rounded bg-slate-100" />
-          </div>
-
-          <div className="h-9 w-20 rounded-xl bg-slate-200" />
-        </div>
-      ))}
-    </div>
-  );
+function QuickLink({ label, onClick }) {
+  return <button type="button" onClick={onClick} className="flex w-full items-center justify-between rounded-xl border border-slate-200 px-4 py-3 text-left text-sm font-black text-slate-700 hover:border-[#08264a] hover:bg-blue-50">{label}<ArrowRight size={16} /></button>;
 }
 
-function getInitials(name) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
+function EmptyState({ text }) {
+  return <p className="py-10 text-center text-sm font-semibold text-slate-500">{text}</p>;
 }
 
-function OperatorApplicationRow({ operator, onView }) {
-  return (
-    <div className="flex flex-col gap-4 px-5 py-5 transition hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <div className="flex min-w-0 items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-sm font-black text-violet-700">
-          {getInitials(operator.name || "Operator")}
-        </div>
-        <div className="min-w-0">
-          <h3 className="truncate font-black text-slate-900">
-            {operator.name || "Transport Operator"}
-          </h3>
-          <p className="mt-1 truncate text-sm text-slate-500">
-            {operator.email || "Email unavailable"}
-          </p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <SmallBadge>{operator.registrationNumber || "No registration"}</SmallBadge>
-            <SmallBadge>{operator.operatorType || "Type unavailable"}</SmallBadge>
-          </div>
-        </div>
-      </div>
+function DashboardSkeleton() {
+  return <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{Array.from({ length: 8 }, (_, index) => <div key={index} className="h-36 animate-pulse rounded-3xl bg-slate-200" />)}</div>;
+}
 
-      <div className="flex items-center justify-between gap-3 sm:justify-end">
-        <span className="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-black text-amber-700">
-          PENDING
-        </span>
-        <button
-          type="button"
-          onClick={onView}
-          className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-700 transition hover:border-[#08264a] hover:bg-[#08264a] hover:text-white"
-        >
-          Review
-        </button>
-      </div>
-    </div>
-  );
+function formatMoney(value) {
+  return `NPR ${Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formatDateTime(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Unknown time" : date.toLocaleString();
 }
