@@ -4,6 +4,7 @@ import { Mail, KeyRound, Lock, ArrowLeft } from "lucide-react";
 import { toast } from "react-toastify";
 
 import AuthLayout from "../../components/auth/AuthLayout";
+import { apiFetch } from "../../utils/api";
 
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -16,8 +17,8 @@ export default function ForgotPasswordPage() {
 
   const sendOtp = async () => {
     try {
-      const res = await fetch(
-        "http://localhost:8080/api/auth/send-forgot-password-otp",
+      const res = await apiFetch(
+        "/api/auth/send-forgot-password-otp",
         {
           method: "POST",
           headers: {
@@ -43,8 +44,8 @@ export default function ForgotPasswordPage() {
 
   const resetPassword = async () => {
     try {
-      const res = await fetch(
-        "http://localhost:8080/api/auth/reset-password",
+      const res = await apiFetch(
+        "/api/auth/reset-password",
         {
           method: "POST",
           headers: {

@@ -13,9 +13,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CircleMarker, MapContainer, TileLayer, useMap } from "react-leaflet";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { getLocalFarePasses } from "../../utils/localFarePasses";
 import { getActiveLocalServices } from "../../utils/passengerLocalLiveTracking";
+import { apiFetch } from "../../utils/api";
 
 export default function PassengerDashboard() {
   const navigate = useNavigate();
@@ -36,18 +37,12 @@ export default function PassengerDashboard() {
   useEffect(() => {
     const fetchWalletSummary = async () => {
       try {
-        const response = await fetch(
-          `http://localhost:8080/api/wallet/balance/${userId}`,
-          { credentials: "include" }
-        );
+        const response = await apiFetch(`/api/wallet/balance/${userId}`);
 
         const balance = await response.text();
         setWalletBalance(Number(balance));
 
-        const statusResponse = await fetch(
-          `http://localhost:8080/api/wallet/pin-status/${userId}`,
-          { credentials: "include" }
-        );
+        const statusResponse = await apiFetch(`/api/wallet/pin-status/${userId}`);
 
         if (statusResponse.ok) {
           setWalletStatus(await statusResponse.text());

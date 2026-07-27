@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Bus, Clock3, Loader2, RefreshCw } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { getTripSeats, holdTripSeats, releaseTripSeats } from "../../utils/passengerSeats";
 import { handleBookingSession } from "../../utils/passengerBookings";
 
@@ -10,13 +10,13 @@ export default function PassengerSeatSelectionPage() {
   const { tripId } = useParams(); const navigate = useNavigate(); const { t } = useLanguage();
   const [availability, setAvailability] = useState(null); const [selected, setSelected] = useState([]);
   const [loading, setLoading] = useState(true); const [holding, setHolding] = useState(false); const [error, setError] = useState("");
-  const [expiresAt, setExpiresAt] = useState(null); const [now, setNow] = useState(Date.now());
-  const load = useCallback(async () => { setLoading(true); setError(""); try { const data = await getTripSeats(tripId); setAvailability(data); setSelected(data.ownHeldSeats || []); setExpiresAt(data.ownHoldExpiresAt || null); } catch (loadError) { if (!handleBookingSession(loadError, navigate)) setError(loadError.message); } finally { setLoading(false); } }, [navigate, tripId]);
-  useEffect(() => { load(); }, [load]);
+  const [expiresAt, setExpiresAt] = useState(null); const [now, setNow] = useState(0);
+  const load = useCallback(async () => { setLoading(true); setError(""); try { const data = await getTripSeats(tripId); setAvailability(data); setSelected(data.ownHeldSeats || []); setExpiresAt(data.ownHoldExpiresAt || null); setNow(Date.now()); } catch (loadError) { if (!handleBookingSession(loadError, navigate)) setError(loadError.message); } finally { setLoading(false); } }, [navigate, tripId]);
+  useEffect(() => { const timer = window.setTimeout(() => { void load(); }, 0); return () => window.clearTimeout(timer); }, [load]);
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
   useEffect(() => { if (!expiresAt) return undefined; const warn = (event) => { event.preventDefault(); event.returnValue = t("passenger.booking.holdUnloadWarning"); }; window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn); }, [expiresAt, t]);
   const remaining = Math.max(0, expiresAt ? Math.floor((new Date(expiresAt).getTime() - now) / 1000) : 0);
-  useEffect(() => { if (expiresAt && remaining === 0) { setExpiresAt(null); setSelected([]); load(); } }, [expiresAt, load, remaining]);
+  useEffect(() => { if (!expiresAt || remaining !== 0) return undefined; const timer = window.setTimeout(() => { setExpiresAt(null); setSelected([]); void load(); }, 0); return () => window.clearTimeout(timer); }, [expiresAt, load, remaining]);
   const unavailable = useMemo(() => new Set([...(availability?.heldSeats || []), ...(availability?.confirmedSeats || [])].filter((seat) => !(availability?.ownHeldSeats || []).includes(seat))), [availability]);
   const toggle = (seat) => { if (unavailable.has(seat) || expiresAt) return; setSelected((current) => current.includes(seat) ? current.filter((item) => item !== seat) : current.length < 6 ? [...current, seat] : current); };
   const hold = async () => { if (!selected.length) return setError(t("passenger.booking.selectAtLeastOneSeat")); setHolding(true); setError(""); try { const result = await holdTripSeats(tripId, selected); setExpiresAt(result.holdExpiresAt); await load(); navigate(`/passenger/trips/${tripId}/book`); } catch (holdError) { if (!handleBookingSession(holdError, navigate)) { setError(holdError.message); await load(); } } finally { setHolding(false); } };

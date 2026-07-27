@@ -138,7 +138,7 @@ export default function OperatorLocalServicesPage() {
         </div>
 
         <div className="rounded-3xl border border-blue-100 bg-blue-50 p-4 text-sm font-bold text-blue-900">
-          Local services are planning assignments only. Seat booking, wallet payment, local QR tickets and GPS operations come in later phases.
+          Create dated local service runs, assign an approved driver and bus, and monitor active services from Live Fleet.
         </div>
 
         <div className="grid gap-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-[1fr_auto] md:items-end">

@@ -3,7 +3,6 @@ import {
     Calendar,
     Clock,
     CreditCard,
-    MapPin,
     Ticket,
     User,
   } from "lucide-react";

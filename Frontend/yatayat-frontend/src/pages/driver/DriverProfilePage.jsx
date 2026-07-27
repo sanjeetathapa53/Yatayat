@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   UserCircle,
   Edit,
@@ -20,8 +20,7 @@ import {
 } from "lucide-react";
 import { toast } from "react-toastify";
 import DriverLayout from "../../components/layout/DriverLayout";
-
-const API_BASE_URL = "http://localhost:8080";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function DriverProfilePage() {
   const loggedInUser = useMemo(() => {
@@ -40,7 +39,7 @@ export default function DriverProfilePage() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
 
-  const fetchDriverProfile = async (manualRefresh = false) => {
+  const fetchDriverProfile = useCallback(async (manualRefresh = false) => {
     if (!loggedInUser?.id) {
       setError(
         "Logged-in driver information was not found. Please log in again."
@@ -99,11 +98,14 @@ export default function DriverProfilePage() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [loggedInUser]);
 
   useEffect(() => {
-    fetchDriverProfile();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void fetchDriverProfile();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchDriverProfile]);
 
   if (loading) {
     return (

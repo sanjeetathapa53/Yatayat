@@ -114,12 +114,6 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/passenger/**").hasRole("PASSENGER")
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/bookings/validate-qr",
-                                "/api/bookings/mark-used"
-                        ).hasRole("DRIVER")
-                        .requestMatchers("/api/bookings/**").hasRole("PASSENGER")
                         .requestMatchers("/api/wallet/**").hasRole("PASSENGER")
                         .requestMatchers("/api/passenger/live-trips/**").hasRole("PASSENGER")
                         .requestMatchers("/api/passenger/live-trips").hasRole("PASSENGER")

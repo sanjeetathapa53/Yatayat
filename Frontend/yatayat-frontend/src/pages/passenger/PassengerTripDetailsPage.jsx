@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Bus, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { formatPassengerTripDate, handlePassengerSession, passengerTripRequest } from "../../utils/passengerTrips";
 
 export default function PassengerTripDetailsPage() {

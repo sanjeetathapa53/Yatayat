@@ -13,7 +13,7 @@ import {
 import AuthLayout from "../../components/auth/AuthLayout";
 import { apiFetch } from "../../utils/api";
 import { consumeAdminLoginMessage } from "../../utils/adminSession";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();

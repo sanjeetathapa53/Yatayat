@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Bus, CalendarDays, Loader2, MapPin, RotateCcw, Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { formatPassengerTripDate, handlePassengerSession, passengerTripRequest } from "../../utils/passengerTrips";
 
 export default function PassengerTripSearchPage() {

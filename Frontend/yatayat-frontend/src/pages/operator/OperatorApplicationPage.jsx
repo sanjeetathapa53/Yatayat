@@ -18,8 +18,7 @@ import {
 import { toast } from "react-toastify";
 
 import AuthLayout from "../../components/auth/AuthLayout";
-
-const API_BASE_URL = "http://localhost:8080";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function OperatorApplicationPage() {
   const navigate = useNavigate();

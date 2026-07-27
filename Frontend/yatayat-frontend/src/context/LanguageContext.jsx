@@ -1,8 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { passengerDriverTranslations } from "../data/passengerDriverTranslations";
 import { translations } from "../data/translations";
-
-const LanguageContext = createContext();
+import { LanguageContext } from "./languageContextValue";
 
 export function LanguageProvider({ children }) {
   const [language, setLanguageState] = useState(() =>
@@ -45,10 +44,6 @@ export function LanguageProvider({ children }) {
       {children}
     </LanguageContext.Provider>
   );
-}
-
-export function useLanguage() {
-  return useContext(LanguageContext);
 }
 
 function normalizeLanguage(language) {

@@ -4,7 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { downloadTicketPdf, getTicketByNumber, handleTicketSession, sendTicketEmail } from "../../utils/passengerTickets";
 import { formatBookingDate, formatNpr } from "../../utils/passengerBookings";
 
@@ -31,7 +31,7 @@ export default function PassengerTicketPage() {
       })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [navigate, ticketNumber]);
+  }, [navigate, t, ticketNumber]);
 
   const download = async () => {
     if (!ticket || downloading) return;

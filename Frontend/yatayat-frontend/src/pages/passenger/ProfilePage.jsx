@@ -14,8 +14,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { logoutUser } from "../../services/authService";
+import { apiFetch } from "../../utils/api";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -56,7 +57,7 @@ export default function ProfilePage() {
     }
 
     try {
-      const response = await fetch("http://localhost:8080/api/auth/change-password", {
+      const response = await apiFetch("/api/auth/change-password", {
         method: "POST",
         credentials: "include",
         headers: {

@@ -3,8 +3,8 @@ import { CheckCircle, Clock, Loader2, QrCode, Route, ShieldCheck, Wallet } from 
 import { QRCodeSVG } from "qrcode.react";
 import { useLocation, useNavigate } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useAuth } from "../../context/AuthContext";
-import { useLanguage } from "../../context/LanguageContext";
+import { useAuth } from "../../hooks/useAuth";
+import { useLanguage } from "../../hooks/useLanguage";
 import { apiFetch } from "../../utils/api";
 import { getLocalFarePasses, getLocalFareQuote, purchaseLocalFarePass } from "../../utils/localFarePasses";
 import { localRouteRequest } from "../../utils/localRoutes";

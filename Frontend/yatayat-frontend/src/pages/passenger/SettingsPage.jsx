@@ -1,6 +1,5 @@
 import { useState } from "react";
 import {
-  Settings,
   Globe,
   ShieldCheck,
   Mail,
@@ -11,7 +10,7 @@ import {
   Bell,
 } from "lucide-react";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 
 export default function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();

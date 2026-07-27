@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { Bell, UserCircle } from "lucide-react";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 
 export default function Navbar() {
   const { language, setLanguage, t } = useLanguage();

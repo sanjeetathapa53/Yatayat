@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -17,8 +17,7 @@ import {
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../../components/layout/AdminLayout";
-
-const API_BASE_URL = "http://localhost:8080";
+import { API_BASE_URL } from "../../utils/api";
 
 export default function DriverApplicationDetailsPage() {
   const navigate = useNavigate();
@@ -33,7 +32,7 @@ export default function DriverApplicationDetailsPage() {
   const [rejectionReason, setRejectionReason] = useState("");
   const [successState, setSuccessState] = useState(null);
 
-  const fetchApplication = async () => {
+  const fetchApplication = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -62,11 +61,14 @@ export default function DriverApplicationDetailsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
-    fetchApplication();
-  }, [id]);
+    const timer = window.setTimeout(() => {
+      void fetchApplication();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchApplication]);
 
   const approveApplication = async () => {
     try {

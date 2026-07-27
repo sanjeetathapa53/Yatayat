@@ -3,19 +3,11 @@ import {
   Activity,
   Bus,
   Route,
-  Users,
   UserCheck,
   Map,
-  Ticket,
-  Wallet,
-  BarChart3,
-  Settings,
   LogOut,
   Menu,
   X,
-  Bell,
-  Search,
-  ChevronRight,
   Building2 ,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -33,11 +25,6 @@ const menuItems = [
     path: "/admin/driver-applications",
   },
   {
-    label: "Drivers",
-    icon: Users,
-    path: "/admin/drivers",
-  },
-  {
     label: "Transport Operators",
     icon: Building2,
     path: "/admin/operators",
@@ -53,39 +40,9 @@ const menuItems = [
     path: "/admin/routes",
   },
   {
-    label: "Trips",
-    icon: ChevronRight,
-    path: "/admin/trips",
-  },
-  {
     label: "Live Monitoring",
     icon: Map,
     path: "/admin/live-tracking",
-  },
-  {
-    label: "Bookings",
-    icon: Ticket,
-    path: "/admin/bookings",
-  },
-  {
-    label: "Passengers",
-    icon: Users,
-    path: "/admin/passengers",
-  },
-  {
-    label: "Wallet & Payments",
-    icon: Wallet,
-    path: "/admin/payments",
-  },
-  {
-    label: "Reports",
-    icon: BarChart3,
-    path: "/admin/reports",
-  },
-  {
-    label: "Settings",
-    icon: Settings,
-    path: "/admin/settings",
   },
 ];
 
@@ -98,7 +55,6 @@ export default function AdminLayout({
   const location = useLocation();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [search, setSearch] = useState("");
 
   const admin = JSON.parse(
     localStorage.getItem("yatayatAdmin") || "null"
@@ -231,27 +187,6 @@ export default function AdminLayout({
               </p>
             </div>
 
-            <div className="hidden w-full max-w-sm items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 md:flex">
-              <Search size={18} className="shrink-0 text-slate-500" />
-
-              <input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                type="search"
-                placeholder="Search users, drivers, buses..."
-                className="w-full bg-transparent text-sm outline-none"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={() => navigate("/admin/notifications")}
-              className="relative rounded-xl border border-slate-200 bg-white p-3 text-slate-600 transition hover:bg-slate-100"
-            >
-              <Bell size={19} />
-
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500" />
-            </button>
           </div>
         </header>
 

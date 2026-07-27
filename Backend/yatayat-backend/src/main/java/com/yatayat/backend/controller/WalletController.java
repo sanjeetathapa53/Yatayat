@@ -1,21 +1,17 @@
 package com.yatayat.backend.controller;
 
-import com.yatayat.backend.dto.TopUpRequest;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.entity.Wallet;
 import com.yatayat.backend.entity.WalletTransaction;
 import com.yatayat.backend.repository.WalletRepository;
 import com.yatayat.backend.repository.WalletTransactionRepository;
 import org.springframework.web.bind.annotation.*;
-import com.yatayat.backend.dto.WalletPaymentRequest;
 import com.yatayat.backend.dto.WalletPinRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.Authentication;
 import com.yatayat.backend.service.AuthenticatedUserService;
 
 import java.util.List;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/wallet")
@@ -47,12 +43,6 @@ public class WalletController {
                 .orElseGet(() -> walletRepository.save(new Wallet(user)));
 
         return wallet.getBalance();
-    }
-
-    @PostMapping("/topup")
-    public String topUp(@RequestBody TopUpRequest request, Authentication authentication) {
-        throw new ResponseStatusException(HttpStatus.GONE,
-                "Direct wallet top-up is disabled. Use a verified payment provider.");
     }
 
     @GetMapping("/history/{userId}")
@@ -117,34 +107,4 @@ public class WalletController {
         return "PIN_SET";
     }
 
-    @PostMapping("/pay")
-    public String payFromWallet(@RequestBody WalletPaymentRequest request, Authentication authentication) {
-        User user = authenticatedUserService.requireOwnedUser(authentication, request.getUserId());
-
-        if (request.getAmount() == null || request.getAmount() <= 0) {
-            return "Invalid amount";
-        }
-
-        Wallet wallet = walletRepository.findByUser(user)
-                .orElseGet(() -> walletRepository.save(new Wallet(user)));
-
-        if (wallet.getBalance() < request.getAmount()) {
-            return "Insufficient wallet balance";
-        }
-
-        wallet.setBalance(wallet.getBalance() - request.getAmount());
-        walletRepository.save(wallet);
-
-        WalletTransaction transaction = new WalletTransaction(
-                wallet,
-                "TICKET_PAYMENT",
-                request.getAmount(),
-                "SUCCESS",
-                "WALLET"
-        );
-
-        transactionRepository.save(transaction);
-
-        return "Payment successful";
-    }
 }

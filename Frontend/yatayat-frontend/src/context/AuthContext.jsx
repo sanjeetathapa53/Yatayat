@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../utils/api";
+import { AuthContext } from "./authContextValue";
 
-const AuthContext = createContext(null);
 const USER_KEYS = ["yatayatUser", "loginTime"];
 const ADMIN_KEYS = ["yatayatAdmin", "adminAuthenticated"];
 
@@ -53,7 +53,10 @@ export function AuthProvider({ children }) {
   }, [clearAuthenticatedUser, setAuthenticatedUser]);
 
   useEffect(() => {
-    restoreSession();
+    const timer = window.setTimeout(() => {
+      void restoreSession();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [restoreSession]);
 
   useEffect(() => {
@@ -66,10 +69,4 @@ export function AuthProvider({ children }) {
   }), [user, restoring, restoreSession, setAuthenticatedUser, clearAuthenticatedUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
-  return context;
 }

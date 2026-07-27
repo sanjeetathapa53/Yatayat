@@ -3,7 +3,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import PassengerLayout from "../../components/layout/PassengerLayout";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { createPassengerBooking, formatBookingDate, formatNpr, handleBookingSession } from "../../utils/passengerBookings";
 import { passengerTripRequest } from "../../utils/passengerTrips";
 import { getTripSeats } from "../../utils/passengerSeats";
