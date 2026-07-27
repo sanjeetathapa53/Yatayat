@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Clock3, Gauge, MapPin, Navigation, RefreshCw, Route } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import { getActiveTripLocations, getTripLocation } from "../../utils/passengerLiveTracking";
+import { getActiveLocalService, getActiveLocalServices } from "../../utils/passengerLocalLiveTracking";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 
 const POLL_INTERVAL_MS = 7000;
@@ -18,50 +19,71 @@ const busIcon = new L.DivIcon({
 
 export default function LiveTrackingPage() {
   const { id: tripId } = useParams();
-  const [trips, setTrips] = useState([]);
-  const [selectedTripId, setSelectedTripId] = useState(tripId || null);
+  const [searchParams] = useSearchParams();
+  const requestedLocalId = searchParams.get("operationType") === "LOCAL"
+    ? searchParams.get("operationId")
+    : null;
+  const requestedType = requestedLocalId ? "LOCAL" : tripId ? "OUT_OF_VALLEY" : null;
+  const requestedId = requestedLocalId || tripId || null;
+  const [operations, setOperations] = useState([]);
+  const [selectedOperationKey, setSelectedOperationKey] = useState(
+    requestedType ? operationKey(requestedType, requestedId) : null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [finishedTrip, setFinishedTrip] = useState(null);
-  const selectedTripIdRef = useRef(selectedTripId);
+  const selectedOperationKeyRef = useRef(selectedOperationKey);
   const intervalRef = useRef(null);
 
   useEffect(() => {
-    selectedTripIdRef.current = selectedTripId;
-  }, [selectedTripId]);
+    selectedOperationKeyRef.current = selectedOperationKey;
+  }, [selectedOperationKey]);
 
   const loadLocations = useCallback(async (signal) => {
     try {
-      const data = tripId
-        ? [await getTripLocation(tripId, signal)]
-        : await getActiveTripLocations(signal);
+      let data;
+      if (requestedType === "LOCAL") {
+        data = [normalizeLocal(await getActiveLocalService(requestedId, signal))];
+      } else if (requestedType === "OUT_OF_VALLEY") {
+        data = [normalizeScheduled(await getTripLocation(requestedId, signal))];
+      } else {
+        const [scheduled, local] = await Promise.all([
+          getActiveTripLocations(signal),
+          getActiveLocalServices(signal),
+        ]);
+        data = [
+          ...scheduled.map(normalizeScheduled),
+          ...local.map(normalizeLocal),
+        ];
+      }
       if (signal.aborted) return;
 
       setError("");
-      setTrips(data);
+      setOperations(data);
 
-      const currentSelection = selectedTripIdRef.current;
-      if (tripId) {
-        setSelectedTripId(tripId);
-        setFinishedTrip(data[0]?.tripStatus === "COMPLETED" ? data[0] : null);
-        if (data[0]?.tripStatus === "COMPLETED" && intervalRef.current !== null) {
+      const currentSelection = selectedOperationKeyRef.current;
+      if (requestedType) {
+        setSelectedOperationKey(operationKey(requestedType, requestedId));
+        setFinishedTrip(data[0]?.status === "COMPLETED" ? data[0] : null);
+        if (data[0]?.status === "COMPLETED" && intervalRef.current !== null) {
           window.clearInterval(intervalRef.current);
           intervalRef.current = null;
         }
       } else if (data.length === 0) {
-        if (currentSelection) {
+        if (currentSelection?.startsWith("OUT_OF_VALLEY:")) {
           try {
-            const previous = await getTripLocation(currentSelection, signal);
-            if (!signal.aborted && previous.tripStatus === "COMPLETED") setFinishedTrip(previous);
+            const previousId = currentSelection.split(":")[1];
+            const previous = normalizeScheduled(await getTripLocation(previousId, signal));
+            if (!signal.aborted && previous.status === "COMPLETED") setFinishedTrip(previous);
           } catch (lookupError) {
             if (lookupError.name !== "AbortError") setFinishedTrip(null);
           }
         }
-        setSelectedTripId(null);
+        setSelectedOperationKey(null);
       } else {
         setFinishedTrip(null);
-        if (!data.some((trip) => String(trip.tripId) === String(currentSelection))) {
-          setSelectedTripId(String(data[0].tripId));
+        if (!data.some((operation) => operation.operationKey === currentSelection)) {
+          setSelectedOperationKey(data[0].operationKey);
         }
       }
     } catch (loadError) {
@@ -71,7 +93,7 @@ export default function LiveTrackingPage() {
     } finally {
       if (!signal.aborted) setLoading(false);
     }
-  }, [tripId]);
+  }, [requestedId, requestedType]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -85,8 +107,8 @@ export default function LiveTrackingPage() {
   }, [loadLocations]);
 
   const selectedTrip = useMemo(
-    () => trips.find((trip) => String(trip.tripId) === String(selectedTripId)) || finishedTrip,
-    [finishedTrip, selectedTripId, trips],
+    () => operations.find((operation) => operation.operationKey === selectedOperationKey) || finishedTrip,
+    [finishedTrip, operations, selectedOperationKey],
   );
   const hasGps = Number.isFinite(selectedTrip?.latitude) && Number.isFinite(selectedTrip?.longitude);
   const markerPosition = hasGps ? [selectedTrip.latitude, selectedTrip.longitude] : null;
@@ -102,25 +124,26 @@ export default function LiveTrackingPage() {
           {error && (
             <Notice tone="red" title="Network Error">{error} Automatic retry is enabled.</Notice>
           )}
-          {!loading && !error && trips.length === 0 && !finishedTrip && (
-            <Notice title="No active trip">There are no buses currently marked IN_PROGRESS.</Notice>
+          {!loading && !error && operations.length === 0 && !finishedTrip && (
+            <Notice title="No active service">There are no local or out-of-valley buses currently operating.</Notice>
           )}
           {finishedTrip && (
             <Notice tone="blue" title="Trip finished">This bus has completed its trip. No further GPS coordinates are expected.</Notice>
           )}
 
-          {!tripId && trips.length > 0 && (
+          {!requestedType && operations.length > 0 && (
             <div className="mt-5 space-y-3">
-              {trips.map((trip) => (
+              {operations.map((trip) => (
                 <button
                   type="button"
-                  key={trip.tripId}
-                  onClick={() => setSelectedTripId(String(trip.tripId))}
-                  className={`w-full rounded-2xl border p-4 text-left transition ${String(selectedTripId) === String(trip.tripId) ? "border-emerald-600 bg-emerald-50" : "border-slate-200 hover:bg-slate-50"}`}
+                  key={trip.operationKey}
+                  onClick={() => setSelectedOperationKey(trip.operationKey)}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${selectedOperationKey === trip.operationKey ? "border-emerald-600 bg-emerald-50" : "border-slate-200 hover:bg-slate-50"}`}
                 >
+                  <OperationBadge type={trip.operationType} />
                   <p className="font-black">{trip.bus?.number || "Bus details unavailable"}</p>
                   <p className="mt-1 text-sm text-slate-600">{routeLabel(trip)}</p>
-                  <p className="mt-2 text-xs font-bold text-emerald-700">{statusLabel(trip.tripStatus)}</p>
+                  <p className="mt-2 text-xs font-bold text-emerald-700">{statusLabel(trip.status)}</p>
                 </button>
               ))}
             </div>
@@ -128,11 +151,12 @@ export default function LiveTrackingPage() {
 
           {selectedTrip && (
             <section className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <OperationBadge type={selectedTrip.operationType} />
               <h2 className="text-xl font-black">{selectedTrip.bus?.number || "Bus unavailable"}</h2>
               {selectedTrip.bus?.name && <p className="text-sm text-slate-500">{selectedTrip.bus.name}</p>}
               <div className="mt-4 space-y-3">
                 <Detail icon={<Route size={17} />} label="Route" value={routeLabel(selectedTrip)} />
-                <Detail icon={<Navigation size={17} />} label="Trip status" value={statusLabel(selectedTrip.tripStatus)} />
+                <Detail icon={<Navigation size={17} />} label="Service status" value={statusLabel(selectedTrip.status)} />
                 <Detail icon={<Clock3 size={17} />} label="Last updated" value={formatUpdatedAt(selectedTrip.updatedAt)} />
                 {selectedTrip.speed != null && <Detail icon={<Gauge size={17} />} label="Speed" value={`${formatSpeed(selectedTrip.speed)} km/h`} />}
               </div>
@@ -214,6 +238,44 @@ function Notice({ title, children, tone = "amber" }) {
 
 function Detail({ icon, label, value }) {
   return <div className="flex items-start gap-3"><span className="mt-0.5 text-emerald-700">{icon}</span><div><p className="text-xs font-bold uppercase text-slate-400">{label}</p><p className="font-black">{value}</p></div></div>;
+}
+
+function OperationBadge({ type }) {
+  const local = type === "LOCAL";
+  return (
+    <span className={`mb-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-black tracking-wide ${local ? "bg-blue-100 text-blue-700" : "bg-violet-100 text-violet-700"}`}>
+      {local ? "LOCAL" : "OUT OF VALLEY"}
+    </span>
+  );
+}
+
+function normalizeScheduled(trip) {
+  return {
+    ...trip,
+    operationType: "OUT_OF_VALLEY",
+    operationId: trip.tripId,
+    operationKey: operationKey("OUT_OF_VALLEY", trip.tripId),
+    status: trip.tripStatus,
+  };
+}
+
+function normalizeLocal(service) {
+  return {
+    ...service,
+    operationType: "LOCAL",
+    operationId: service.runId,
+    operationKey: operationKey("LOCAL", service.runId),
+    status: service.serviceStatus,
+    bus: {
+      id: service.busId,
+      number: service.busNumber,
+      name: service.busName,
+    },
+  };
+}
+
+function operationKey(type, id) {
+  return `${type}:${id}`;
 }
 
 function routeLabel(trip) {

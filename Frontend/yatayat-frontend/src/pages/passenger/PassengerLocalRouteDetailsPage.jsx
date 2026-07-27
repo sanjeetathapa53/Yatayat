@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Bus, Clock3, Loader2, WalletCards } from "lucide-react";
+import { ArrowLeft, Bus, Clock3, Loader2, MapPin, WalletCards } from "lucide-react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { localRouteRequest } from "../../utils/localRoutes";
+import { getActiveLocalServices } from "../../utils/passengerLocalLiveTracking";
 
 export default function PassengerLocalRouteDetailsPage() {
   const { routeId } = useParams();
@@ -10,6 +11,8 @@ export default function PassengerLocalRouteDetailsPage() {
   const location = useLocation();
   const [route, setRoute] = useState(null);
   const [error, setError] = useState("");
+  const [activeBuses, setActiveBuses] = useState([]);
+  const [trackingError, setTrackingError] = useState("");
   const fromStopId = location.state?.fromStopId;
   const toStopId = location.state?.toStopId;
 
@@ -21,6 +24,26 @@ export default function PassengerLocalRouteDetailsPage() {
         else setError(requestError.message);
       });
   }, [navigate, routeId]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const loadActiveBuses = async () => {
+      try {
+        setActiveBuses(await getActiveLocalServices(controller.signal, routeId));
+        setTrackingError("");
+      } catch (requestError) {
+        if (requestError.name !== "AbortError") {
+          setTrackingError(requestError.message || "Active buses could not be loaded.");
+        }
+      }
+    };
+    Promise.resolve().then(loadActiveBuses);
+    const interval = window.setInterval(loadActiveBuses, 7000);
+    return () => {
+      controller.abort();
+      window.clearInterval(interval);
+    };
+  }, [routeId]);
 
   const selectedSegment = useMemo(() => {
     if (!route?.orderedStops?.length || !fromStopId || !toStopId) return null;
@@ -60,12 +83,49 @@ export default function PassengerLocalRouteDetailsPage() {
                 return <div key={`${stop.stopOrder}-${stop.stopName}`} className={`flex gap-3 rounded-2xl border p-4 ${highlighted ? "border-emerald-200 bg-emerald-50" : "border-slate-100 bg-slate-50"}`}><div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#08264a] text-sm font-black text-white">{stop.stopOrder}</div><div className="min-w-0"><p className="safe-wrap font-black text-slate-900">{stop.stopName}</p><p className="safe-wrap text-sm font-semibold text-slate-500">{stop.landmark || "Local route stop"} · {stop.estimatedMinutesFromStart ?? "--"} min · NPR {stop.cumulativeFare ?? "--"}</p></div></div>;
               })}
             </div>
-            <button type="button" disabled className="tap-target mt-6 w-full cursor-not-allowed rounded-xl bg-slate-200 py-3 font-black text-slate-500">Live GPS tracking — Coming Soon</button>
+          </section>
+
+          <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <h2 className="text-xl font-black">Active Buses</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">Buses currently operating on this local route.</p>
+            {trackingError && <p className="mt-4 rounded-xl bg-red-50 p-4 text-sm font-bold text-red-700">{trackingError}</p>}
+            {!trackingError && activeBuses.length === 0 && (
+              <p className="mt-4 rounded-xl bg-slate-50 p-4 text-sm font-bold text-slate-500">No buses are currently in service on this route.</p>
+            )}
+            <div className="mt-4 space-y-3">
+              {activeBuses.map((service) => (
+                <div key={service.runId} className="flex flex-col justify-between gap-3 rounded-2xl border border-slate-200 p-4 sm:flex-row sm:items-center">
+                  <div>
+                    <p className="font-black text-slate-900">{service.busNumber}</p>
+                    {service.busName && <p className="text-sm font-semibold text-slate-500">{service.busName}</p>}
+                    <p className="mt-2 flex items-center gap-1 text-xs font-bold text-slate-500">
+                      <MapPin size={14} />
+                      {formatLastUpdate(service.updatedAt)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/track-bus?operationType=LOCAL&operationId=${service.runId}`)}
+                    className="tap-target rounded-xl bg-emerald-600 px-5 py-3 text-sm font-black text-white"
+                  >
+                    Track
+                  </button>
+                </div>
+              ))}
+            </div>
           </section>
         </>}
       </div>
     </PassengerLayout>
   );
+}
+
+function formatLastUpdate(value) {
+  if (!value) return "Waiting for GPS";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : `Last update ${new Intl.DateTimeFormat("en-NP", { timeStyle: "medium" }).format(date)}`;
 }
 
 function Info({ icon, label, value }) {

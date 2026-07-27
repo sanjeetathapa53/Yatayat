@@ -19,3 +19,9 @@ export const getOperatorFleetLocations = (signal) =>
 
 export const getOperatorFleetTrip = (tripId, signal) =>
   fleetRequest(`/api/operator/live-fleet/${encodeURIComponent(tripId)}`, signal);
+
+export const getOperatorLocalFleetLocations = (signal) =>
+  fleetRequest("/api/operator/local-live-fleet", signal);
+
+export const getOperatorLocalFleetRun = (runId, signal) =>
+  fleetRequest(`/api/operator/local-live-fleet/${encodeURIComponent(runId)}`, signal);

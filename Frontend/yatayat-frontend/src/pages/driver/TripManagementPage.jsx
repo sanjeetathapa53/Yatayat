@@ -16,6 +16,7 @@ import { toast } from "react-toastify";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
 import DriverLayout from "../../components/layout/DriverLayout";
 import { GPS_STATUS, useDriverLocationTracking } from "../../hooks/useDriverLocationTracking";
+import { useLocalServiceLocationTracking } from "../../hooks/useLocalServiceLocationTracking";
 import {
   finishDriverLocalService,
   getCurrentDriverLocalService,
@@ -42,6 +43,10 @@ export default function TripManagementPage() {
   const gps = useDriverLocationTracking(
     trip?.workType === "SCHEDULED_TRIP" ? trip.scheduledTripId : null,
     trip?.workType === "SCHEDULED_TRIP" && trip.status === "IN_PROGRESS",
+  );
+  const localGps = useLocalServiceLocationTracking(
+    trip?.workType === "LOCAL_SERVICE" ? trip.id : null,
+    trip?.workType === "LOCAL_SERVICE" && trip.status === "IN_SERVICE",
   );
 
   const loadTrip = useCallback(async () => {
@@ -159,6 +164,9 @@ export default function TripManagementPage() {
 
               {trip.workType === "SCHEDULED_TRIP" && trip.status === "IN_PROGRESS" && (
                 <GpsStatus status={gps.status} message={gps.message} />
+              )}
+              {trip.workType === "LOCAL_SERVICE" && trip.status === "IN_SERVICE" && (
+                <GpsStatus status={localGps.status} message={localGps.message} />
               )}
 
               <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
