@@ -62,6 +62,7 @@ import TransportOperatorsPage from "./pages/admin/TransportOperatorsPage";
 import AdminBusesPage from "./pages/admin/AdminBusesPage";
 import AdminRoutesPage from "./pages/admin/AdminRoutesPage";
 import AdminLiveMonitoringPage from "./pages/admin/AdminLiveMonitoringPage";
+import AdminAnalyticsDetailsPage from "./pages/admin/AdminAnalyticsDetailsPage";
 
 import ForgotPasswordPage from "./pages/auth/ForgotPasswordPage";
 
@@ -286,6 +287,10 @@ export default function App() {
             path="/admin/dashboard"
             element={<AdminDashboard />}
           />
+          <Route path="/admin/analytics/users" element={<AdminAnalyticsDetailsPage section="users" />} />
+          <Route path="/admin/analytics/operations" element={<AdminAnalyticsDetailsPage section="operations" />} />
+          <Route path="/admin/analytics/bookings" element={<AdminAnalyticsDetailsPage section="bookings" />} />
+          <Route path="/admin/analytics/revenue" element={<AdminAnalyticsDetailsPage section="revenue" />} />
             <Route
     path="/admin/driver-applications"
     element={<DriverApplicationsPage />}

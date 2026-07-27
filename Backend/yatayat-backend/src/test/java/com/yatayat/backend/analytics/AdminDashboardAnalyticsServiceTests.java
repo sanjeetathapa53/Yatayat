@@ -63,6 +63,41 @@ class AdminDashboardAnalyticsServiceTests {
                 .isEqualByComparingTo("500.00");
         assertThat(summary.totalVerifiedPaymentAmount())
                 .isEqualByComparingTo("500.00");
+
+        var revenue = analytics.revenue("LAST_7_DAYS");
+        assertThat(revenue.walletTopUpRevenue()).isEqualByComparingTo("500.00");
+        assertThat(revenue.dailyRevenue())
+                .extracting(point -> point.amount())
+                .contains(new BigDecimal("500.00"));
+        assertThat(revenue.successfulPayments()).isEqualTo(1);
+        assertThat(revenue.pendingPayments()).isEqualTo(1);
+        assertThat(revenue.failedPayments()).isEqualTo(1);
+    }
+
+    @Test
+    void userDetailsIncludeRoleAndProviderButDoNotFabricateLegacyDates() {
+        entities.getEntityManager().createNativeQuery("""
+                insert into users
+                    (full_name, email, password, role, authentication_provider, created_at)
+                values ('Legacy', 'legacy@example.com', 'encoded', 'PASSENGER', 'LOCAL', null)
+                """).executeUpdate();
+        User googleDriver = new User("Google Driver", "google-driver@example.com",
+                "", null, "DRIVER");
+        googleDriver.setAuthenticationProvider(AuthenticationProvider.GOOGLE);
+        googleDriver.setCreatedAt(LocalDateTime.now());
+        entities.persistAndFlush(googleDriver);
+
+        var users = analytics.users("LAST_7_DAYS");
+
+        assertThat(users.totalUsers()).isEqualTo(2);
+        assertThat(users.roleDistribution()).containsEntry("PASSENGER", 1L)
+                .containsEntry("DRIVER", 1L);
+        assertThat(users.providerDistribution()).containsEntry("LOCAL", 1L)
+                .containsEntry("GOOGLE", 1L);
+        assertThat(users.dailyRegistrations()).extracting(point -> point.count())
+                .satisfies(counts -> assertThat(counts.stream()
+                        .mapToLong(Long::longValue).sum()).isEqualTo(1));
+        assertThat(users.recentRegistrations()).hasSize(1);
     }
 
     @Test
