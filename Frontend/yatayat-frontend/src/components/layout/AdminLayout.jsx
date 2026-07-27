@@ -42,7 +42,7 @@ const menuItems = [
   {
     label: "Live Monitoring",
     icon: Map,
-    path: "/admin/live-tracking",
+    path: "/admin/live-monitoring",
   },
 ];
 

@@ -69,6 +69,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         OperatorLiveFleetController.class,
         OperatorLocalLiveFleetController.class,
         AdminLiveFleetController.class,
+        AdminLiveMonitoringController.class,
         AdminDashboardAnalyticsController.class,
         AuthController.class
 })
@@ -118,6 +119,8 @@ class EndpointSecurityIntegrationTests {
     private OperatorLocalLiveFleetService operatorLocalLiveFleetService;
     @MockitoBean
     private AdminLiveFleetService adminLiveFleetService;
+    @MockitoBean
+    private AdminLiveMonitoringService adminLiveMonitoringService;
     @MockitoBean
     private AdminDashboardAnalyticsService adminDashboardAnalyticsService;
     @MockitoBean
@@ -613,6 +616,50 @@ class EndpointSecurityIntegrationTests {
                 .andExpect(content().json("[]"));
 
         verify(adminLiveFleetService).activeFleet();
+    }
+
+    @Test
+    void anonymousCannotReadAdminLiveMonitoring() throws Exception {
+        mockMvc.perform(get("/api/admin/live-monitoring")).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotReadAdminLiveMonitoring() throws Exception {
+        mockMvc.perform(get("/api/admin/live-monitoring")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "DRIVER")
+    void driverCannotReadAdminLiveMonitoring() throws Exception {
+        mockMvc.perform(get("/api/admin/live-monitoring")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERATOR")
+    void operatorCannotReadAdminLiveMonitoring() throws Exception {
+        mockMvc.perform(get("/api/admin/live-monitoring")).andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminReceivesSafeLiveMonitoringDto() throws Exception {
+        var vehicle = new com.yatayat.backend.dto.AdminLiveMonitoringResponse.Vehicle(
+                1L, "BA 1 PA 1", "City Bus", "APPROVED", 2L, "Operator",
+                3L, "Driver", "OPERATIONAL", 4L, "Route", "Origin", "Destination",
+                "LOCAL", 5L, "LOCAL_SERVICE", "IN_SERVICE",
+                27.7, 85.3, 8.0, 45.0, LocalDateTime.now(), 5L, "LIVE");
+        when(adminLiveMonitoringService.snapshot()).thenReturn(
+                new com.yatayat.backend.dto.AdminLiveMonitoringResponse(
+                        LocalDateTime.now(), List.of(vehicle)));
+
+        mockMvc.perform(get("/api/admin/live-monitoring"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.vehicles[0].locationFreshness").value("LIVE"))
+                .andExpect(jsonPath("$.vehicles[0].phone").doesNotExist())
+                .andExpect(jsonPath("$.vehicles[0].email").doesNotExist())
+                .andExpect(jsonPath("$.vehicles[0].password").doesNotExist())
+                .andExpect(jsonPath("$.vehicles[0].walletPin").doesNotExist());
     }
 
     @Test

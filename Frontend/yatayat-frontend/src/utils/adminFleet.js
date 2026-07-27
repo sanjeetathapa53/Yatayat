@@ -19,3 +19,6 @@ export const getAdminLiveFleet = (signal) =>
 
 export const getAdminLiveFleetTrip = (tripId, signal) =>
   fleetRequest(`/api/admin/live-fleet/${encodeURIComponent(tripId)}`, signal);
+
+export const getAdminLiveMonitoring = (signal) =>
+  fleetRequest("/api/admin/live-monitoring", signal);

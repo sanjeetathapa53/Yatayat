@@ -68,6 +68,27 @@ public interface ScheduledTripRepository extends JpaRepository<ScheduledTrip, Lo
     List<ScheduledTrip> findAdminLiveTrips();
 
     @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
+    @Query("""
+            select trip from ScheduledTrip trip
+            where trip.operator.verificationStatus =
+                    com.yatayat.backend.entity.OperatorVerificationStatus.APPROVED
+              and (
+                    trip.status in :activeStatuses
+                    or (
+                        trip.status = com.yatayat.backend.entity.TripStatus.SCHEDULED
+                        and trip.departureAt >= :now
+                        and trip.departureAt <= :upcomingCutoff
+                    )
+                  )
+            order by trip.departureAt asc
+            """)
+    List<ScheduledTrip> findAdminMonitoredTrips(
+            @Param("now") LocalDateTime now,
+            @Param("upcomingCutoff") LocalDateTime upcomingCutoff,
+            @Param("activeStatuses") List<TripStatus> activeStatuses
+    );
+
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
     @Query("select trip from ScheduledTrip trip where trip.id = :tripId")
     Optional<ScheduledTrip> findByIdForAdminTracking(@Param("tripId") Long tripId);
 
