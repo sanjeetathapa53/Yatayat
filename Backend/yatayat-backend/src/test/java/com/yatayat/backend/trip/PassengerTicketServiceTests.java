@@ -69,6 +69,7 @@ class PassengerTicketServiceTests {
         assertThat(ticket.getBooking()).isEqualTo(booking);
         assertThat(ticket.getQrTokenHash()).hasSize(64);
         verify(ticketRepository).saveAndFlush(any(Ticket.class));
+        verify(notificationService).ticketQrGenerated(booking, ticket);
     }
 
     @Test
@@ -134,6 +135,7 @@ class PassengerTicketServiceTests {
 
         assertThat(result).isSameAs(existing);
         verify(ticketRepository, never()).saveAndFlush(any());
+        verify(notificationService).ticketQrGenerated(booking, existing);
     }
 
     @Test
@@ -142,6 +144,7 @@ class PassengerTicketServiceTests {
         assertThatThrownBy(() -> service.issueForConfirmedBooking(booking))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Complete payment before viewing the ticket");
+        verify(notificationService, never()).ticketQrGenerated(any(), any());
     }
 
     @Test

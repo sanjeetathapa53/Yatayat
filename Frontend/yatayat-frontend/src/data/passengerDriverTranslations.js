@@ -1258,6 +1258,22 @@ Object.assign(passengerDriverTranslations.en.passenger.notifications, {
       title: "Ticket generated",
       message: "Ticket {{ticketNumber}} is ready for booking {{bookingReference}}.",
     },
+    TICKET_QR_GENERATED: {
+      title: "Ticket QR generated",
+      message: "Your QR ticket for {{routeName}} is ready. Open My Bookings to view it.",
+    },
+    LOCAL_FARE_QR_GENERATED: {
+      title: "Local fare QR generated",
+      message: "Pass {{passNumber}} is ready for {{boardingStop}} to {{destinationStop}}.",
+    },
+    TICKET_USED: {
+      title: "Ticket scanned",
+      message: "Your ticket for {{routeName}} was scanned successfully. You are marked as boarded.",
+    },
+    LOCAL_FARE_PASS_USED: {
+      title: "Local fare pass scanned",
+      message: "Pass {{passNumber}} was successfully scanned for your local journey.",
+    },
   },
 });
 
@@ -1293,6 +1309,22 @@ passengerDriverTranslations.ne.passenger.notifications = {
     TICKET_GENERATED: {
       title: "टिकट तयार भयो",
       message: "बुकिङ {{bookingReference}} को टिकट {{ticketNumber}} तयार छ।",
+    },
+    TICKET_QR_GENERATED: {
+      title: "टिकट QR तयार भयो",
+      message: "{{routeName}} को QR टिकट तयार छ। हेर्नका लागि मेरो बुकिङ खोल्नुहोस्।",
+    },
+    LOCAL_FARE_QR_GENERATED: {
+      title: "स्थानीय भाडा QR तयार भयो",
+      message: "{{boardingStop}} देखि {{destinationStop}} सम्मको पास {{passNumber}} तयार छ।",
+    },
+    TICKET_USED: {
+      title: "टिकट स्क्यान भयो",
+      message: "{{routeName}} को टिकट सफलतापूर्वक स्क्यान भयो। तपाईं बोर्ड भएको चिन्ह लगाइएको छ।",
+    },
+    LOCAL_FARE_PASS_USED: {
+      title: "स्थानीय भाडा पास स्क्यान भयो",
+      message: "तपाईंको स्थानीय यात्राका लागि पास {{passNumber}} सफलतापूर्वक स्क्यान भयो।",
     },
   },
   routes: "रुटहरू",

@@ -101,11 +101,42 @@ public class NotificationService {
                 booking.getBookingReference(), metadata);
     }
 
-    public void ticketGenerated(PassengerTripBooking booking, Ticket ticket) {
+    public void ticketQrGenerated(PassengerTripBooking booking, Ticket ticket) {
         Map<String, String> metadata = bookingMetadata(booking);
+        metadata.put("bookingId", String.valueOf(booking.getId()));
+        metadata.put("bookingNumber", booking.getBookingReference());
         metadata.put("ticketNumber", ticket.getTicketNumber());
-        create(booking.getPassenger(), NotificationType.TICKET_GENERATED,
-                ticket.getTicketNumber(), metadata);
+        metadata.put("scheduledTripId", String.valueOf(booking.getScheduledTrip().getId()));
+        metadata.put("actionPath", "/passenger/bookings/" + booking.getBookingReference());
+        create(booking.getPassenger(), NotificationType.TICKET_QR_GENERATED,
+                "TICKET_QR_GENERATED:" + ticket.getTicketNumber(), metadata);
+    }
+
+    public void localFareQrGenerated(LocalFarePass pass) {
+        Map<String, String> metadata = localFareMetadata(pass);
+        create(pass.getPassenger(), NotificationType.LOCAL_FARE_QR_GENERATED,
+                "LOCAL_FARE_QR_GENERATED:" + pass.getPassNumber(), metadata);
+    }
+
+    public void ticketUsed(Ticket ticket) {
+        PassengerTripBooking booking = ticket.getBooking();
+        Map<String, String> metadata = bookingMetadata(booking);
+        metadata.put("bookingId", String.valueOf(booking.getId()));
+        metadata.put("ticketNumber", ticket.getTicketNumber());
+        metadata.put("scheduledTripId", String.valueOf(booking.getScheduledTrip().getId()));
+        metadata.put("scannedAt", String.valueOf(ticket.getUsedAt()));
+        metadata.put("actionPath", "/passenger/bookings/" + booking.getBookingReference());
+        create(booking.getPassenger(), NotificationType.TICKET_USED,
+                "TICKET_USED:" + ticket.getTicketNumber(), metadata);
+    }
+
+    public void localFarePassUsed(LocalFarePass pass) {
+        Map<String, String> metadata = localFareMetadata(pass);
+        metadata.put("localServiceRunId",
+                String.valueOf(pass.getValidatedLocalServiceRun().getId()));
+        metadata.put("scannedAt", String.valueOf(pass.getUsedAt()));
+        create(pass.getPassenger(), NotificationType.LOCAL_FARE_PASS_USED,
+                "LOCAL_FARE_PASS_USED:" + pass.getPassNumber(), metadata);
     }
 
     public void walletTopUpSuccessful(WalletTopUp topUp) {
@@ -121,6 +152,16 @@ public class NotificationService {
         if (booking.getScheduledTrip() != null && booking.getScheduledTrip().getRoute() != null) {
             metadata.put("routeName", booking.getScheduledTrip().getRoute().getName());
         }
+        return metadata;
+    }
+
+    private Map<String, String> localFareMetadata(LocalFarePass pass) {
+        Map<String, String> metadata = new LinkedHashMap<>();
+        metadata.put("passNumber", pass.getPassNumber());
+        metadata.put("routeId", String.valueOf(pass.getRoute().getId()));
+        metadata.put("boardingStop", pass.getBoardingStopName());
+        metadata.put("destinationStop", pass.getDestinationStopName());
+        metadata.put("actionPath", "/fare-pass");
         return metadata;
     }
 

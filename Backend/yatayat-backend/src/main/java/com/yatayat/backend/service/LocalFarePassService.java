@@ -29,12 +29,14 @@ public class LocalFarePassService {
     private final LocalFarePassRepository passRepository;
     private final PasswordEncoder passwordEncoder;
     private final LocalFarePassQrTokenService tokenService;
+    private final NotificationService notificationService;
 
     public LocalFarePassService(UserRepository userRepository, RouteRepository routeRepository,
                                 RouteStopRepository routeStopRepository, WalletRepository walletRepository,
                                 WalletTransactionRepository transactionRepository,
                                 LocalFarePassRepository passRepository, PasswordEncoder passwordEncoder,
-                                LocalFarePassQrTokenService tokenService) {
+                                LocalFarePassQrTokenService tokenService,
+                                NotificationService notificationService) {
         this.userRepository = userRepository;
         this.routeRepository = routeRepository;
         this.routeStopRepository = routeStopRepository;
@@ -43,6 +45,7 @@ public class LocalFarePassService {
         this.passRepository = passRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
+        this.notificationService = notificationService;
     }
 
     public LocalFareQuoteResponse quote(String email, LocalFareQuoteRequest request) {
@@ -93,7 +96,9 @@ public class LocalFarePassService {
         pass.setQrTokenHash(tokenService.storedHash(pass.getPassNumber()));
 
         try {
-            return toResponse(passRepository.saveAndFlush(pass));
+            LocalFarePass saved = passRepository.saveAndFlush(pass);
+            notificationService.localFareQrGenerated(saved);
+            return toResponse(saved);
         } catch (DataIntegrityViolationException exception) {
             throw conflict("Local fare pass could not be issued. Please try again.");
         }

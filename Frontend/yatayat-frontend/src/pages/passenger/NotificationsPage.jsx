@@ -5,11 +5,13 @@ import {
   CheckCircle,
   Clock,
   CreditCard,
+  QrCode,
+  ScanLine,
   Ticket,
   Wallet,
   XCircle,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useNotifications } from "../../context/NotificationContext";
 import PassengerLayout from "../../components/layout/PassengerLayout";
@@ -25,10 +27,15 @@ const typePresentation = {
   PAYMENT_SUCCESSFUL: { category: "payment", icon: CreditCard },
   WALLET_TOP_UP_SUCCESSFUL: { category: "wallet", icon: Wallet },
   TICKET_GENERATED: { category: "ticket", icon: Ticket },
+  TICKET_QR_GENERATED: { category: "ticket", icon: QrCode },
+  LOCAL_FARE_QR_GENERATED: { category: "ticket", icon: QrCode },
+  TICKET_USED: { category: "ticket", icon: ScanLine },
+  LOCAL_FARE_PASS_USED: { category: "ticket", icon: ScanLine },
 };
 
 export default function NotificationsPage() {
   const { t, language } = useLanguage();
+  const navigate = useNavigate();
   const { unreadCount, refreshUnreadCount, setUnreadCount } = useNotifications();
   const [activeFilter, setActiveFilter] = useState("all");
   const [notifications, setNotifications] = useState([]);
@@ -68,16 +75,21 @@ export default function NotificationsPage() {
     }
   };
 
-  const markAsRead = async (item) => {
-    if (item.read) return;
+  const openNotification = async (item) => {
     try {
-      await markPassengerNotificationRead(item.id);
-      setNotifications((previous) =>
-        previous.map((notification) =>
-          notification.id === item.id ? { ...notification, read: true } : notification
-        )
-      );
-      await refreshUnreadCount();
+      if (!item.read) {
+        await markPassengerNotificationRead(item.id);
+        setNotifications((previous) =>
+          previous.map((notification) =>
+            notification.id === item.id ? { ...notification, read: true } : notification
+          )
+        );
+        await refreshUnreadCount();
+      }
+      const actionPath = item.metadata?.actionPath;
+      if (typeof actionPath === "string" && actionPath.startsWith("/")) {
+        navigate(actionPath);
+      }
     } catch (requestError) {
       setError(requestError.message || t("passenger.notifications.updateError"));
     }
@@ -146,7 +158,7 @@ export default function NotificationsPage() {
                 {!loading && filteredNotifications.map((item) => {
                   const Icon = typePresentation[item.type]?.icon || Bell;
                   return (
-                    <button key={item.id} type="button" onClick={() => markAsRead(item)}
+                    <button key={item.id} type="button" onClick={() => openNotification(item)}
                       className={`flex w-full gap-3 p-4 text-left transition hover:bg-slate-50 sm:gap-4 sm:p-5 ${!item.read ? "bg-emerald-50/60" : "bg-white"}`}>
                       <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${!item.read ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
                         <Icon size={20} />

@@ -6,6 +6,7 @@ import com.yatayat.backend.dto.DriverTripManifestResponse;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.DriverTicketValidationService;
+import com.yatayat.backend.service.NotificationService;
 import com.yatayat.backend.service.TicketQrTokenService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,7 @@ class DriverTicketValidationServiceTests {
     @Mock private TicketRepository ticketRepository;
     @Mock private ScheduledTripRepository scheduledTripRepository;
     @Mock private PaymentRepository paymentRepository;
+    @Mock private NotificationService notificationService;
 
     private DriverTicketValidationService service;
     private User driverUser;
@@ -48,7 +50,7 @@ class DriverTicketValidationServiceTests {
         qrTokens = new TicketQrTokenService("test-only-ticket-qr-secret-at-least-32-characters");
         service = new DriverTicketValidationService(new ObjectMapper(), userRepository,
                 driverProfileRepository, associationRepository, ticketRepository,
-                scheduledTripRepository, paymentRepository, qrTokens);
+                scheduledTripRepository, paymentRepository, qrTokens, notificationService);
         driverUser = new User("Driver A", "driver@example.com", "9800000001", "encoded", "DRIVER");
         driverUser.setId(1L);
         driver = new DriverProfile(driverUser);
@@ -84,6 +86,7 @@ class DriverTicketValidationServiceTests {
         assertThat(ticket.getValidatedTrip()).isEqualTo(trip);
         verify(ticketRepository).findByTicketNumberForValidation(ticket.getTicketNumber());
         verify(ticketRepository).save(ticket);
+        verify(notificationService).ticketUsed(ticket);
     }
 
     @Test
@@ -135,6 +138,7 @@ class DriverTicketValidationServiceTests {
         assertThat(ticket.getValidatedByDriverProfile()).isSameAs(originalDriver);
         assertThat(ticket.getValidatedTrip()).isSameAs(originalTrip);
         verify(ticketRepository, never()).save(ticket);
+        verify(notificationService, never()).ticketUsed(any());
     }
 
     @Test
