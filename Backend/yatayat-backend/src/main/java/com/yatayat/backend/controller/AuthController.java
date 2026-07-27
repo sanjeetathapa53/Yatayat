@@ -6,6 +6,7 @@ import com.yatayat.backend.dto.OtpVerifyRequest;
 import com.yatayat.backend.dto.RegisterRequest;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.entity.OtpPurpose;
+import com.yatayat.backend.entity.AuthenticationProvider;
 import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.service.OtpVerificationService;
 import com.yatayat.backend.service.SessionLogoutService;
@@ -180,6 +181,9 @@ public class AuthController {
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
 
         if (user == null) return "User not found";
+        if (user.getAuthenticationProvider() == AuthenticationProvider.GOOGLE) {
+            return "This account uses Google Sign-In. Please continue with Google.";
+        }
         if (user.getPassword() == null || user.getPassword().isBlank()) {
             return "Password missing. Please register again.";
         }

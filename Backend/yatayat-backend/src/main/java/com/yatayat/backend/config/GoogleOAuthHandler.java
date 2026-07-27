@@ -2,6 +2,7 @@ package com.yatayat.backend.config;
 
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.entity.Wallet;
+import com.yatayat.backend.entity.AuthenticationProvider;
 import com.yatayat.backend.repository.UserRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +26,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
+import java.net.URI;
 
 public class GoogleOAuthHandler implements AuthenticationSuccessHandler, AuthenticationFailureHandler {
     private static final Logger LOGGER = LoggerFactory.getLogger(GoogleOAuthHandler.class);
@@ -51,17 +53,51 @@ public class GoogleOAuthHandler implements AuthenticationSuccessHandler, Authent
         String email = oauthUser == null ? null : normalized(oauthUser.getAttribute("email"));
         String name = oauthUser == null ? null : clean(oauthUser.getAttribute("name"));
         Boolean verified = oauthUser == null ? null : oauthUser.getAttribute("email_verified");
+        HttpSession existingSession = request.getSession(false);
+        String mode = existingSession == null
+                ? null : clean(existingSession.getAttribute("googleMode"));
         if (email == null || Boolean.FALSE.equals(verified)) {
             LOGGER.warn("Google OAuth callback rejected because the provider identity was incomplete.");
             clearMode(request); response.sendRedirect(failureUrl); return;
         }
 
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseGet(() -> createPassenger(name, email));
+        User user = userRepository.findByEmailIgnoreCase(email).orElse(null);
+        if ("LOGIN".equals(mode)) {
+            if (user == null) {
+                finishWithoutLogin(request, response,
+                        loginRedirect("googleError=notRegistered"));
+                return;
+            }
+            if (user.getAuthenticationProvider() != AuthenticationProvider.GOOGLE) {
+                finishWithoutLogin(request, response,
+                        loginRedirect("googleError=localAccount"));
+                return;
+            }
+            establishApplicationSession(request, response, user);
+            return;
+        }
+        if ("REGISTER".equals(mode)) {
+            if (user != null) {
+                String query = user.getAuthenticationProvider() == AuthenticationProvider.LOCAL
+                        ? "googleError=localAccount"
+                        : "googleRegistered=alreadyExists";
+                finishWithoutLogin(request, response, loginRedirect(query));
+                return;
+            }
+            createPassenger(name, email);
+            finishWithoutLogin(request, response, loginRedirect("googleRegistered=true"));
+            return;
+        }
+        LOGGER.warn("Google OAuth callback rejected because its server-side intent was missing.");
+        finishWithoutLogin(request, response, failureUrl);
+    }
+
+    private void establishApplicationSession(HttpServletRequest request,
+                                             HttpServletResponse response,
+                                             User user) throws IOException {
         if (user.getRole() == null || user.getRole().isBlank()) {
             LOGGER.error("Google OAuth callback found an account without a valid application role.");
-            clearMode(request);
-            response.sendRedirect(failureUrl);
+            finishWithoutLogin(request, response, failureUrl);
             return;
         }
         UsernamePasswordAuthenticationToken applicationAuthentication =
@@ -102,8 +138,24 @@ public class GoogleOAuthHandler implements AuthenticationSuccessHandler, Authent
 
     private User createPassenger(String name, String email) {
         User user = new User(name == null ? "Google User" : name, email, "", null, "PASSENGER");
+        user.setAuthenticationProvider(AuthenticationProvider.GOOGLE);
         user.setWallet(new Wallet(user));
         return userRepository.save(user);
+    }
+    private void finishWithoutLogin(HttpServletRequest request, HttpServletResponse response,
+                                    String redirectUrl) throws IOException {
+        SecurityContextHolder.clearContext();
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.removeAttribute("googleMode");
+            session.removeAttribute(
+                    HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+        }
+        response.sendRedirect(redirectUrl);
+    }
+    private String loginRedirect(String query) {
+        URI frontend = URI.create(successUrl);
+        return frontend.resolve("/login?" + query).toString();
     }
     private void clearMode(HttpServletRequest request) { HttpSession session = request.getSession(false); if (session != null) session.removeAttribute("googleMode"); }
     private String normalized(Object value) { String text = clean(value); return text == null ? null : text.toLowerCase(Locale.ROOT); }
