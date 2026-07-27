@@ -78,6 +78,9 @@ class EndpointSecurityIntegrationTests {
 
     @MockitoBean
     private UserRepository userRepository;
+
+    @MockitoBean
+    private OtpVerificationService otpVerificationService;
     @MockitoBean
     private WalletRepository walletRepository;
     @MockitoBean
@@ -121,6 +124,8 @@ class EndpointSecurityIntegrationTests {
 
     @BeforeEach
     void setUp() {
+        when(otpVerificationService.normalizeEmail(any()))
+                .thenAnswer(call -> call.getArgument(0));
         passengerA = new User(
                 "Passenger A",
                 "passenger-a@example.com",

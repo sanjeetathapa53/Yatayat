@@ -5,8 +5,9 @@ import com.yatayat.backend.dto.LoginRequest;
 import com.yatayat.backend.dto.OtpVerifyRequest;
 import com.yatayat.backend.dto.RegisterRequest;
 import com.yatayat.backend.entity.User;
+import com.yatayat.backend.entity.OtpPurpose;
 import com.yatayat.backend.repository.UserRepository;
-import com.yatayat.backend.service.EmailService;
+import com.yatayat.backend.service.OtpVerificationService;
 import com.yatayat.backend.service.SessionLogoutService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,31 +20,31 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import com.yatayat.backend.dto.ForgotPasswordRequest;
 import com.yatayat.backend.entity.Wallet;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final EmailService emailService;
+    private final OtpVerificationService otpVerificationService;
     private final PasswordEncoder passwordEncoder;
     private final SessionLogoutService sessionLogoutService;
 
-    private final Map<String, String> otpStorage = new HashMap<>();
-
     public AuthController(UserRepository userRepository,
-                          EmailService emailService,
+                          OtpVerificationService otpVerificationService,
                           PasswordEncoder passwordEncoder,
                           SessionLogoutService sessionLogoutService) {
         this.userRepository = userRepository;
-        this.emailService = emailService;
+        this.otpVerificationService = otpVerificationService;
         this.passwordEncoder = passwordEncoder;
         this.sessionLogoutService = sessionLogoutService;
     }
@@ -62,27 +63,14 @@ public class AuthController {
 
     @PostMapping("/send-otp")
     public String sendOtp(@RequestBody RegisterRequest request) {
-
-        if (
-                request.getEmail() == null ||
-                        request.getEmail().isBlank()
-        ) {
-            return "Email is required";
-        }
-
-        String email = request.getEmail()
-                .trim()
-                .toLowerCase();
+        String email = otpVerificationService.normalizeEmail(
+                request == null ? null : request.getEmail());
 
         if (userRepository.existsByEmailIgnoreCase(email)) {
-            return "Email already registered";
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Email is already registered.");
         }
-
-        String otp = generateOtp();
-
-        otpStorage.put(email, otp);
-        emailService.sendOtpEmail(email, otp);
-
+        otpVerificationService.issue(email, OtpPurpose.REGISTRATION);
         return "OTP sent to email";
     }
 
@@ -90,43 +78,30 @@ public class AuthController {
     public String verifyOtp(
             @RequestBody OtpVerifyRequest request
     ) {
-        String email = request.getEmail()
-                .trim()
-                .toLowerCase();
-
-        String storedOtp = otpStorage.get(email);
-
-        if (storedOtp == null) {
-            return "OTP not found";
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Email and OTP are required.");
         }
-
-        if (!storedOtp.equals(request.getOtp())) {
-            return "Invalid OTP";
-        }
-
-        otpStorage.remove(email);
-
+        otpVerificationService.verify(
+                request.getEmail(), request.getOtp(), OtpPurpose.REGISTRATION);
         return "OTP verified";
     }
 
     @PostMapping("/register")
+    @Transactional
     public String register(
             @RequestBody RegisterRequest request,
             HttpServletRequest httpRequest
     ) {
-
-        if (
-                request.getEmail() == null ||
-                        request.getEmail().isBlank()
-        ) {
-            return "Email is required";
+        if (request == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Registration details are required.");
         }
-
-        String normalizedEmail =
-                request.getEmail().trim().toLowerCase();
+        String normalizedEmail = otpVerificationService.normalizeEmail(request.getEmail());
 
         if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
-            return "Email already registered";
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Email is already registered.");
         }
 
         String role = request.getRole() == null
@@ -138,9 +113,19 @@ public class AuthController {
                         !role.equals("DRIVER") &&
                         !role.equals("OPERATOR")
         ) {
-            return "Invalid account role";
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Invalid account role.");
+        }
+        if (request.getFullName() == null || request.getFullName().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Full name is required.");
+        }
+        if (request.getPassword() == null || request.getPassword().length() < 6) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Password must contain at least 6 characters.");
         }
 
+        otpVerificationService.consumeVerifiedRegistration(normalizedEmail);
         User user = new User(
                 request.getFullName().trim(),
                 normalizedEmail,
@@ -300,49 +285,34 @@ public class AuthController {
     }
     @PostMapping("/send-forgot-password-otp")
     public String sendForgotPasswordOtp(@RequestBody ForgotPasswordRequest request) {
-
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
-
-        if (user == null) {
-            return "Email not registered";
+        String email = otpVerificationService.normalizeEmail(
+                request == null ? null : request.getEmail());
+        if (userRepository.existsByEmailIgnoreCase(email)) {
+            try {
+                otpVerificationService.issue(email, OtpPurpose.PASSWORD_RESET);
+            } catch (ResponseStatusException exception) {
+                if (exception.getStatusCode().value() != 429) throw exception;
+            }
         }
-
-        String otp = generateOtp();
-        otpStorage.put(request.getEmail(), otp);
-
-        emailService.sendOtpEmail(request.getEmail(), otp);
-
-        return "OTP sent to email";
+        return "If an account exists for this email, reset instructions have been sent.";
     }
 
     @PostMapping("/reset-password")
+    @Transactional
     public String resetPassword(@RequestBody ForgotPasswordRequest request) {
-
-        String storedOtp = otpStorage.get(request.getEmail());
-
-        if (storedOtp == null) {
-            return "OTP not found";
+        if (request == null || request.getNewPassword() == null
+                || request.getNewPassword().length() < 6) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "A new password of at least 6 characters is required.");
         }
-
-        if (!storedOtp.equals(request.getOtp())) {
-            return "Invalid OTP";
-        }
-
-        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
-
-        if (user == null) {
-            return "Email not registered";
-        }
-
+        String email = otpVerificationService.normalizeEmail(request.getEmail());
+        otpVerificationService.verifyAndConsume(
+                email, request.getOtp(), OtpPurpose.PASSWORD_RESET);
+        User user = userRepository.findByEmailIgnoreCase(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Password reset could not be completed."));
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-
-        otpStorage.remove(request.getEmail());
-
         return "Password reset successfully";
-    }
-
-    private String generateOtp() {
-        return String.valueOf(100000 + new Random().nextInt(900000));
     }
 }
