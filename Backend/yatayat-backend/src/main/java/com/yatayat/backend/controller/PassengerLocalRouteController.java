@@ -19,6 +19,11 @@ public class PassengerLocalRouteController {
         this.routeService = routeService;
     }
 
+    @GetMapping
+    public List<PassengerLocalRouteResponse> list(Authentication authentication) {
+        return routeService.list(authentication.getName());
+    }
+
     @GetMapping("/search")
     public List<PassengerLocalRouteResponse> search(Authentication authentication,
                                                      @RequestParam(required = false) String origin,

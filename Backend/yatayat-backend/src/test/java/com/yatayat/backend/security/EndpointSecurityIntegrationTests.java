@@ -3,6 +3,7 @@ package com.yatayat.backend.security;
 import com.yatayat.backend.config.SecurityConfig;
 import com.yatayat.backend.controller.*;
 import com.yatayat.backend.dto.DriverInvitationRequest;
+import com.yatayat.backend.dto.DriverLocalFarePassValidationResponse;
 import com.yatayat.backend.dto.DriverTicketValidationResponse;
 import com.yatayat.backend.dto.TripLocationResponse;
 import com.yatayat.backend.dto.PassengerTripLocationResponse;
@@ -57,6 +58,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         AdminOperatorController.class,
         AdminAuthController.class,
         DriverTicketController.class,
+        DriverLocalFarePassController.class,
+        PassengerLocalFarePassController.class,
         DriverTripOperationController.class,
         PassengerLiveTrackingController.class,
         PassengerLocalLiveServiceController.class,
@@ -94,6 +97,10 @@ class EndpointSecurityIntegrationTests {
     private DriverOperatorAssociationService associationService;
     @MockitoBean
     private DriverTicketValidationService driverTicketValidationService;
+    @MockitoBean
+    private DriverLocalFarePassValidationService driverLocalFarePassValidationService;
+    @MockitoBean
+    private LocalFarePassService localFarePassService;
     @MockitoBean
     private TripOperationService tripOperationService;
     @MockitoBean
@@ -921,6 +928,48 @@ class EndpointSecurityIntegrationTests {
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         assertNotNull(session);
         return session;
+    }
+
+    @Test
+    void anonymousUserIsDeniedFromLocalFarePassEndpoints() throws Exception {
+        mockMvc.perform(get("/api/passenger/local-fare-passes"))
+                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/driver/local-fare-passes/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"{}\"}"))
+                .andExpect(status().isUnauthorized());
+        verifyNoInteractions(localFarePassService, driverLocalFarePassValidationService);
+    }
+
+    @Test
+    @WithMockUser(username = "passenger@example.com", roles = "PASSENGER")
+    void passengerCanListOwnLocalFarePassesButCannotValidateThem() throws Exception {
+        when(localFarePassService.list("passenger@example.com")).thenReturn(List.of());
+        mockMvc.perform(get("/api/passenger/local-fare-passes"))
+                .andExpect(status().isOk())
+                .andExpect(content().json("[]"));
+        mockMvc.perform(post("/api/driver/local-fare-passes/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"{}\"}"))
+                .andExpect(status().isForbidden());
+        verify(localFarePassService).list("passenger@example.com");
+    }
+
+    @Test
+    @WithMockUser(username = "driver@example.com", roles = "DRIVER")
+    void driverCanValidateLocalFarePassButCannotReadPassengerPasses() throws Exception {
+        when(driverLocalFarePassValidationService.validate("driver@example.com", "{}"))
+                .thenReturn(new DriverLocalFarePassValidationResponse(
+                        "VALID", "Local fare confirmed.", "YT-LFP-1", "Passenger",
+                        "Stop A", "Stop B", java.math.BigDecimal.TEN,
+                        LocalDateTime.now(), 20L));
+        mockMvc.perform(post("/api/driver/local-fare-passes/validate")
+                        .contentType("application/json")
+                        .content("{\"qrPayload\":\"{}\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result").value("VALID"));
+        mockMvc.perform(get("/api/passenger/local-fare-passes"))
+                .andExpect(status().isForbidden());
     }
 
     private Wallet passengerWallet() {

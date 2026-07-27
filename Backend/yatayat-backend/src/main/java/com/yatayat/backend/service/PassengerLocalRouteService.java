@@ -69,6 +69,12 @@ public class PassengerLocalRouteService {
                         "Local route not found."));
     }
 
+    public List<PassengerLocalRouteResponse> list(String email) {
+        requirePassenger(email);
+        return routeRepository.findByStatusAndTripTypeOrderByCodeAsc(RouteStatus.ACTIVE, TripType.LOCAL)
+                .stream().map(this::toResponse).toList();
+    }
+
     private User requirePassenger(String email) {
         User user = userRepository.findByEmailIgnoreCase(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED,

@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { CircleMarker, MapContainer, TileLayer, useMap } from "react-leaflet";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { useLanguage } from "../../context/LanguageContext";
+import { getLocalFarePasses } from "../../utils/localFarePasses";
 import { getActiveLocalServices } from "../../utils/passengerLocalLiveTracking";
 
 export default function PassengerDashboard() {
@@ -24,6 +25,13 @@ export default function PassengerDashboard() {
 
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletStatus, setWalletStatus] = useState("");
+  const [activeFarePass, setActiveFarePass] = useState(null);
+
+  useEffect(() => {
+    getLocalFarePasses()
+      .then((passes) => setActiveFarePass(passes.find((pass) => pass.status === "VALID") || null))
+      .catch(() => setActiveFarePass(null));
+  }, []);
 
   useEffect(() => {
     const fetchWalletSummary = async () => {
@@ -132,13 +140,13 @@ export default function PassengerDashboard() {
 
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-emerald-700">
-                  {t("passenger.dashboard.activeFarePass")}
+                  {activeFarePass ? t("passenger.dashboard.activeFarePass") : t("passenger.dashboard.localFare")}
                 </p>
                 <h3 className="text-lg font-black text-slate-900 sm:text-xl">
-                  Route 14: Koteshwor → Kalanki
+                  {activeFarePass ? `${activeFarePass.boardingStopName} → ${activeFarePass.destinationStopName}` : "Buy Local Fare"}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  {t("passenger.dashboard.farePassValidity")}
+                  {activeFarePass ? t("passenger.dashboard.farePassValidity") : "Pay from your wallet and receive a secure one-time QR pass."}
                 </p>
               </div>
             </div>
@@ -148,7 +156,7 @@ export default function PassengerDashboard() {
               className="flex items-center justify-center gap-2 rounded-lg bg-[#08264a] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#0d3566]"
             >
               <QrCode size={18} />
-              {t("passenger.dashboard.showQr")}
+              {activeFarePass ? t("passenger.dashboard.showQr") : t("passenger.dashboard.localFare")}
             </button>
           </div>
 

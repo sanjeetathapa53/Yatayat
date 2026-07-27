@@ -87,6 +87,12 @@ public interface LocalServiceRunRepository extends JpaRepository<LocalServiceRun
             LocalServiceRunStatus status
     );
 
+    @EntityGraph(attributePaths = {"route", "operator", "driver", "driver.user"})
+    List<LocalServiceRun> findByDriverAndStatusOrderByActualStartedAtDesc(
+            DriverProfile driver,
+            LocalServiceRunStatus status
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select run from LocalServiceRun run
