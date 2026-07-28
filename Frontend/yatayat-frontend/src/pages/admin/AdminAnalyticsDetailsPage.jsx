@@ -106,7 +106,9 @@ function Distribution({ title, values, money = false }) {
 }
 
 function Recent({ title, rows, columns }) {
-  return <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-xl font-black text-slate-900">{title}</h2>{rows.length === 0 ? <Empty /> : <div className="mt-4 overflow-x-auto"><table className="w-full min-w-130 text-left text-sm"><thead><tr className="border-b border-slate-200">{columns.map(([label]) => <th key={label} className="px-3 py-3 text-xs font-black uppercase text-slate-500">{label}</th>)}</tr></thead><tbody>{rows.map((row, index) => <tr key={index} className="border-b border-slate-100">{columns.map(([label, key]) => <td key={label} className="px-3 py-3 font-semibold text-slate-700">{formatCell(key, row[key])}</td>)}</tr>)}</tbody></table></div>}</div>;
+  const safeRows = Array.isArray(rows) ? rows : [];
+  const safeColumns = Array.isArray(columns) ? columns : [];
+  return <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="text-xl font-black text-slate-900">{title}</h2>{safeRows.length === 0 ? <Empty /> : <div className="mt-4 overflow-x-auto"><table className="w-full min-w-130 text-left text-sm"><thead><tr className="border-b border-slate-200">{safeColumns.map(([label]) => <th key={label} className="px-3 py-3 text-xs font-black uppercase text-slate-500">{label}</th>)}</tr></thead><tbody>{safeRows.map((row, index) => <tr key={index} className="border-b border-slate-100">{safeColumns.map(([label, key]) => <td key={label} className="px-3 py-3 font-semibold text-slate-700">{formatCell(key, row?.[key])}</td>)}</tr>)}</tbody></table></div>}</div>;
 }
 
 function ChartCard({ title, children }) {
