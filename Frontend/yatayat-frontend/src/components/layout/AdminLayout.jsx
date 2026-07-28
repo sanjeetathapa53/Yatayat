@@ -8,41 +8,80 @@ import {
   LogOut,
   Menu,
   X,
-  Building2 ,
+  Building2,
+  Users,
+  TicketCheck,
+  Banknote,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../services/authService";
 
-const menuItems = [
+const menuSections = [
   {
     label: "Dashboard",
-    icon: Activity,
-    path: "/admin/dashboard",
+    items: [
+      {
+        label: "Dashboard",
+        icon: Activity,
+        path: "/admin/dashboard",
+      },
+    ],
   },
   {
-    label: "Driver Applications",
-    icon: UserCheck,
-    path: "/admin/driver-applications",
+    label: "Operations",
+    items: [
+      {
+        label: "Driver Applications",
+        icon: UserCheck,
+        path: "/admin/driver-applications",
+      },
+      {
+        label: "Transport Operators",
+        icon: Building2,
+        path: "/admin/operators",
+      },
+      {
+        label: "Buses",
+        icon: Bus,
+        path: "/admin/buses",
+      },
+      {
+        label: "Routes & Stops",
+        icon: Route,
+        path: "/admin/routes",
+      },
+      {
+        label: "Live Monitoring",
+        icon: Map,
+        path: "/admin/live-monitoring",
+      },
+    ],
   },
   {
-    label: "Transport Operators",
-    icon: Building2,
-    path: "/admin/operators",
-  },
-  {
-    label: "Buses",
-    icon: Bus,
-    path: "/admin/buses",
-  },
-  {
-    label: "Routes & Stops",
-    icon: Route,
-    path: "/admin/routes",
-  },
-  {
-    label: "Live Monitoring",
-    icon: Map,
-    path: "/admin/live-monitoring",
+    label: "Analytics",
+    items: [
+      {
+        label: "Users",
+        icon: Users,
+        path: "/admin/analytics/users",
+      },
+      {
+        label: "Bookings",
+        icon: TicketCheck,
+        path: "/admin/analytics/bookings",
+      },
+      {
+        label: "Revenue",
+        icon: Banknote,
+        path: "/admin/analytics/revenue",
+      },
+      {
+        label: "Fleet",
+        icon: ChartNoAxesCombined,
+        path: "/admin/analytics/operations",
+      },
+    ],
   },
 ];
 
@@ -109,31 +148,40 @@ export default function AdminLayout({
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-5">
-          <div className="space-y-1">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
+          <div className="space-y-5">
+            {menuSections.map((section, sectionIndex) => (
+              <div key={section.label || `primary-${sectionIndex}`}>
+                {section.label && (
+                  <p className="mb-2 px-4 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                    {section.label}
+                  </p>
+                )}
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActiveRoute(location.pathname, item.path);
 
-              const active =
-                location.pathname === item.path ||
-                location.pathname.startsWith(`${item.path}/`);
-
-              return (
-                <button
-                  type="button"
-                  key={item.path}
-                  onClick={() => goTo(item.path)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-black transition ${
-                    active
-                      ? "bg-[#08264a] text-white shadow-sm"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-[#08264a]"
-                  }`}
-                >
-                  <Icon size={19} />
-                  <span className="truncate">{item.label}</span>
-                </button>
-              );
-            })}
+                    return (
+                      <button
+                        type="button"
+                        key={item.path}
+                        onClick={() => goTo(item.path)}
+                        aria-current={active ? "page" : undefined}
+                        className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm font-black transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#08264a] ${
+                          active
+                            ? "bg-[#08264a] text-white shadow-sm"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-[#08264a]"
+                        }`}
+                      >
+                        <Icon size={18} aria-hidden="true" />
+                        <span className="truncate">{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </nav>
 
@@ -205,4 +253,8 @@ function getInitials(name) {
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join("");
+}
+
+function isActiveRoute(currentPath, itemPath) {
+  return currentPath === itemPath || currentPath.startsWith(`${itemPath}/`);
 }
