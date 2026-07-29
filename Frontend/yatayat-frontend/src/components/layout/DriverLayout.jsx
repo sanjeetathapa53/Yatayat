@@ -235,13 +235,6 @@ export default function DriverLayout({
                 {t("driver.layout.currentTrip")}
               </button>
 
-              <button
-                type="button"
-                className="cursor-not-allowed text-slate-400"
-                title={t("driver.layout.performanceTitle")}
-              >
-                {t("driver.layout.performance")}
-              </button>
             </div>
           </div>
 

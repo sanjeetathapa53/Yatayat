@@ -1,39 +1,39 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  UserCircle,
-  Edit,
-  Bus,
-  Wallet,
-  Briefcase,
-  Phone,
-  Mail,
-  MapPin,
-  CheckCircle2,
-  FileText,
-  CalendarDays,
-  BadgeCheck,
-  Loader2,
   AlertTriangle,
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  Bus,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  Loader2,
   RefreshCw,
+  Route,
   ShieldCheck,
-  ContactRound,
-  Users,
-  Radio,
+  UserCircle,
 } from "lucide-react";
-import { toast } from "react-toastify";
-import ConfirmationModal from "../../components/common/ConfirmationModal";
+import { useNavigate } from "react-router-dom";
 import DriverLayout from "../../components/layout/DriverLayout";
 import { API_BASE_URL, apiFetch } from "../../utils/api";
-import { beginDriverTripBoarding, finishDriverTrip, getCurrentDriverTrip, startDriverTrip, tripStatusLabel, tripStatusTone } from "../../utils/driverTrips";
-import { GPS_STATUS, useDriverLocationTracking } from "../../hooks/useDriverLocationTracking";
+import { selectCurrentDriverWork } from "../../utils/driverCurrentWork";
+import {
+  getCurrentDriverTrip,
+  tripStatusLabel,
+  tripStatusTone,
+} from "../../utils/driverTrips";
+import {
+  getCurrentDriverLocalService,
+  serviceStatusLabel,
+  serviceStatusTone,
+} from "../../utils/localServices";
 
-
-export default function DriverProfilePage() {
+export default function DriverDashboard() {
+  const navigate = useNavigate();
   const loggedInUser = useMemo(() => {
     try {
-      return JSON.parse(
-        localStorage.getItem("yatayatUser") || "null"
-      );
+      return JSON.parse(localStorage.getItem("yatayatUser") || "null");
     } catch (error) {
       console.error("Invalid logged-in user data:", error);
       return null;
@@ -41,812 +41,420 @@ export default function DriverProfilePage() {
   }, []);
 
   const [driver, setDriver] = useState(null);
+  const [operatorAssociation, setOperatorAssociation] = useState(null);
+  const [currentWork, setCurrentWork] = useState(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [operatorAssociation, setOperatorAssociation] = useState(null);
-  const [currentTrip, setCurrentTrip] = useState(null);
-  const [operatingTrip, setOperatingTrip] = useState(false);
-  const [confirmFinish, setConfirmFinish] = useState(false);
-  const gps = useDriverLocationTracking(
-    currentTrip?.scheduledTripId,
-    currentTrip?.status === "IN_PROGRESS",
-  );
 
-  const fetchDriverProfile = async (manualRefresh = false) => {
+  const loadDashboard = useCallback(async (manualRefresh = false) => {
     if (!loggedInUser?.id) {
-      setError(
-        "Logged-in driver information was not found. Please log in again."
-      );
+      setError("Logged-in driver information was not found. Please log in again.");
       setLoading(false);
       return;
     }
 
+    manualRefresh ? setRefreshing(true) : setLoading(true);
+    setError("");
+
     try {
-      if (manualRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
-
-      setError("");
-
-      const response = await fetch(
+      const profileResponse = await fetch(
         `${API_BASE_URL}/api/drivers/profile/${loggedInUser.id}`,
-        { credentials: "include" }
+        { credentials: "include" },
       );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message || "Unable to load driver profile."
-        );
+      const profileData = await profileResponse.json();
+      if (!profileResponse.ok || !profileData.success) {
+        throw new Error(profileData.message || "Unable to load the driver dashboard.");
       }
 
-      setDriver(data.driver);
+      const [associationResponse, scheduledTrip, localService] = await Promise.all([
+        apiFetch("/api/driver/operator-association"),
+        getCurrentDriverTrip(),
+        getCurrentDriverLocalService(),
+      ]);
 
-      const associationResponse = await apiFetch("/api/driver/operator-association");
-      if (associationResponse.ok) {
-        setOperatorAssociation(await associationResponse.json());
-      } else if (associationResponse.status === 204) {
-        setOperatorAssociation(null);
-      }
-
-      setCurrentTrip(await getCurrentDriverTrip());
-
-      localStorage.setItem(
-        "yatayatUser",
-        JSON.stringify({
-          ...loggedInUser,
-          fullName:
-            data.driver?.fullName || loggedInUser.fullName,
-          email: data.driver?.email || loggedInUser.email,
-          phone: data.driver?.phone || loggedInUser.phone,
-        })
+      setDriver(profileData.driver);
+      setOperatorAssociation(
+        associationResponse.ok && associationResponse.status !== 204
+          ? await associationResponse.json()
+          : null,
       );
-
-      localStorage.setItem(
-        "driverApplicationStatus",
-        data.driver?.verificationStatus || "NOT_SUBMITTED"
-      );
-    } catch (profileError) {
-      console.error("Driver profile error:", profileError);
-
-      setError(
-        profileError.message ||
-          "Unable to load driver profile."
-      );
+      setCurrentWork(selectCurrentDriverWork(scheduledTrip, localService));
+    } catch (dashboardError) {
+      console.error("Driver dashboard loading error:", dashboardError);
+      setError(dashboardError.message || "Unable to load the driver dashboard.");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [loggedInUser]);
 
   useEffect(() => {
-    let active = true;
-    Promise.resolve().then(() => {
-      if (active) fetchDriverProfile();
-    });
-    return () => { active = false; };
-    // The initial profile load intentionally runs once for the signed-in user.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (loading) {
-    return (
-      <DriverLayout activePage="Profile">
-        <div className="flex min-h-130 items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="text-center">
-            <Loader2
-              size={42}
-              className="mx-auto animate-spin text-[#08264a]"
-            />
-
-            <h2 className="mt-5 text-xl font-black text-slate-900">
-              Loading driver profile
-            </h2>
-
-            <p className="mt-2 text-sm text-slate-500">
-              Please wait while we retrieve your verified details.
-            </p>
-          </div>
-        </div>
-      </DriverLayout>
-    );
-  }
-
-  if (error && !driver) {
-    return (
-      <DriverLayout activePage="Profile">
-        <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
-          <AlertTriangle
-            size={44}
-            className="mx-auto text-red-600"
-          />
-
-          <h2 className="mt-4 text-xl font-black text-red-800">
-            Profile could not be loaded
-          </h2>
-
-          <p className="mt-2 text-sm text-red-700">
-            {error}
-          </p>
-
-          <button
-            type="button"
-            onClick={() => fetchDriverProfile(true)}
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white transition hover:bg-red-700"
-          >
-            <RefreshCw size={17} />
-            Try Again
-          </button>
-        </div>
-      </DriverLayout>
-    );
-  }
-
-  const verificationStatus =
-    driver?.verificationStatus || "NOT_SUBMITTED";
-
-  const isApproved = verificationStatus === "APPROVED";
-
-  const operateTrip = async (action) => {
-    if (!currentTrip?.scheduledTripId || operatingTrip) return;
-    setOperatingTrip(true);
-    setError("");
-    try {
-      const updated = action === "boarding"
-        ? await beginDriverTripBoarding(currentTrip.scheduledTripId)
-        : action === "start"
-          ? await startDriverTrip(currentTrip.scheduledTripId)
-          : await finishDriverTrip(currentTrip.scheduledTripId);
-      setCurrentTrip(updated);
-      setConfirmFinish(false);
-      toast.success(action === "boarding"
-        ? "Boarding started."
-        : action === "start" ? "Trip started." : "Trip completed.");
-    } catch (operationError) {
-      setError(operationError.message || "Trip operation could not be completed.");
-      toast.error(operationError.message || "Trip operation could not be completed.");
-    } finally {
-      setOperatingTrip(false);
-    }
-  };
+    const timer = window.setTimeout(() => {
+      void loadDashboard();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [loadDashboard]);
 
   return (
-    <DriverLayout activePage="Profile">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
-            Driver Profile
-          </h1>
-
-          <p className="mt-1 text-sm text-slate-600">
-            View your identity, licence, verification and professional
-            information.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => fetchDriverProfile(true)}
-          disabled={refreshing}
-          className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <RefreshCw
-            size={17}
-            className={refreshing ? "animate-spin" : ""}
-          />
-
-          {refreshing ? "Refreshing..." : "Refresh Profile"}
-        </button>
-      </header>
-
-      {error && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
-          <AlertTriangle
-            size={19}
-            className="mt-0.5 shrink-0"
-          />
-          <p>{error}</p>
-        </div>
-      )}
-
-      <section className={`mb-6 rounded-3xl border p-6 ${operatorAssociation ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-white"}`}>
-        <div className="flex items-center gap-3"><Briefcase size={22} /><h2 className="text-xl font-black">Associated Operator</h2></div>
-        {operatorAssociation ? <><p className="mt-4 text-2xl font-black text-slate-900">{operatorAssociation.operatorName}</p><p className="mt-1 text-sm text-slate-600">{operatorAssociation.operatorEmail} · {operatorAssociation.operatorPhone}</p></> : <p className="mt-4 text-sm font-bold text-slate-500">You do not have an active operator association.</p>}
-      </section>
-
-      <section className="mb-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+    <DriverLayout activePage="Dashboard">
+      <div className="space-y-6">
+        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">Live trip operations</p>
-            <h2 className="mt-2 text-2xl font-black text-slate-900">
-              {currentTrip ? `${currentTrip.origin} to ${currentTrip.destination}` : "No active assignment"}
-            </h2>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
-              {currentTrip ? `${currentTrip.busNumber} • ${currentTrip.operatorName}` : "Assigned scheduled trips will appear here."}
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-700">
+              Driver operations
+            </p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+              Welcome back, {firstName(driver?.fullName || loggedInUser?.fullName)}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500 sm:text-base">
+              Review your operator association and current driving assignment.
             </p>
           </div>
-          {currentTrip && (
-            <span className={`self-start rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${tripStatusTone(currentTrip.status)}`}>
-              {tripStatusLabel(currentTrip.status)}
-            </span>
-          )}
-        </div>
-        {currentTrip ? (
-          <>
-            {currentTrip.status === "IN_PROGRESS" && (
-              <GpsStatus status={gps.status} message={gps.message} />
-            )}
-            <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <InformationCard icon={<CalendarDays size={19} />} label="Departure" value={formatDateTime(currentTrip.departureAt)} />
-              <InformationCard icon={<MapPin size={19} />} label="Estimated arrival" value={formatDateTime(currentTrip.estimatedArrivalAt)} />
-              <InformationCard icon={<CheckCircle2 size={19} />} label="Boarded" value={`${currentTrip.boardedPassengers || 0}/${currentTrip.confirmedPassengers || 0}`} />
-              <InformationCard icon={<Users size={19} />} label="Remaining" value={`${currentTrip.remainingPassengers || 0} passenger(s)`} />
-              <InformationCard icon={<CalendarDays size={19} />} label="Started at" value={formatDateTime(currentTrip.startedAt)} />
-              <InformationCard icon={<CalendarDays size={19} />} label="Ended at" value={formatDateTime(currentTrip.endedAt)} />
-            </div>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              {currentTrip.status === "SCHEDULED" && (
-                <button type="button" disabled={operatingTrip} onClick={() => operateTrip("boarding")} className="rounded-2xl bg-amber-600 px-5 py-3 font-black text-white shadow-lg shadow-amber-600/20 disabled:cursor-not-allowed disabled:opacity-60">
-                  {operatingTrip ? "Starting..." : "Begin Boarding"}
-                </button>
-              )}
-              {currentTrip.status === "BOARDING" && (
-                <button type="button" disabled={operatingTrip} onClick={() => operateTrip("start")} className="rounded-2xl bg-emerald-600 px-5 py-3 font-black text-white shadow-lg shadow-emerald-600/20 disabled:cursor-not-allowed disabled:opacity-60">
-                  {operatingTrip ? "Starting..." : "Start Trip"}
-                </button>
-              )}
-              {currentTrip.status === "IN_PROGRESS" && (
-                <button type="button" disabled={operatingTrip} onClick={() => setConfirmFinish(true)} className="rounded-2xl bg-red-600 px-5 py-3 font-black text-white shadow-lg shadow-red-600/20 disabled:cursor-not-allowed disabled:opacity-60">
-                  Finish Trip
-                </button>
-              )}
-            </div>
-          </>
-        ) : (
-          <p className="mt-5 rounded-2xl bg-slate-50 p-5 text-sm font-bold text-slate-500">
-            No scheduled, boarding, or on-the-way trip is currently assigned to you.
-          </p>
-        )}
-      </section>
-
-      {/* PROFILE HEADER */}
-
-      <section className="mb-6 overflow-hidden rounded-3xl bg-[#08264a] text-white shadow-sm">
-        <div className="p-6 sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-3xl border-4 border-white/30 bg-white/10 text-3xl font-black">
-                {getInitials(driver?.fullName)}
-              </div>
-
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200">
-                  Yatayat Driver
-                </p>
-
-                <h2 className="mt-2 text-3xl font-black">
-                  {driver?.fullName || "Driver User"}
-                </h2>
-
-                <div className="mt-3 flex flex-wrap gap-3">
-                  <span className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-bold text-slate-200">
-                    Driver ID:{" "}
-                    {driver?.applicationId
-                      ? `DRV-${driver.applicationId}`
-                      : "Not assigned"}
-                  </span>
-
-                  <VerificationBadge
-                    status={verificationStatus}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                toast.info(
-                  "Profile editing will be connected after the update API is created."
-                )
-              }
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-[#08264a] transition hover:bg-slate-100 lg:w-auto"
-            >
-              <Edit size={17} />
-              Edit Profile
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 border-t border-white/10 bg-white/5 sm:grid-cols-3">
-          <HeaderDetail
-            label="Email Address"
-            value={driver?.email}
-          />
-
-          <HeaderDetail
-            label="Phone Number"
-            value={driver?.phone}
-          />
-
-          <HeaderDetail
-            label="Account Status"
-            value={formatVerificationStatus(
-              verificationStatus
-            )}
-          />
-        </div>
-      </section>
-
-      {/* FUTURE OPERATIONAL STATS */}
-
-      <section className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
-        <StatCard
-          title="Completed Trips"
-          value="0"
-          description="Trip records will appear here"
-          icon={<Bus size={25} />}
-        />
-
-        <StatCard
-          title="Trip Revenue"
-          value="NPR 0"
-          description="Calculated from completed trips"
-          icon={<Wallet size={25} />}
-          green
-        />
-
-        <StatCard
-          title="Assigned Bus"
-          value={currentTrip?.busNumber || "Not Assigned"}
-          description={currentTrip?.busName || "No active trip assignment"}
-          icon={<Briefcase size={25} />}
-        />
-      </section>
-
-      <ConfirmationModal
-        open={confirmFinish}
-        title="Finish Trip?"
-        message="Confirm that this trip has reached its destination. GPS tracking will stop and the trip will be marked as completed."
-        confirmLabel="Finish Trip"
-        busyLabel="Finishing..."
-        destructive
-        busy={operatingTrip}
-        onClose={() => setConfirmFinish(false)}
-        onConfirm={() => operateTrip("finish")}
-      />
-
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <div className="space-y-6 xl:col-span-8">
-          {/* PERSONAL INFORMATION */}
-
-          <ProfileSection
-            icon={<UserCircle size={22} />}
-            title="Personal Information"
+          <button
+            type="button"
+            onClick={() => loadDashboard(true)}
+            disabled={loading || refreshing}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <InformationCard
-                icon={<Mail size={19} />}
-                label="Email Address"
-                value={driver?.email}
-              />
+            <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
+            {refreshing ? "Refreshing..." : "Refresh"}
+          </button>
+        </header>
 
-              <InformationCard
-                icon={<Phone size={19} />}
-                label="Phone Number"
-                value={driver?.phone}
-              />
-
-              <InformationCard
-                icon={<CalendarDays size={19} />}
-                label="Date of Birth"
-                value={formatDate(driver?.dateOfBirth)}
-              />
-
-              <InformationCard
-                icon={<MapPin size={19} />}
-                label="Permanent Address"
-                value={driver?.permanentAddress}
-              />
-
-              <InformationCard
-                icon={<MapPin size={19} />}
-                label="Current Address"
-                value={driver?.currentAddress}
-              />
-
-              <InformationCard
-                icon={<ContactRound size={19} />}
-                label="Emergency Contact"
-                value={
-                  driver?.emergencyContactName &&
-                  driver?.emergencyContactPhone
-                    ? `${driver.emergencyContactName} · ${driver.emergencyContactPhone}`
-                    : driver?.emergencyContactName ||
-                      driver?.emergencyContactPhone
-                }
-              />
-            </div>
-          </ProfileSection>
-
-          {/* VERIFICATION INFORMATION */}
-
-          <ProfileSection
-            icon={<ShieldCheck size={22} />}
-            title="Verification Information"
-          >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <InformationCard
-                icon={<FileText size={19} />}
-                label="Citizenship Number"
-                value={driver?.citizenshipNumber}
-              />
-
-              <InformationCard
-                icon={<BadgeCheck size={19} />}
-                label="Application Status"
-                value={formatVerificationStatus(
-                  verificationStatus
-                )}
-              />
-
-              <InformationCard
-                icon={<CalendarDays size={19} />}
-                label="Approved Date"
-                value={formatDate(driver?.approvedAt)}
-              />
-
-              <InformationCard
-                icon={<MapPin size={19} />}
-                label="Preferred Operating Area"
-                value={driver?.preferredOperatingArea}
-              />
-            </div>
-          </ProfileSection>
-        </div>
-
-        <aside className="space-y-6 xl:col-span-4">
-          {/* LICENCE INFORMATION */}
-
-          <ProfileSection
-            icon={<Briefcase size={22} />}
-            title="Professional Details"
-          >
-            <div className="space-y-5">
-              <Detail
-                label="Licence Number"
-                value={driver?.licenseNumber}
-              />
-
-              <Detail
-                label="Licence Category"
-                value={driver?.licenseCategory}
-              />
-
-              <Detail
-                label="Licence Issue Date"
-                value={formatDate(driver?.licenseIssueDate)}
-              />
-
-              <Detail
-                label="Licence Expiry Date"
-                value={formatDate(driver?.licenseExpiryDate)}
-              />
-
-              <Detail
-                label="Driving Experience"
-                value={
-                  driver?.yearsOfExperience !== undefined &&
-                  driver?.yearsOfExperience !== null
-                    ? `${driver.yearsOfExperience} year(s)`
-                    : null
-                }
-              />
-
-              <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-                <span className="text-xs font-black uppercase tracking-widest text-slate-500">
-                  Compliance Status
-                </span>
-
-                <span
-                  className={`flex items-center gap-1 text-sm font-black ${
-                    isApproved
-                      ? "text-emerald-600"
-                      : "text-amber-600"
-                  }`}
+        {error && (
+          <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">
+            <AlertTriangle size={19} className="mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p>{error}</p>
+              {!loading && (
+                <button
+                  type="button"
+                  onClick={() => loadDashboard(true)}
+                  className="mt-2 font-black underline underline-offset-2"
                 >
-                  {isApproved ? (
-                    <CheckCircle2 size={16} />
-                  ) : (
-                    <AlertTriangle size={16} />
-                  )}
+                  Try again
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
-                  {isApproved
-                    ? "Verified"
-                    : formatVerificationStatus(
-                        verificationStatus
-                      )}
-                </span>
+        {loading ? (
+          <DashboardSkeleton />
+        ) : (
+          <>
+            <section className="grid gap-4 md:grid-cols-3">
+              <SummaryCard
+                icon={<ShieldCheck size={22} />}
+                label="Driver status"
+                value={formatStatus(driver?.verificationStatus)}
+                detail={driver?.licenseExpiryDate
+                  ? `Licence valid until ${formatDate(driver.licenseExpiryDate)}`
+                  : "Licence information unavailable"}
+                tone={driver?.verificationStatus === "APPROVED" ? "green" : "amber"}
+              />
+              <SummaryCard
+                icon={<BriefcaseBusiness size={22} />}
+                label="Assigned operator"
+                value={operatorAssociation?.operatorName || "No active operator"}
+                detail={operatorAssociation
+                  ? "Active operator association"
+                  : "Accepted operator invitations appear here"}
+                tone={operatorAssociation ? "blue" : "slate"}
+              />
+              <SummaryCard
+                icon={<Bus size={22} />}
+                label="Assigned bus"
+                value={currentWork?.busNumber || "No active assignment"}
+                detail={currentWork?.busName || "Your current operation determines the assigned bus"}
+                tone={currentWork ? "blue" : "slate"}
+              />
+            </section>
+
+            <CurrentOperation
+              work={currentWork}
+              onOpen={() => navigate("/driver/trip")}
+            />
+
+            <section className="grid gap-6 xl:grid-cols-5">
+              <div className="xl:col-span-3">
+                <ProfileSummary
+                  driver={driver}
+                  onOpen={() => navigate("/driver/profile")}
+                />
               </div>
-            </div>
-          </ProfileSection>
-
-          {/* DOCUMENT STATUS */}
-
-          <ProfileSection
-            icon={<FileText size={22} />}
-            title="Submitted Documents"
-          >
-            <div className="space-y-3">
-              <DocumentStatusCard
-                title="Profile Photo"
-                status={verificationStatus}
-              />
-
-              <DocumentStatusCard
-                title="Citizenship Front"
-                status={verificationStatus}
-              />
-
-              <DocumentStatusCard
-                title="Citizenship Back"
-                status={verificationStatus}
-              />
-
-              <DocumentStatusCard
-                title="Licence Front"
-                status={verificationStatus}
-              />
-
-              <DocumentStatusCard
-                title="Licence Back"
-                status={verificationStatus}
-              />
-            </div>
-
-            <p className="mt-4 text-xs leading-5 text-slate-500">
-              Document preview and download will be connected after we
-              add a secure document-viewing endpoint.
-            </p>
-          </ProfileSection>
-        </aside>
-      </section>
+              <div className="xl:col-span-2">
+                <OperatorSummary
+                  association={operatorAssociation}
+                  onOpen={() => navigate("/driver/notifications")}
+                />
+              </div>
+            </section>
+          </>
+        )}
+      </div>
     </DriverLayout>
   );
 }
 
-function ProfileSection({ icon, title, children }) {
-  return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#08264a] text-white">
-          {icon}
+function CurrentOperation({ work, onOpen }) {
+  if (!work) {
+    return (
+      <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+          <Route size={28} />
         </div>
+        <h2 className="mt-4 text-xl font-black text-slate-900">No current operation</h2>
+        <p className="mx-auto mt-2 max-w-lg text-sm font-medium text-slate-500">
+          Your next scheduled trip or local service will appear here when it is assigned.
+        </p>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+        >
+          Open Trip Management <ArrowRight size={17} />
+        </button>
+      </section>
+    );
+  }
 
-        <h2 className="text-xl font-black text-slate-900">
-          {title}
-        </h2>
+  const local = work.workType === "LOCAL_SERVICE";
+  const statusLabel = local
+    ? serviceStatusLabel(work.status)
+    : tripStatusLabel(work.status);
+  const statusTone = local
+    ? serviceStatusTone(work.status)
+    : tripStatusTone(work.status);
+
+  return (
+    <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex flex-col gap-5 border-b border-slate-100 p-6 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-700">
+            {local ? "Local service" : "Out-of-valley scheduled trip"}
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-slate-900">
+            {work.origin || "Origin unavailable"} <span aria-hidden="true">→</span>{" "}
+            {work.destination || "Destination unavailable"}
+          </h2>
+          <p className="mt-2 text-sm font-semibold text-slate-500">
+            {[work.routeName, work.operatorName].filter(Boolean).join(" · ") || "Route details unavailable"}
+          </p>
+        </div>
+        <span className={`w-fit rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${statusTone}`}>
+          {statusLabel}
+        </span>
       </div>
 
-      {children}
+      <div className="grid gap-px bg-slate-200 sm:grid-cols-2 lg:grid-cols-4">
+        <OperationDetail
+          icon={<Bus size={19} />}
+          label="Assigned bus"
+          value={[work.busNumber, work.busName].filter(Boolean).join(" · ")}
+        />
+        <OperationDetail
+          icon={<Route size={19} />}
+          label="Assigned route"
+          value={work.routeName || work.routeCode}
+        />
+        <OperationDetail
+          icon={<CalendarDays size={19} />}
+          label={local ? "Service date" : "Departure"}
+          value={local ? formatDate(work.serviceDate) : formatDateTime(work.departureAt)}
+        />
+        <OperationDetail
+          icon={<Clock3 size={19} />}
+          label={local ? "Planned time" : "Estimated arrival"}
+          value={local
+            ? [work.plannedStartTime, work.plannedEndTime].filter(Boolean).join(" – ")
+            : formatDateTime(work.estimatedArrivalAt)}
+        />
+      </div>
+
+      <div className="flex flex-col gap-3 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-semibold text-slate-600">
+          Continue operational actions and GPS status from Trip Management.
+        </p>
+        <button
+          type="button"
+          onClick={onOpen}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+        >
+          Open Trip Management <ArrowRight size={17} />
+        </button>
+      </div>
     </section>
   );
 }
 
-function HeaderDetail({ label, value }) {
+function ProfileSummary({ driver, onOpen }) {
   return (
-    <div className="border-b border-white/10 px-6 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
-      <p className="text-[10px] font-black uppercase tracking-widest text-blue-200">
-        {label}
-      </p>
-
-      <p className="mt-1 wrap-break-word text-sm font-black text-white">
-        {value || "Not available"}
-      </p>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  description,
-  icon,
-  green,
-}) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-            {title}
-          </p>
-
-          <h2 className="mt-2 text-2xl font-black text-[#08264a]">
-            {value}
-          </h2>
-
-          <p className="mt-2 text-xs text-slate-500">
-            {description}
-          </p>
+        <div className="flex min-w-0 items-center gap-4">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#08264a] text-lg font-black text-white">
+            {initials(driver?.fullName)}
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Driver profile</p>
+            <h2 className="mt-1 truncate text-xl font-black text-slate-900">
+              {driver?.fullName || "Driver"}
+            </h2>
+            <p className="truncate text-sm font-medium text-slate-500">
+              {driver?.email || "Email unavailable"}
+            </p>
+          </div>
         </div>
-
-        <div
-          className={`flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl p-3 ${
-            green
-              ? "bg-emerald-100 text-emerald-700"
-              : "bg-blue-50 text-[#08264a]"
-          }`}
-        >
-          {icon}
-        </div>
+        <UserCircle size={24} className="shrink-0 text-slate-400" />
       </div>
-    </div>
-  );
-}
-
-function InformationCard({ icon, label, value }) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="flex items-center gap-2 text-slate-500">
-        {icon}
-
-        <p className="text-[10px] font-black uppercase tracking-widest">
-          {label}
-        </p>
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <CompactDetail label="Driver ID" value={driver?.applicationId ? `DRV-${driver.applicationId}` : null} />
+        <CompactDetail label="Licence category" value={driver?.licenseCategory} />
+        <CompactDetail label="Phone" value={driver?.phone} />
+        <CompactDetail label="Operating area" value={driver?.preferredOperatingArea} />
       </div>
-
-      <p className="mt-2 wrap-break-word text-sm font-black text-slate-900">
-        {value || "Not provided"}
-      </p>
-    </div>
-  );
-}
-
-function Detail({ label, value }) {
-  return (
-    <div>
-      <p className="text-xs font-black uppercase tracking-widest text-slate-500">
-        {label}
-      </p>
-
-      <p className="mt-1 wrap-break-word font-black text-slate-900">
-        {value || "Not available"}
-      </p>
-    </div>
-  );
-}
-
-function DocumentStatusCard({ title, status }) {
-  const approved = status === "APPROVED";
-
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-4">
-      <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#08264a]">
-          <FileText size={21} />
-        </div>
-
-        <div className="min-w-0">
-          <p className="truncate text-sm font-black text-slate-900">
-            {title}
-          </p>
-
-          <p className="mt-1 text-xs text-slate-500">
-            Submitted during driver application
-          </p>
-        </div>
-      </div>
-
-      <span
-        className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black ${
-          approved
-            ? "bg-emerald-100 text-emerald-700"
-            : "bg-amber-100 text-amber-700"
-        }`}
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mt-5 inline-flex items-center gap-2 text-sm font-black text-blue-700 transition hover:text-blue-900"
       >
-        {approved ? "VERIFIED" : "SUBMITTED"}
-      </span>
-    </div>
+        View full profile <ArrowRight size={16} />
+      </button>
+    </section>
   );
 }
 
-function VerificationBadge({ status }) {
-  const styles = {
-    APPROVED: "bg-emerald-500/20 text-emerald-200",
-    PENDING: "bg-amber-500/20 text-amber-200",
-    REJECTED: "bg-red-500/20 text-red-200",
-    SUSPENDED: "bg-slate-500/30 text-slate-200",
+function OperatorSummary({ association, onOpen }) {
+  return (
+    <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+        <BriefcaseBusiness size={22} />
+      </div>
+      <p className="mt-5 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+        Operator association
+      </p>
+      <h2 className="mt-2 text-xl font-black text-slate-900">
+        {association?.operatorName || "No active operator"}
+      </h2>
+      <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+        {association
+          ? "You are actively associated with this transport operator."
+          : "Review operator invitations to establish an active association."}
+      </p>
+      <div className="mt-5 flex items-center gap-2 text-sm font-bold text-slate-700">
+        {association ? (
+          <>
+            <CheckCircle2 size={17} className="text-emerald-600" /> Active association
+          </>
+        ) : (
+          <>
+            <BadgeCheck size={17} className="text-slate-400" /> Association unavailable
+          </>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mt-5 inline-flex items-center gap-2 text-sm font-black text-blue-700 transition hover:text-blue-900"
+      >
+        View invitations <ArrowRight size={16} />
+      </button>
+    </section>
+  );
+}
+
+function SummaryCard({ icon, label, value, detail, tone }) {
+  const tones = {
+    green: "bg-emerald-100 text-emerald-700",
+    amber: "bg-amber-100 text-amber-700",
+    blue: "bg-blue-100 text-blue-700",
+    slate: "bg-slate-100 text-slate-600",
   };
 
   return (
-    <span
-      className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-bold ${
-        styles[status] || "bg-white/10 text-slate-200"
-      }`}
-    >
-      {status === "APPROVED" && (
-        <CheckCircle2 size={16} />
-      )}
-
-      {formatVerificationStatus(status)}
-    </span>
+    <article className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${tones[tone] || tones.slate}`}>
+        {icon}
+      </div>
+      <p className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-slate-500">{label}</p>
+      <h2 className="mt-2 wrap-break-word text-xl font-black text-slate-900">{value}</h2>
+      <p className="mt-2 text-xs font-medium leading-5 text-slate-500">{detail}</p>
+    </article>
   );
 }
 
-function getInitials(name) {
-  return String(name || "Driver")
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("");
+function OperationDetail({ icon, label, value }) {
+  return (
+    <div className="bg-white p-5">
+      <div className="flex items-center gap-2 text-blue-700">
+        {icon}
+        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">{label}</p>
+      </div>
+      <p className="mt-3 wrap-break-word text-sm font-black text-slate-900">
+        {value || "Not available"}
+      </p>
+    </div>
+  );
+}
+
+function CompactDetail({ label, value }) {
+  return (
+    <div className="rounded-xl bg-slate-50 p-3">
+      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</p>
+      <p className="mt-1 wrap-break-word text-sm font-black text-slate-900">{value || "Not available"}</p>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6" aria-label="Loading driver dashboard">
+      <div className="grid gap-4 md:grid-cols-3">
+        {[0, 1, 2].map((item) => (
+          <div key={item} className="h-44 animate-pulse rounded-2xl bg-slate-200" />
+        ))}
+      </div>
+      <div className="flex min-h-72 items-center justify-center rounded-3xl border border-slate-200 bg-white">
+        <div className="text-center">
+          <Loader2 size={30} className="mx-auto animate-spin text-[#08264a]" />
+          <p className="mt-3 text-sm font-bold text-slate-500">Loading current operation...</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function firstName(value) {
+  return value?.trim().split(/\s+/)[0] || "Driver";
+}
+
+function initials(value) {
+  return value
+    ? value.trim().split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase()
+    : "DR";
+}
+
+function formatStatus(value) {
+  return value?.replaceAll("_", " ") || "Unknown";
 }
 
 function formatDate(value) {
-  if (!value) {
-    return "Not available";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  if (!value) return "Not available";
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("en-NP", { dateStyle: "medium" }).format(date);
 }
 
 function formatDateTime(value) {
   if (!value) return "Not available";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-NP", { dateStyle: "medium", timeStyle: "short" }).format(date);
-}
-
-function formatVerificationStatus(status) {
-  switch (status) {
-    case "APPROVED":
-      return "Verified Professional";
-    case "PENDING":
-      return "Approval Pending";
-    case "REJECTED":
-      return "Application Rejected";
-    case "SUSPENDED":
-      return "Driver Suspended";
-    case "DRAFT":
-      return "Application Draft";
-    case "NOT_SUBMITTED":
-      return "Profile Incomplete";
-    default:
-      return "Driver Account";
-  }
-}
-
-function GpsStatus({ status, message }) {
-  const tones = {
-    [GPS_STATUS.ACTIVE]: "border-emerald-200 bg-emerald-50 text-emerald-800",
-    [GPS_STATUS.WAITING]: "border-amber-200 bg-amber-50 text-amber-800",
-    [GPS_STATUS.PERMISSION_DENIED]: "border-red-200 bg-red-50 text-red-800",
-    [GPS_STATUS.UNAVAILABLE]: "border-orange-200 bg-orange-50 text-orange-800",
-    [GPS_STATUS.NETWORK_ERROR]: "border-red-200 bg-red-50 text-red-800",
-  };
-
-  return (
-    <div className={`mt-5 flex items-start gap-3 rounded-2xl border p-4 ${tones[status] || tones[GPS_STATUS.WAITING]}`} role="status">
-      <Radio size={20} className={`mt-0.5 shrink-0 ${status === GPS_STATUS.ACTIVE ? "animate-pulse" : ""}`} />
-      <div>
-        <p className="font-black">{status}</p>
-        {message && <p className="mt-1 text-sm font-semibold">{message}</p>}
-      </div>
-    </div>
-  );
+  return Number.isNaN(date.getTime())
+    ? value
+    : new Intl.DateTimeFormat("en-NP", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date);
 }
