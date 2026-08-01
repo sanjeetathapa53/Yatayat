@@ -7,6 +7,7 @@ import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.LocalServiceRunService;
 import com.yatayat.backend.service.LocalServiceLocationService;
+import com.yatayat.backend.service.DriverNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -44,6 +46,7 @@ class LocalServiceRunIntegrationTests {
     @MockitoBean private ScheduledTripRepository scheduledTripRepository;
     @MockitoBean private LocalServiceRunRepository localRunRepository;
     @MockitoBean private LocalServiceLocationService localServiceLocationService;
+    @MockitoBean private DriverNotificationService driverNotificationService;
 
     private User operatorUser;
     private TransportOperator operator;
@@ -119,6 +122,7 @@ class LocalServiceRunIntegrationTests {
                 .andExpect(jsonPath("$.routeCode").value("LOCAL-R1"))
                 .andExpect(jsonPath("$.status").value("PLANNED"))
                 .andExpect(jsonPath("$.orderedStops.length()").value(2));
+        verify(driverNotificationService).localAssigned(any(LocalServiceRun.class));
     }
 
     @Test

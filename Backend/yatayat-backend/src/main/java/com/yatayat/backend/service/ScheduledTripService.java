@@ -24,6 +24,7 @@ public class ScheduledTripService {
     private final ScheduledTripRepository tripRepository;
     private final PassengerTripBookingRepository bookingRepository;
     private final TicketRepository ticketRepository;
+    private final DriverNotificationService driverNotifications;
 
     public ScheduledTripService(
             UserRepository userRepository,
@@ -34,7 +35,8 @@ public class ScheduledTripService {
             DriverOperatorAssociationRepository associationRepository,
             ScheduledTripRepository tripRepository,
             PassengerTripBookingRepository bookingRepository,
-            TicketRepository ticketRepository
+            TicketRepository ticketRepository,
+            DriverNotificationService driverNotifications
     ) {
         this.userRepository = userRepository;
         this.operatorRepository = operatorRepository;
@@ -45,6 +47,7 @@ public class ScheduledTripService {
         this.tripRepository = tripRepository;
         this.bookingRepository = bookingRepository;
         this.ticketRepository = ticketRepository;
+        this.driverNotifications = driverNotifications;
     }
 
     public TripEligibilityResponse getEligibility(String email) {
@@ -96,7 +99,9 @@ public class ScheduledTripService {
         apply(trip, resources, request.departureAt(), request.estimatedArrivalAt(),
                 request.fare(), request.boardingNotes());
         trip.setStatus(TripStatus.SCHEDULED);
-        return toResponse(tripRepository.saveAndFlush(trip));
+        ScheduledTrip saved = tripRepository.saveAndFlush(trip);
+        driverNotifications.scheduledAssigned(saved);
+        return toResponse(saved);
     }
 
     public List<TripSummaryResponse> list(
@@ -141,9 +146,16 @@ public class ScheduledTripService {
         );
         ensureNoOverlap(resources.bus(), resources.driver(), request.departureAt(),
                 request.estimatedArrivalAt(), trip.getId());
+        Long previousDriverId = trip.getDriver() == null ? null : trip.getDriver().getId();
         apply(trip, resources, request.departureAt(), request.estimatedArrivalAt(),
                 request.fare(), request.boardingNotes());
-        return toResponse(tripRepository.saveAndFlush(trip));
+        ScheduledTrip saved = tripRepository.saveAndFlush(trip);
+        if (java.util.Objects.equals(previousDriverId, saved.getDriver().getId())) {
+            driverNotifications.scheduledUpdated(saved);
+        } else {
+            driverNotifications.scheduledAssigned(saved);
+        }
+        return toResponse(saved);
     }
 
     @Transactional
@@ -172,10 +184,17 @@ public class ScheduledTripService {
         }
         ensureNoOverlap(resources.bus(), resources.driver(), trip.getDepartureAt(),
                 trip.getEstimatedArrivalAt(), trip.getId());
+        Long previousDriverId = trip.getDriver() == null ? null : trip.getDriver().getId();
         trip.setBus(resources.bus());
         trip.setDriver(resources.driver());
         trip.setSeatCapacitySnapshot(resources.bus().getSeatCapacity());
-        return toResponse(tripRepository.saveAndFlush(trip));
+        ScheduledTrip saved = tripRepository.saveAndFlush(trip);
+        if (java.util.Objects.equals(previousDriverId, saved.getDriver().getId())) {
+            driverNotifications.scheduledUpdated(saved);
+        } else {
+            driverNotifications.scheduledAssigned(saved);
+        }
+        return toResponse(saved);
     }
 
     @Transactional
@@ -195,7 +214,9 @@ public class ScheduledTripService {
         }
         trip.setStatus(TripStatus.CANCELLED);
         trip.setCancellationReason(reason);
-        return toResponse(tripRepository.saveAndFlush(trip));
+        ScheduledTrip saved = tripRepository.saveAndFlush(trip);
+        driverNotifications.scheduledCancelled(saved);
+        return toResponse(saved);
     }
 
     private List<BusEligibilityResponse> eligibleBuses(TransportOperator operator, LocalDate tripDate) {

@@ -3,6 +3,7 @@ import { Bus, CalendarDays, Edit3, Loader2, Plus, RefreshCw, Route, UserRound, X
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import OperatorLayout from "../../components/layout/OperatorLayout";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 import {
   formatServiceDate,
   handleOperatorLocalAccess,
@@ -35,6 +36,8 @@ export default function OperatorLocalServicesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [cancelTarget, setCancelTarget] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,19 +111,23 @@ export default function OperatorLocalServicesPage() {
     }
   };
 
-  const cancelRun = async (run) => {
-    if (!window.confirm("Cancel this planned local service?")) return;
+  const cancelRun = async () => {
+    if (!cancelTarget) return;
     setError("");
+    setCancelling(true);
     try {
-      await localServiceRequest(`/api/operator/local-services/${run.id}/cancel`, {
+      await localServiceRequest(`/api/operator/local-services/${cancelTarget.id}/cancel`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: "Cancelled from operator planning page" }),
       });
       toast.success("Local service cancelled.");
+      setCancelTarget(null);
       await load();
     } catch (cancelError) {
       if (!handleOperatorLocalAccess(cancelError, navigate)) setError(cancelError.message);
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -167,7 +174,7 @@ export default function OperatorLocalServicesPage() {
           <EmptyLocalServices onCreate={openCreate} />
         ) : (
           <div className="grid gap-4">
-            {visibleRuns.map((run) => <LocalServiceCard key={run.id} run={run} onEdit={openEdit} onCancel={cancelRun} />)}
+            {visibleRuns.map((run) => <LocalServiceCard key={run.id} run={run} onEdit={openEdit} onCancel={setCancelTarget} />)}
           </div>
         )}
 
@@ -187,6 +194,17 @@ export default function OperatorLocalServicesPage() {
           onSubmit={submit}
         />
       )}
+      <ConfirmationModal
+        open={Boolean(cancelTarget)}
+        title="Cancel local service?"
+        message="This will cancel the planned local service and notify the assigned driver."
+        confirmLabel="Cancel Service"
+        destructive
+        busy={cancelling}
+        busyLabel="Cancelling..."
+        onConfirm={cancelRun}
+        onClose={() => setCancelTarget(null)}
+      />
     </OperatorLayout>
   );
 }

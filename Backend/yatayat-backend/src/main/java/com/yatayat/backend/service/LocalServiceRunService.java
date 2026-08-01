@@ -28,6 +28,7 @@ public class LocalServiceRunService {
     private final DriverOperatorAssociationRepository associationRepository;
     private final ScheduledTripRepository scheduledTripRepository;
     private final LocalServiceRunRepository localRunRepository;
+    private final DriverNotificationService driverNotifications;
 
     public LocalServiceRunService(
             UserRepository userRepository,
@@ -38,7 +39,8 @@ public class LocalServiceRunService {
             DriverProfileRepository driverRepository,
             DriverOperatorAssociationRepository associationRepository,
             ScheduledTripRepository scheduledTripRepository,
-            LocalServiceRunRepository localRunRepository
+            LocalServiceRunRepository localRunRepository,
+            DriverNotificationService driverNotifications
     ) {
         this.userRepository = userRepository;
         this.operatorRepository = operatorRepository;
@@ -49,6 +51,7 @@ public class LocalServiceRunService {
         this.associationRepository = associationRepository;
         this.scheduledTripRepository = scheduledTripRepository;
         this.localRunRepository = localRunRepository;
+        this.driverNotifications = driverNotifications;
     }
 
     public LocalServiceOptionsResponse options(String email) {
@@ -106,7 +109,9 @@ public class LocalServiceRunService {
         run.setOperator(operator);
         apply(run, resources, request);
         run.setStatus(LocalServiceRunStatus.PLANNED);
-        return toResponse(localRunRepository.saveAndFlush(run));
+        LocalServiceRun saved = localRunRepository.saveAndFlush(run);
+        driverNotifications.localAssigned(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -123,8 +128,15 @@ public class LocalServiceRunService {
         );
         ensureNoOverlap(resources.bus(), resources.driver(), request.serviceDate(),
                 request.plannedStartTime(), request.plannedEndTime(), run.getId());
+        Long previousDriverId = run.getDriver() == null ? null : run.getDriver().getId();
         apply(run, resources, request);
-        return toResponse(localRunRepository.saveAndFlush(run));
+        LocalServiceRun saved = localRunRepository.saveAndFlush(run);
+        if (java.util.Objects.equals(previousDriverId, saved.getDriver().getId())) {
+            driverNotifications.localUpdated(saved);
+        } else {
+            driverNotifications.localAssigned(saved);
+        }
+        return toResponse(saved);
     }
 
     @Transactional
@@ -142,7 +154,9 @@ public class LocalServiceRunService {
         }
         run.setStatus(LocalServiceRunStatus.CANCELLED);
         run.setNotes(appendCancellationNote(run.getNotes(), reason));
-        return toResponse(localRunRepository.saveAndFlush(run));
+        LocalServiceRun saved = localRunRepository.saveAndFlush(run);
+        driverNotifications.localCancelled(saved);
+        return toResponse(saved);
     }
 
     public List<LocalServiceRunResponse> listDriverRuns(String email) {

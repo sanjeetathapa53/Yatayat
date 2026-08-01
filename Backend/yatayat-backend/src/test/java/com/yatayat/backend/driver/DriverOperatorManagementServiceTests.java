@@ -5,6 +5,7 @@ import com.yatayat.backend.dto.DriverOperatorAssociationResponse;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
 import com.yatayat.backend.service.DriverOperatorAssociationService;
+import com.yatayat.backend.service.DriverNotificationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,7 @@ class DriverOperatorManagementServiceTests {
     @Mock private TransportOperatorRepository operatorRepository;
     @Mock private DriverOperatorAssociationRepository associationRepository;
     @Mock private BusRepository busRepository;
+    @Mock private DriverNotificationService driverNotificationService;
     private DriverOperatorAssociationService service;
     private User operatorUser;
     private TransportOperator operator;
@@ -37,7 +39,8 @@ class DriverOperatorManagementServiceTests {
     @BeforeEach
     void setUp() {
         service = new DriverOperatorAssociationService(
-                userRepository, driverRepository, operatorRepository, associationRepository, busRepository);
+                userRepository, driverRepository, operatorRepository, associationRepository,
+                busRepository, driverNotificationService);
         operatorUser = new User("Operator", "operator@example.com", "9800000000", "encoded", "OPERATOR");
         operator = new TransportOperator();
         operator.setId(1L);
@@ -79,6 +82,22 @@ class DriverOperatorManagementServiceTests {
         assertEquals("REMOVED", response.associationStatus());
         assertNull(bus.getAssignedDriver());
         verify(busRepository).saveAll(List.of(bus));
+    }
+
+    @Test
+    void invitationCreatesDriverNotification() {
+        when(driverRepository.findLockedById(2L)).thenReturn(Optional.of(driver));
+        when(associationRepository.findByDriverAndStatus(
+                driver, DriverOperatorAssociationStatus.ACTIVE)).thenReturn(Optional.empty());
+        when(associationRepository.findByDriverAndOperator(driver, operator)).thenReturn(Optional.empty());
+        when(associationRepository.saveAndFlush(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(busRepository.findByOperatorAndAssignedDriver(operator, driver)).thenReturn(List.of());
+
+        service.invite("operator@example.com", new DriverInvitationRequest(2L));
+
+        verify(driverNotificationService).operatorInvitation(
+                org.mockito.ArgumentMatchers.any(DriverOperatorAssociation.class));
     }
 
     @Test
