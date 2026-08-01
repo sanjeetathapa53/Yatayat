@@ -19,19 +19,22 @@ public class DriverOperatorAssociationService {
     private final TransportOperatorRepository operatorRepository;
     private final DriverOperatorAssociationRepository associationRepository;
     private final BusRepository busRepository;
+    private final DriverNotificationService driverNotifications;
 
     public DriverOperatorAssociationService(
             UserRepository userRepository,
             DriverProfileRepository driverRepository,
             TransportOperatorRepository operatorRepository,
             DriverOperatorAssociationRepository associationRepository,
-            BusRepository busRepository
+            BusRepository busRepository,
+            DriverNotificationService driverNotifications
     ) {
         this.userRepository = userRepository;
         this.driverRepository = driverRepository;
         this.operatorRepository = operatorRepository;
         this.associationRepository = associationRepository;
         this.busRepository = busRepository;
+        this.driverNotifications = driverNotifications;
     }
 
     public List<DriverOperatorAssociationResponse> getOperatorDrivers(String email) {
@@ -97,7 +100,9 @@ public class DriverOperatorAssociationService {
         association.setStatus(DriverOperatorAssociationStatus.PENDING);
         association.setInvitedAt(LocalDateTime.now());
         association.setRespondedAt(null);
-        return toResponse(associationRepository.saveAndFlush(association));
+        DriverOperatorAssociation saved = associationRepository.saveAndFlush(association);
+        driverNotifications.operatorInvitation(saved);
+        return toResponse(saved);
     }
 
     public List<DriverOperatorAssociationResponse> getDriverInvitations(String email) {
@@ -139,7 +144,9 @@ public class DriverOperatorAssociationService {
             item.setRespondedAt(now);
         });
 
-        return toResponse(associationRepository.saveAndFlush(invitation));
+        DriverOperatorAssociation saved = associationRepository.saveAndFlush(invitation);
+        driverNotifications.operatorInvitationAccepted(saved);
+        return toResponse(saved);
     }
 
     @Transactional
@@ -148,7 +155,9 @@ public class DriverOperatorAssociationService {
         DriverOperatorAssociation invitation = ownedPendingInvitation(driver, associationId);
         invitation.setStatus(DriverOperatorAssociationStatus.REJECTED);
         invitation.setRespondedAt(LocalDateTime.now());
-        return toResponse(associationRepository.saveAndFlush(invitation));
+        DriverOperatorAssociation saved = associationRepository.saveAndFlush(invitation);
+        driverNotifications.operatorInvitationRejected(saved);
+        return toResponse(saved);
     }
 
     @Transactional

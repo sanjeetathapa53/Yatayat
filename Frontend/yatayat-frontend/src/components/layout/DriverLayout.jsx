@@ -18,6 +18,10 @@ import { toast } from "react-toastify";
 import { logoutUser } from "../../services/authService";
 import { useLanguage } from "../../hooks/useLanguage";
 import { API_BASE_URL } from "../../utils/api";
+import {
+  DRIVER_NOTIFICATIONS_CHANGED,
+  fetchDriverUnreadCount,
+} from "../../utils/driverNotifications";
 
 export default function DriverLayout({
   children,
@@ -31,6 +35,7 @@ export default function DriverLayout({
   const [driver, setDriver] = useState(null);
   const [loadingDriver, setLoadingDriver] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const loggedInUser = useMemo(() => {
     try {
@@ -109,6 +114,21 @@ export default function DriverLayout({
     }, 0);
     return () => window.clearTimeout(timer);
   }, [fetchDriverProfile]);
+
+  useEffect(() => {
+    let active = true;
+    const refreshUnreadCount = () => {
+      fetchDriverUnreadCount()
+        .then((count) => { if (active) setUnreadNotifications(count); })
+        .catch(() => { if (active) setUnreadNotifications(0); });
+    };
+    refreshUnreadCount();
+    window.addEventListener(DRIVER_NOTIFICATIONS_CHANGED, refreshUnreadCount);
+    return () => {
+      active = false;
+      window.removeEventListener(DRIVER_NOTIFICATIONS_CHANGED, refreshUnreadCount);
+    };
+  }, [location.pathname]);
 
   const go = (path) => {
     navigate(path);
@@ -255,7 +275,11 @@ export default function DriverLayout({
             >
               <Bell size={20} />
 
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-500" />
+              {unreadNotifications > 0 && (
+                <span className="absolute -right-1 -top-1 flex min-h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white">
+                  {unreadNotifications > 99 ? "99+" : unreadNotifications}
+                </span>
+              )}
             </button>
 
             <button
