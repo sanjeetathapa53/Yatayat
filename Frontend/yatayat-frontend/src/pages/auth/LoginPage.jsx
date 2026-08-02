@@ -13,7 +13,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebook } from "react-icons/fa";
 import { toast } from "react-toastify";
 
 import AuthLayout from "../../components/auth/AuthLayout";
@@ -462,34 +461,19 @@ to continue.
           <div className="h-px flex-1 bg-slate-200" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div>
           <button
             type="button"
             onClick={() => {
               window.location.href =
                 `${API_BASE_URL}/api/auth/google-login`;
             }}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             <FcGoogle size={20} />
             Continue with Google
           </button>
 
-          <button
-            type="button"
-            onClick={() =>
-              toast.info(
-                "Facebook login will be added later"
-              )
-            }
-            className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 py-3 text-sm font-semibold text-slate-400 transition hover:bg-slate-50"
-          >
-            <FaFacebook
-              size={18}
-              className="text-blue-400"
-            />
-            Facebook
-          </button>
         </div>
 
         <p className="mt-5 text-center text-xs text-slate-500">

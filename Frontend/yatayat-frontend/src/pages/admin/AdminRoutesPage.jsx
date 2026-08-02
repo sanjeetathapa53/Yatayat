@@ -4,6 +4,8 @@ import AdminLayout from "../../components/layout/AdminLayout";
 import { apiFetch } from "../../utils/api";
 import { expireAdminSession } from "../../utils/adminSession";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+import ConfirmationModal from "../../components/common/ConfirmationModal";
 
 const emptyStopForm = { name: "", landmark: "", latitude: "", longitude: "", active: true };
 const emptyRouteForm = {
@@ -25,6 +27,7 @@ export default function AdminRoutesPage() {
   const [editingStopId, setEditingStopId] = useState(null);
   const [showRouteForm, setShowRouteForm] = useState(false);
   const [showStopForm, setShowStopForm] = useState(false);
+  const [stopToDeactivate, setStopToDeactivate] = useState(null);
 
   const localRoutes = useMemo(() => routes.filter((route) => route.tripType === "LOCAL"), [routes]);
   const outsideRoutes = useMemo(() => routes.filter((route) => route.tripType !== "LOCAL"), [routes]);
@@ -98,6 +101,7 @@ export default function AdminRoutesPage() {
           longitude: stopForm.longitude === "" ? null : Number(stopForm.longitude),
         }),
       });
+      toast.success(editingStopId ? "Bus stop updated." : "Bus stop created.");
       setShowStopForm(false);
       await loadData();
     } catch (saveError) {
@@ -108,7 +112,14 @@ export default function AdminRoutesPage() {
   };
 
   const toggleStop = async (stop) => {
-    if (stop.active && !window.confirm(`Deactivate ${stop.name}? It will be hidden from passenger stop search.`)) return;
+    if (stop.active) {
+      setStopToDeactivate(stop);
+      return;
+    }
+    await updateStopStatus(stop);
+  };
+
+  const updateStopStatus = async (stop) => {
     try {
       setSaving(true);
       setError("");
@@ -117,6 +128,8 @@ export default function AdminRoutesPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: !stop.active }),
       });
+      toast.success(stop.active ? "Bus stop deactivated." : "Bus stop activated.");
+      setStopToDeactivate(null);
       await loadData();
     } catch (toggleError) {
       setError(toggleError.message);
@@ -179,6 +192,7 @@ export default function AdminRoutesPage() {
           body: JSON.stringify(payload),
         }
       );
+      toast.success(editingRouteId ? "Route updated." : "Route created.");
       setShowRouteForm(false);
       await loadData();
     } catch (saveError) {
@@ -307,6 +321,17 @@ export default function AdminRoutesPage() {
           </form>
         </Modal>
       )}
+      <ConfirmationModal
+        open={Boolean(stopToDeactivate)}
+        title="Deactivate bus stop?"
+        message={`${stopToDeactivate?.name || "This stop"} will be hidden from passenger stop search. Existing route data will remain unchanged.`}
+        confirmLabel="Deactivate Stop"
+        destructive
+        busy={saving}
+        busyLabel="Deactivating..."
+        onConfirm={() => updateStopStatus(stopToDeactivate)}
+        onClose={() => setStopToDeactivate(null)}
+      />
     </AdminLayout>
   );
 }

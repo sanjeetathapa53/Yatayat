@@ -3,7 +3,6 @@ import {
   QrCode,
   PlusCircle,
   RotateCcw,
-  Star,
   Bus,
   BadgeCheck,
   Clock3,
@@ -161,69 +160,6 @@ export default function PassengerDashboard() {
             </button>
           </div>
 
-          <section>
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-xl font-black text-slate-900 sm:text-2xl">
-                {t("passenger.dashboard.outOfValleyBookings")}
-              </h3>
-
-              <button
-                onClick={() => navigate("/passenger/bookings")}
-                className="text-xs font-black uppercase tracking-wider text-emerald-700 hover:underline"
-              >
-                View all →
-              </button>
-            </div>
-
-            <button
-              onClick={() => navigate("/passenger/bookings")}
-              className="flex w-full flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100">
-                  <Bus size={20} />
-                </div>
-
-                <div>
-                  <h4 className="font-black text-slate-900">
-                Kathmandu to Pokhara
-                  </h4>
-                  <p className="text-sm text-slate-500">
-                    25 Oct • 07:30 AM • Seat B4, B5
-                  </p>
-                </div>
-              </div>
-
-              <div className="text-left sm:text-right">
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-[10px] font-black text-emerald-700">
-                  CONFIRMED
-                </span>
-                <p className="mt-1 text-sm font-bold">NPR 1,200</p>
-              </div>
-            </button>
-          </section>
-
-          <section>
-            <h3 className="mb-3 text-xl font-black text-slate-900 sm:text-2xl">
-              {t("passenger.dashboard.favoriteRoutes")}
-            </h3>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FavoriteRoute
-                route="ROUTE 14"
-                title="Koteshwor - Kalanki"
-                time="Every 5-10 mins"
-                onClick={() => navigate("/track-bus/14")}
-              />
-
-              <FavoriteRoute
-                route="ROUTE 02"
-                title="Ratnapark - Budhanilkantha"
-                time="Every 15 mins"
-                onClick={() => navigate("/track-bus/2")}
-              />
-            </div>
-          </section>
         </section>
 
         <aside className="min-w-0">
@@ -256,7 +192,6 @@ export default function PassengerDashboard() {
     </PassengerLayout>
   );
 }
-
 function NearbyLocalBusPreview({ onViewAll }) {
   const [passengerPosition, setPassengerPosition] = useState(null);
   const [activeBuses, setActiveBuses] = useState([]);
@@ -549,25 +484,6 @@ function ActionCard({ icon, title, desc, onClick, disabled = false }) {
 
       <h3 className="font-black text-slate-900">{title}</h3>
       <p className="mt-1 text-sm text-slate-500">{desc}</p>
-    </button>
-  );
-}
-
-function FavoriteRoute({ route, title, time, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className="rounded-xl border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-    >
-      <div className="flex justify-between">
-        <span className="bg-slate-100 px-3 py-1 text-[10px] font-bold text-slate-500">
-          {route}
-        </span>
-        <Star className="fill-emerald-700 text-emerald-700" size={19} />
-      </div>
-
-      <h4 className="mt-5 font-black text-slate-900">{title}</h4>
-      <p className="text-sm text-slate-500">{time}</p>
     </button>
   );
 }
