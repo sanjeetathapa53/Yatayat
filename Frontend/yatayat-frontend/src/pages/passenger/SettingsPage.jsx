@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { useLanguage } from "../../hooks/useLanguage";
+import { toast } from "react-toastify";
 
 export default function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
@@ -21,7 +22,9 @@ export default function SettingsPage() {
   const [autoWallet, setAutoWallet] = useState(false);
 
   const saveSettings = () => {
-    alert(t("passenger.settings.saved"));
+    toast.info("Preferences updated for this browser session.", {
+      toastId: "passenger-session-settings",
+    });
   };
 
   return (

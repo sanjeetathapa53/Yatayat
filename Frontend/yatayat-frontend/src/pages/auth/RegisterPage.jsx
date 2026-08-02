@@ -10,7 +10,6 @@ import {
   User,
 } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
-import { FaFacebook } from "react-icons/fa";
 import {
   Link,
   useNavigate,
@@ -503,34 +502,19 @@ export default function RegisterPage() {
           <div className="h-px flex-1 bg-slate-200" />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div>
           <button
             type="button"
             onClick={() => {
               window.location.href =
                 `${API_BASE_URL}/api/auth/google-register`;
             }}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             <FcGoogle size={21} />
             Register with Google
           </button>
 
-          <button
-            type="button"
-            onClick={() =>
-              toast.info(
-                "Facebook registration will be added later."
-              )
-            }
-            className="flex items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white py-3 text-sm font-semibold text-slate-500 transition hover:bg-slate-50"
-          >
-            <FaFacebook
-              size={19}
-              className="text-blue-600"
-            />
-            Facebook
-          </button>
         </div>
 
         {role === "operator" && (

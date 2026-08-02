@@ -22,6 +22,7 @@ import {
   DRIVER_NOTIFICATIONS_CHANGED,
   fetchDriverUnreadCount,
 } from "../../utils/driverNotifications";
+import ConfirmationModal from "../common/ConfirmationModal";
 
 export default function DriverLayout({
   children,
@@ -35,6 +36,7 @@ export default function DriverLayout({
   const [driver, setDriver] = useState(null);
   const [loadingDriver, setLoadingDriver] = useState(true);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [logoutConfirmationOpen, setLogoutConfirmationOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   const loggedInUser = useMemo(() => {
@@ -136,12 +138,15 @@ export default function DriverLayout({
   };
 
   const handleLogout = async () => {
-    if (!window.confirm(t("driver.layout.logoutConfirm"))) return;
-
     setLoggingOut(true);
-    await logoutUser();
-    toast.success(t("common.loggedOut"));
-    navigate("/", { replace: true });
+    try {
+      await logoutUser();
+      toast.success(t("common.loggedOut"));
+      navigate("/", { replace: true });
+    } finally {
+      setLoggingOut(false);
+      setLogoutConfirmationOpen(false);
+    }
   };
 
   const menuItems = [
@@ -390,7 +395,7 @@ export default function DriverLayout({
 
           <button
             type="button"
-            onClick={handleLogout}
+            onClick={() => setLogoutConfirmationOpen(true)}
             disabled={loggingOut}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-400/30 bg-red-500/10 py-2.5 text-sm font-black text-red-300 transition hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -407,6 +412,17 @@ export default function DriverLayout({
       <main className="min-h-screen px-4 pb-6 pt-20 sm:px-6 lg:ml-64 lg:px-7">
         <div className="responsive-shell">{children}</div>
       </main>
+      <ConfirmationModal
+        open={logoutConfirmationOpen}
+        title={t("common.logout")}
+        message={t("driver.layout.logoutConfirm")}
+        confirmLabel={t("common.logout")}
+        destructive
+        busy={loggingOut}
+        busyLabel={t("driver.layout.loggingOut")}
+        onConfirm={handleLogout}
+        onClose={() => setLogoutConfirmationOpen(false)}
+      />
     </div>
   );
 }

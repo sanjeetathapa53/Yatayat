@@ -221,7 +221,7 @@ export default function DriverScannerPage() {
             </div>
           </div>
 
-          <section className="rounded-3xl border border-amber-200 bg-amber-50/40 p-5 shadow-sm">
+          {import.meta.env.DEV && <section className="rounded-3xl border border-amber-200 bg-amber-50/40 p-5 shadow-sm">
             <button
               type="button"
               onClick={() => setManualOpen((open) => !open)}
@@ -277,7 +277,7 @@ export default function DriverScannerPage() {
                 </div>
               </div>
             )}
-          </section>
+          </section>}
         </section>
 
         <aside className="space-y-5 xl:col-span-5">
