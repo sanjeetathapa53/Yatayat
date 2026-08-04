@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.PageRequest;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -66,6 +67,62 @@ class DriverCurrentTripRepositoryTests {
 
         assertThat(current).extracting(ScheduledTrip::getId)
                 .containsExactly(active.getId(), boarding.getId(), scheduled.getId());
+    }
+
+    @Test
+    void upcomingListIsOrderedBoundedAndExcludesNonUpcomingStatuses() {
+        LocalDateTime now = LocalDateTime.of(2026, 8, 4, 12, 0);
+        ScheduledTrip later = persistTrip(driverA, TripStatus.SCHEDULED, now.plusDays(2));
+        ScheduledTrip nearer = persistTrip(driverA, TripStatus.SCHEDULED, now.plusHours(2));
+        ScheduledTrip boarding = persistTrip(driverA, TripStatus.BOARDING, now.minusMinutes(10));
+        ScheduledTrip active = persistTrip(driverA, TripStatus.IN_PROGRESS, now.minusHours(1));
+        persistTrip(driverA, TripStatus.SCHEDULED, now.minusDays(1));
+        persistTrip(driverA, TripStatus.COMPLETED, now.minusDays(2));
+        persistTrip(driverA, TripStatus.CANCELLED, now.plusDays(1));
+        persistTrip(driverB, TripStatus.SCHEDULED, now.plusHours(1));
+
+        var page = tripRepository.findDriverUpcomingTrips(
+                driverA, now, PageRequest.of(0, 3));
+
+        assertThat(page.getContent()).extracting(ScheduledTrip::getId)
+                .containsExactly(active.getId(), boarding.getId(), nearer.getId());
+        assertThat(page.getTotalElements()).isEqualTo(4);
+        assertThat(page.hasNext()).isTrue();
+        assertThat(tripRepository.findDriverUpcomingTrips(
+                driverA, now, PageRequest.of(1, 3)).getContent())
+                .extracting(ScheduledTrip::getId).containsExactly(later.getId());
+    }
+
+    @Test
+    void historyContainsOnlyCompletedAndCancelledNewestFirst() {
+        LocalDateTime now = LocalDateTime.of(2026, 8, 4, 12, 0);
+        ScheduledTrip completed = persistTrip(driverA, TripStatus.COMPLETED, now.minusDays(2));
+        ScheduledTrip cancelled = persistTrip(driverA, TripStatus.CANCELLED, now.minusDays(1));
+        persistTrip(driverA, TripStatus.SCHEDULED, now.plusDays(1));
+        persistTrip(driverB, TripStatus.COMPLETED, now);
+
+        var page = tripRepository.findDriverTripHistory(driverA, PageRequest.of(0, 20));
+
+        assertThat(page.getContent()).extracting(ScheduledTrip::getId)
+                .containsExactly(cancelled.getId(), completed.getId());
+    }
+
+    @Test
+    void reassignmentMovesTripBetweenDriverLists() {
+        LocalDateTime now = LocalDateTime.of(2026, 8, 4, 12, 0);
+        ScheduledTrip trip = persistTrip(driverA, TripStatus.SCHEDULED, now.plusDays(1));
+        assertThat(tripRepository.findDriverUpcomingTrips(
+                driverA, now, PageRequest.of(0, 20)).getContent()).containsExactly(trip);
+
+        trip.setDriver(driverB);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(tripRepository.findDriverUpcomingTrips(
+                driverA, now, PageRequest.of(0, 20)).getContent()).isEmpty();
+        assertThat(tripRepository.findDriverUpcomingTrips(
+                driverB, now, PageRequest.of(0, 20)).getContent())
+                .extracting(ScheduledTrip::getId).containsExactly(trip.getId());
     }
 
     private User persistUser(String name, String email, String role) {

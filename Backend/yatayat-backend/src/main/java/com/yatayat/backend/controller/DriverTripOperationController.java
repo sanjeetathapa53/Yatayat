@@ -1,6 +1,7 @@
 package com.yatayat.backend.controller;
 
 import com.yatayat.backend.dto.DriverTripOperationResponse;
+import com.yatayat.backend.dto.DriverScheduledTripPageResponse;
 import com.yatayat.backend.dto.TripLocationResponse;
 import com.yatayat.backend.dto.TripLocationUpdateRequest;
 import com.yatayat.backend.service.TripOperationService;
@@ -33,6 +34,17 @@ public class DriverTripOperationController {
         return tripOperationService.currentDriverTrip(authentication.getName())
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    @GetMapping
+    public DriverScheduledTripPageResponse assignedTrips(
+            Authentication authentication,
+            @RequestParam(defaultValue = "UPCOMING") String scope,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return tripOperationService.assignedTrips(
+                authentication.getName(), scope, page, size);
     }
 
     @PostMapping("/{scheduledTripId}/boarding")
