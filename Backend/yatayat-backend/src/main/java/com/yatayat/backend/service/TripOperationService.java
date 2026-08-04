@@ -1,6 +1,8 @@
 package com.yatayat.backend.service;
 
 import com.yatayat.backend.dto.DriverTripOperationResponse;
+import com.yatayat.backend.dto.DriverScheduledTripPageResponse;
+import com.yatayat.backend.dto.DriverScheduledTripResponse;
 import com.yatayat.backend.dto.OperatorLiveTripResponse;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.*;
@@ -12,6 +14,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 @Service
 public class TripOperationService {
@@ -52,6 +56,36 @@ public class TripOperationService {
                 .stream()
                 .findFirst()
                 .map(this::driverResponse);
+    }
+
+    public DriverScheduledTripPageResponse assignedTrips(
+            String driverEmail, String scope, int page, int size
+    ) {
+        DriverProfile driver = requireApprovedDriver(driverEmail);
+        requireAnyActiveAssociation(driver);
+        if (page < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Page must not be negative.");
+        }
+        if (size < 1 || size > 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Page size must be between 1 and 100.");
+        }
+        String requestedScope = scope == null || scope.isBlank()
+                ? "UPCOMING" : scope.trim().toUpperCase(java.util.Locale.ROOT);
+        Page<ScheduledTrip> trips;
+        if ("UPCOMING".equals(requestedScope)) {
+            trips = tripRepository.findDriverUpcomingTrips(
+                    driver, LocalDateTime.now(), PageRequest.of(page, size));
+        } else if ("HISTORY".equals(requestedScope)) {
+            trips = tripRepository.findDriverTripHistory(driver, PageRequest.of(page, size));
+        } else {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Scope must be UPCOMING or HISTORY.");
+        }
+        return new DriverScheduledTripPageResponse(
+                trips.getContent().stream().map(this::scheduledTripResponse).toList(),
+                trips.getNumber(), trips.getSize(), trips.getTotalElements(),
+                trips.getTotalPages(), trips.isFirst(), trips.isLast());
     }
 
     @Transactional
@@ -238,6 +272,20 @@ public class TripOperationService {
                 boarded,
                 Math.max(0, confirmed - boarded)
         );
+    }
+
+    private DriverScheduledTripResponse scheduledTripResponse(ScheduledTrip trip) {
+        return new DriverScheduledTripResponse(
+                trip.getId(), trip.getStatus().name(),
+                trip.getRoute().getId(), trip.getRoute().getName(),
+                trip.getRoute().getOrigin(), trip.getRoute().getDestination(),
+                trip.getBus().getId(), trip.getBus().getBusNumber(), trip.getBus().getBusName(),
+                trip.getOperator().getId(), trip.getOperator().getName(),
+                trip.getDepartureAt(), trip.getEstimatedArrivalAt(), trip.getFare(),
+                trip.getBoardingNotes(),
+                trip.getStatus() == TripStatus.SCHEDULED,
+                trip.getStatus() == TripStatus.BOARDING,
+                trip.getStatus() == TripStatus.IN_PROGRESS);
     }
 
     private OperatorLiveTripResponse operatorResponse(ScheduledTrip trip) {

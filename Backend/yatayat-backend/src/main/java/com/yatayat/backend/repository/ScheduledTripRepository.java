@@ -4,6 +4,8 @@ import com.yatayat.backend.entity.*;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -43,6 +45,69 @@ public interface ScheduledTripRepository extends JpaRepository<ScheduledTrip, Lo
             @Param("driver") DriverProfile driver,
             @Param("statuses") List<TripStatus> statuses,
             @Param("now") LocalDateTime now
+    );
+
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver"})
+    @Query(value = """
+            select trip from ScheduledTrip trip
+            where trip.driver = :driver
+              and (
+                    trip.status in (
+                      com.yatayat.backend.entity.TripStatus.IN_PROGRESS,
+                      com.yatayat.backend.entity.TripStatus.BOARDING
+                    )
+                    or (
+                      trip.status = com.yatayat.backend.entity.TripStatus.SCHEDULED
+                      and trip.departureAt >= :now
+                    )
+                  )
+            order by case trip.status
+                       when com.yatayat.backend.entity.TripStatus.IN_PROGRESS then 0
+                       when com.yatayat.backend.entity.TripStatus.BOARDING then 1
+                       else 2
+                     end,
+                     trip.departureAt asc,
+                     trip.id asc
+            """, countQuery = """
+            select count(trip) from ScheduledTrip trip
+            where trip.driver = :driver
+              and (
+                    trip.status in (
+                      com.yatayat.backend.entity.TripStatus.IN_PROGRESS,
+                      com.yatayat.backend.entity.TripStatus.BOARDING
+                    )
+                    or (
+                      trip.status = com.yatayat.backend.entity.TripStatus.SCHEDULED
+                      and trip.departureAt >= :now
+                    )
+                  )
+            """)
+    Page<ScheduledTrip> findDriverUpcomingTrips(
+            @Param("driver") DriverProfile driver,
+            @Param("now") LocalDateTime now,
+            Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = {"route", "operator", "bus", "driver"})
+    @Query(value = """
+            select trip from ScheduledTrip trip
+            where trip.driver = :driver
+              and trip.status in (
+                com.yatayat.backend.entity.TripStatus.COMPLETED,
+                com.yatayat.backend.entity.TripStatus.CANCELLED
+              )
+            order by trip.departureAt desc, trip.id desc
+            """, countQuery = """
+            select count(trip) from ScheduledTrip trip
+            where trip.driver = :driver
+              and trip.status in (
+                com.yatayat.backend.entity.TripStatus.COMPLETED,
+                com.yatayat.backend.entity.TripStatus.CANCELLED
+              )
+            """)
+    Page<ScheduledTrip> findDriverTripHistory(
+            @Param("driver") DriverProfile driver,
+            Pageable pageable
     );
 
     @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})

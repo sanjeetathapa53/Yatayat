@@ -28,6 +28,7 @@ import {
   beginDriverTripBoarding,
   finishDriverTrip,
   getCurrentDriverTrip,
+  getDriverScheduledTrips,
   startDriverTrip,
   tripStatusLabel,
   tripStatusTone,
@@ -41,6 +42,9 @@ export default function TripManagementPage() {
   const [operating, setOperating] = useState(false);
   const [error, setError] = useState("");
   const [confirmFinish, setConfirmFinish] = useState(false);
+  const [upcoming, setUpcoming] = useState({ content: [], page: 0, last: true });
+  const [history, setHistory] = useState({ content: [], page: 0, last: true });
+  const [loadingMore, setLoadingMore] = useState("");
   const gps = useDriverLocationTracking(
     trip?.workType === "SCHEDULED_TRIP" ? trip.scheduledTripId : null,
     trip?.workType === "SCHEDULED_TRIP" && trip.status === "IN_PROGRESS",
@@ -54,17 +58,39 @@ export default function TripManagementPage() {
     setLoading(true);
     setError("");
     try {
-      const [scheduledTrip, localService] = await Promise.all([
+      const [scheduledTrip, localService, upcomingTrips, tripHistory] = await Promise.all([
         getCurrentDriverTrip(),
         getCurrentDriverLocalService(),
+        getDriverScheduledTrips("UPCOMING"),
+        getDriverScheduledTrips("HISTORY"),
       ]);
       setTrip(selectCurrentDriverWork(scheduledTrip, localService));
+      setUpcoming(upcomingTrips);
+      setHistory(tripHistory);
     } catch (loadError) {
       setError(loadError.message || "Unable to load your assigned trip.");
     } finally {
       setLoading(false);
     }
   }, []);
+
+  const loadMore = async (scope) => {
+    const current = scope === "UPCOMING" ? upcoming : history;
+    if (current.last || loadingMore) return;
+    setLoadingMore(scope);
+    try {
+      const next = await getDriverScheduledTrips(scope, current.page + 1);
+      const merged = { ...next, content: [...current.content, ...next.content] };
+      if (scope === "UPCOMING") setUpcoming(merged);
+      else setHistory(merged);
+    } catch (loadError) {
+      const message = loadError.message || "Unable to load more trips.";
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoadingMore("");
+    }
+  };
 
   useEffect(() => {
     Promise.resolve().then(loadTrip);
@@ -76,17 +102,17 @@ export default function TripManagementPage() {
     setError("");
     try {
       const localService = trip.workType === "LOCAL_SERVICE";
-      const updated = localService
+      await (localService
         ? action === "start"
-          ? await startDriverLocalService(trip.id)
-          : await finishDriverLocalService(trip.id)
+          ? startDriverLocalService(trip.id)
+          : finishDriverLocalService(trip.id)
         : action === "boarding"
-          ? await beginDriverTripBoarding(trip.scheduledTripId)
+          ? beginDriverTripBoarding(trip.scheduledTripId)
           : action === "start"
-            ? await startDriverTrip(trip.scheduledTripId)
-            : await finishDriverTrip(trip.scheduledTripId);
-      setTrip({ ...updated, workType: trip.workType });
+            ? startDriverTrip(trip.scheduledTripId)
+            : finishDriverTrip(trip.scheduledTripId));
       setConfirmFinish(false);
+      await loadTrip();
       toast.success(localService
         ? action === "start" ? "Local service started." : "Local service completed."
         : {
@@ -262,6 +288,32 @@ export default function TripManagementPage() {
             </section>
           </>
         )}
+
+        {!loading && (
+          <>
+            <ScheduledTripList
+              title="Upcoming Scheduled Trips"
+              subtitle="All current and future out-of-valley trips assigned to you."
+              trips={upcoming.content.filter((item) =>
+                trip?.workType !== "SCHEDULED_TRIP"
+                || item.scheduledTripId !== trip.scheduledTripId)}
+              empty="No additional upcoming scheduled trips."
+              grouped
+              hasMore={!upcoming.last}
+              loadingMore={loadingMore === "UPCOMING"}
+              onLoadMore={() => loadMore("UPCOMING")}
+            />
+            <ScheduledTripList
+              title="Trip History"
+              subtitle="Completed and cancelled scheduled trips."
+              trips={history.content}
+              empty="No completed or cancelled scheduled trips."
+              hasMore={!history.last}
+              loadingMore={loadingMore === "HISTORY"}
+              onLoadMore={() => loadMore("HISTORY")}
+            />
+          </>
+        )}
       </div>
 
       <ConfirmationModal
@@ -279,6 +331,94 @@ export default function TripManagementPage() {
       />
     </DriverLayout>
   );
+}
+
+function ScheduledTripList({
+  title, subtitle, trips, empty, grouped = false,
+  hasMore, loadingMore, onLoadMore,
+}) {
+  const sections = grouped ? groupTripsByDate(trips) : [["", trips]];
+  return (
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+      <h2 className="text-2xl font-black text-slate-900">{title}</h2>
+      <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>
+      {trips.length === 0 ? (
+        <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
+          <CalendarDays className="mx-auto text-slate-300" size={36} />
+          <p className="mt-3 font-bold text-slate-600">{empty}</p>
+        </div>
+      ) : (
+        <div className="mt-6 space-y-6">
+          {sections.map(([heading, items]) => (
+            <div key={heading || "history"}>
+              {heading && <h3 className="mb-3 text-sm font-black uppercase tracking-wider text-blue-700">{heading}</h3>}
+              <div className="grid gap-4 xl:grid-cols-2">
+                {items.map((item) => <ScheduledTripCard key={item.scheduledTripId} trip={item} />)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {hasMore && (
+        <button type="button" disabled={loadingMore} onClick={onLoadMore}
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-3 font-black text-slate-700 disabled:opacity-60">
+          {loadingMore && <Loader2 size={17} className="animate-spin" />}
+          {loadingMore ? "Loading..." : "Load More"}
+        </button>
+      )}
+    </section>
+  );
+}
+
+function ScheduledTripCard({ trip }) {
+  return (
+    <article className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="wrap-break-word text-lg font-black text-slate-900">{trip.routeName}</h3>
+          <p className="mt-1 wrap-break-word text-sm font-bold text-slate-600">{trip.origin} → {trip.destination}</p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${tripStatusTone(trip.status)}`}>
+          {tripStatusLabel(trip.status)}
+        </span>
+      </div>
+      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+        <TripFact label="Departure" value={formatDateTime(trip.departureAt)} />
+        <TripFact label="Estimated arrival" value={formatDateTime(trip.estimatedArrivalAt)} />
+        <TripFact label="Bus" value={`${trip.busNumber}${trip.busName ? ` · ${trip.busName}` : ""}`} />
+        <TripFact label="Operator" value={trip.operatorName} />
+        <TripFact label="Fare" value={trip.fare == null ? "Not available" : `NPR ${Number(trip.fare).toFixed(2)}`} />
+      </dl>
+      {trip.boardingNotes && <p className="mt-4 rounded-xl bg-white p-3 text-sm font-semibold text-slate-600">{trip.boardingNotes}</p>}
+    </article>
+  );
+}
+
+function TripFact({ label, value }) {
+  return <div><dt className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</dt><dd className="mt-1 wrap-break-word font-bold text-slate-700">{value || "Not available"}</dd></div>;
+}
+
+function groupTripsByDate(trips) {
+  const groups = new Map();
+  for (const trip of trips) {
+    const label = dateGroupLabel(trip.departureAt);
+    groups.set(label, [...(groups.get(label) || []), trip]);
+  }
+  return [...groups.entries()];
+}
+
+function dateGroupLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Date unavailable";
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const key = (item) => `${item.getFullYear()}-${item.getMonth()}-${item.getDate()}`;
+  if (key(date) === key(today)) return "Today";
+  if (key(date) === key(tomorrow)) return "Tomorrow";
+  return new Intl.DateTimeFormat("en-NP", {
+    day: "numeric", month: "long", year: "numeric",
+  }).format(date);
 }
 
 function ActionButton({ busy, onClick, children }) {
