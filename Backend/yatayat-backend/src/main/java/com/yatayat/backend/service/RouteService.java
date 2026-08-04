@@ -20,6 +20,7 @@ import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -47,7 +48,21 @@ public class RouteService {
     }
 
     public List<RouteResponse> getAllRoutes() {
+        return getRoutes(null, null, null);
+    }
+
+    public List<RouteResponse> getRoutes(TripType type, Boolean active, String search) {
+        RouteStatus requestedStatus = active == null
+                ? null
+                : active ? RouteStatus.ACTIVE : RouteStatus.INACTIVE;
+        String normalizedSearch = search == null
+                ? ""
+                : search.trim().toLowerCase(Locale.ROOT);
+
         return routeRepository.findAllByOrderByCodeAsc().stream()
+                .filter(route -> type == null || route.getTripType() == type)
+                .filter(route -> requestedStatus == null || route.getStatus() == requestedStatus)
+                .filter(route -> normalizedSearch.isEmpty() || matchesSearch(route, normalizedSearch))
                 .map(this::toResponse)
                 .toList();
     }
@@ -175,6 +190,17 @@ public class RouteService {
                         HttpStatus.NOT_FOUND,
                         "Route not found"
                 ));
+    }
+
+    private boolean matchesSearch(Route route, String search) {
+        return contains(route.getCode(), search) ||
+                contains(route.getName(), search) ||
+                contains(route.getOrigin(), search) ||
+                contains(route.getDestination(), search);
+    }
+
+    private boolean contains(String value, String search) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(search);
     }
 
     private void apply(Route route, RouteRequest request) {
