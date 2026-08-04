@@ -320,7 +320,6 @@ export default function AdminRoutesPage() {
         {error && <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700">{error}</div>}
         {loading ? <LoadingCard /> : (
           <>
-            <StopSection stops={stops} onEdit={openStopEdit} onToggle={toggleStop} />
             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <div className="flex flex-col justify-between gap-2 lg:flex-row lg:items-end">
                 <div>
@@ -388,6 +387,7 @@ export default function AdminRoutesPage() {
                 )}
               </>
             )}
+            <StopSection stops={stops} onEdit={openStopEdit} onToggle={toggleStop} />
           </>
         )}
       </div>
