@@ -47,7 +47,8 @@ public class TripOperationService {
     public Optional<DriverTripOperationResponse> currentDriverTrip(String driverEmail) {
         DriverProfile driver = requireApprovedDriver(driverEmail);
         requireAnyActiveAssociation(driver);
-        return tripRepository.findDriverOperationalTrips(driver, DRIVER_OPERATIONAL_STATUSES)
+        return tripRepository.findDriverOperationalTrips(
+                        driver, DRIVER_OPERATIONAL_STATUSES, LocalDateTime.now())
                 .stream()
                 .findFirst()
                 .map(this::driverResponse);

@@ -147,7 +147,8 @@ class TripOperationServiceTests {
                 .thenReturn(Optional.of(new DriverOperatorAssociation()));
         trip.setStatus(TripStatus.IN_PROGRESS);
         when(tripRepository.findDriverOperationalTrips(
-                driver, List.of(TripStatus.SCHEDULED, TripStatus.BOARDING, TripStatus.IN_PROGRESS)))
+                eq(driver), eq(List.of(TripStatus.SCHEDULED, TripStatus.BOARDING, TripStatus.IN_PROGRESS)),
+                any(LocalDateTime.class)))
                 .thenReturn(List.of(trip));
 
         assertThat(service.currentDriverTrip("driver@example.com"))
