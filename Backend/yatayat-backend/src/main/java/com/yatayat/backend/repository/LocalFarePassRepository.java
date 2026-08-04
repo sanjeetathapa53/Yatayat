@@ -1,6 +1,7 @@
 package com.yatayat.backend.repository;
 
 import com.yatayat.backend.entity.LocalFarePass;
+import com.yatayat.backend.entity.Route;
 import com.yatayat.backend.entity.User;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.*;
@@ -11,6 +12,7 @@ import java.util.Optional;
 
 public interface LocalFarePassRepository extends JpaRepository<LocalFarePass, Long> {
     boolean existsByPassNumber(String passNumber);
+    boolean existsByRoute(Route route);
 
     @EntityGraph(attributePaths = {"route", "boardingStop", "destinationStop", "walletTransaction"})
     List<LocalFarePass> findByPassengerOrderByIssuedAtDesc(User passenger);

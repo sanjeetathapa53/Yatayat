@@ -11,6 +11,7 @@ import java.util.Optional;
 
 public interface ScheduledTripRepository extends JpaRepository<ScheduledTrip, Long> {
 
+    boolean existsByRoute(Route route);
     List<ScheduledTrip> findByOperatorOrderByDepartureAtDesc(TransportOperator operator);
     Optional<ScheduledTrip> findByIdAndOperator(Long id, TransportOperator operator);
 

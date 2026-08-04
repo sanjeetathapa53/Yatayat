@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Edit3, Loader2, MapPin, Plus, Route as RouteIcon, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Edit3, Loader2, MapPin, Plus, Route as RouteIcon, Search, Trash2, X } from "lucide-react";
 import AdminLayout from "../../components/layout/AdminLayout";
 import { apiFetch } from "../../utils/api";
 import { expireAdminSession } from "../../utils/adminSession";
@@ -28,9 +28,31 @@ export default function AdminRoutesPage() {
   const [showRouteForm, setShowRouteForm] = useState(false);
   const [showStopForm, setShowStopForm] = useState(false);
   const [stopToDeactivate, setStopToDeactivate] = useState(null);
+  const [routeSearch, setRouteSearch] = useState("");
+  const [routeTypeFilter, setRouteTypeFilter] = useState("ALL");
+  const [routeStatusFilter, setRouteStatusFilter] = useState("ALL");
+  const [routeToDelete, setRouteToDelete] = useState(null);
+  const [deletingRouteId, setDeletingRouteId] = useState(null);
+  const [routeStatusBusyId, setRouteStatusBusyId] = useState(null);
 
-  const localRoutes = useMemo(() => routes.filter((route) => route.tripType === "LOCAL"), [routes]);
-  const outsideRoutes = useMemo(() => routes.filter((route) => route.tripType !== "LOCAL"), [routes]);
+  const filteredRoutes = useMemo(() => {
+    const search = routeSearch.trim().toLowerCase();
+    return routes.filter((route) => {
+      const matchesType = routeTypeFilter === "ALL" || route.tripType === routeTypeFilter;
+      const matchesStatus = routeStatusFilter === "ALL" || route.status === routeStatusFilter;
+      const matchesSearch = !search || [route.code, route.name, route.origin, route.destination]
+        .some((value) => String(value || "").toLowerCase().includes(search));
+      return matchesType && matchesStatus && matchesSearch;
+    });
+  }, [routeSearch, routeStatusFilter, routeTypeFilter, routes]);
+  const localRoutes = useMemo(
+    () => filteredRoutes.filter((route) => route.tripType === "LOCAL"),
+    [filteredRoutes]
+  );
+  const outsideRoutes = useMemo(
+    () => filteredRoutes.filter((route) => route.tripType === "OUT_OF_VALLEY"),
+    [filteredRoutes]
+  );
 
   const request = useCallback(async (path, options) => {
     const response = await apiFetch(path, options);
@@ -39,7 +61,11 @@ export default function AdminRoutesPage() {
       return null;
     }
     const data = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(data?.message || "Request could not be completed.");
+    if (!response.ok) {
+      const requestError = new Error(data?.message || "Request could not be completed.");
+      requestError.status = response.status;
+      throw requestError;
+    }
     return data;
   }, [navigate]);
 
@@ -202,6 +228,49 @@ export default function AdminRoutesPage() {
     }
   };
 
+  const updateRouteStatus = async (route) => {
+    if (!route || routeStatusBusyId) return;
+    const nextStatus = route.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    try {
+      setRouteStatusBusyId(route.id);
+      setError("");
+      const updated = await request(`/api/admin/routes/${route.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (updated) {
+        setRoutes((current) => current.map((item) => item.id === route.id ? updated : item));
+        toast.success(nextStatus === "ACTIVE" ? "Route activated." : "Route deactivated.");
+      }
+    } catch (statusError) {
+      setError(statusError.message);
+      toast.error(statusError.message);
+    } finally {
+      setRouteStatusBusyId(null);
+    }
+  };
+
+  const deleteRoute = async () => {
+    if (!routeToDelete || deletingRouteId) return;
+    const routeId = routeToDelete.id;
+    try {
+      setDeletingRouteId(routeId);
+      setError("");
+      await request(`/api/admin/routes/${routeId}`, { method: "DELETE" });
+      setRoutes((current) => current.filter((route) => route.id !== routeId));
+      setRouteToDelete(null);
+      toast.success("Route permanently deleted.");
+    } catch (deleteError) {
+      setError(deleteError.message);
+      toast.error(deleteError.status === 409
+        ? deleteError.message
+        : `Unable to delete route: ${deleteError.message}`);
+    } finally {
+      setDeletingRouteId(null);
+    }
+  };
+
   const updateRouteStop = (index, field, value) => {
     setRouteForm((current) => ({
       ...current,
@@ -252,8 +321,73 @@ export default function AdminRoutesPage() {
         {loading ? <LoadingCard /> : (
           <>
             <StopSection stops={stops} onEdit={openStopEdit} onToggle={toggleStop} />
-            <RouteSection title="Local Routes" routes={localRoutes} empty="No local routes created yet." onEdit={openRouteEdit} />
-            <RouteSection title="Outside Valley Routes" routes={outsideRoutes} empty="No outside-valley routes created yet." onEdit={openRouteEdit} />
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+              <div className="flex flex-col justify-between gap-2 lg:flex-row lg:items-end">
+                <div>
+                  <h2 className="text-xl font-black text-slate-900">Route Directory</h2>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">
+                    Showing {filteredRoutes.length} of {routes.length} routes
+                  </p>
+                </div>
+                <label className="relative block w-full lg:max-w-sm">
+                  <span className="sr-only">Search routes</span>
+                  <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input
+                    type="search"
+                    value={routeSearch}
+                    onChange={(event) => setRouteSearch(event.target.value)}
+                    placeholder="Search code, route, origin or destination"
+                    className="w-full rounded-xl border border-slate-300 bg-slate-50 py-3 pl-11 pr-4 text-sm font-bold outline-none focus:border-[#08264a]"
+                  />
+                </label>
+              </div>
+              <div className="mt-5 grid gap-4 xl:grid-cols-2">
+                <FilterGroup
+                  label="Route type"
+                  value={routeTypeFilter}
+                  onChange={setRouteTypeFilter}
+                  options={[
+                    ["ALL", "All"],
+                    ["LOCAL", "Local"],
+                    ["OUT_OF_VALLEY", "Out of Valley"],
+                  ]}
+                />
+                <FilterGroup
+                  label="Status"
+                  value={routeStatusFilter}
+                  onChange={setRouteStatusFilter}
+                  options={[["ALL", "All"], ["ACTIVE", "Active"], ["INACTIVE", "Inactive"]]}
+                />
+              </div>
+            </section>
+            {filteredRoutes.length === 0 ? (
+              <Empty text="No routes match the selected search and filters." />
+            ) : (
+              <>
+                {routeTypeFilter !== "OUT_OF_VALLEY" && localRoutes.length > 0 && (
+                  <RouteSection
+                    title="Local Routes"
+                    routes={localRoutes}
+                    onEdit={openRouteEdit}
+                    onStatusChange={updateRouteStatus}
+                    onDelete={setRouteToDelete}
+                    routeStatusBusyId={routeStatusBusyId}
+                    deletingRouteId={deletingRouteId}
+                  />
+                )}
+                {routeTypeFilter !== "LOCAL" && outsideRoutes.length > 0 && (
+                  <RouteSection
+                    title="Outside Valley Routes"
+                    routes={outsideRoutes}
+                    onEdit={openRouteEdit}
+                    onStatusChange={updateRouteStatus}
+                    onDelete={setRouteToDelete}
+                    routeStatusBusyId={routeStatusBusyId}
+                    deletingRouteId={deletingRouteId}
+                  />
+                )}
+              </>
+            )}
           </>
         )}
       </div>
@@ -332,6 +466,17 @@ export default function AdminRoutesPage() {
         onConfirm={() => updateStopStatus(stopToDeactivate)}
         onClose={() => setStopToDeactivate(null)}
       />
+      <ConfirmationModal
+        open={Boolean(routeToDelete)}
+        title="Permanently delete route?"
+        message={`${routeToDelete?.name || "This route"} (${routeToDelete?.origin || "Origin"} → ${routeToDelete?.destination || "Destination"}) will be permanently deleted. This cannot be undone. Routes with operational history cannot be deleted and should be deactivated instead.`}
+        confirmLabel="Delete Route"
+        destructive
+        busy={Boolean(deletingRouteId)}
+        busyLabel="Deleting..."
+        onConfirm={deleteRoute}
+        onClose={() => setRouteToDelete(null)}
+      />
     </AdminLayout>
   );
 }
@@ -340,10 +485,25 @@ function StopSection({ stops, onEdit, onToggle }) {
   return <section className="space-y-4"><h2 className="text-xl font-black text-slate-900">Bus Stops</h2>{stops.length === 0 ? <Empty text="No bus stops created yet." /> : <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{stops.map((stop) => <article key={stop.id} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="safe-wrap font-black text-slate-900">{stop.name}</h3><p className="safe-wrap mt-1 text-sm font-semibold text-slate-500">{stop.landmark || "No landmark"}</p></div><Status active={stop.active} /></div><p className="mt-4 text-sm font-bold text-slate-600">{coordinate(stop.latitude, stop.longitude)}</p><div className="mt-4 grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => onEdit(stop)} className="tap-target rounded-xl border border-slate-300 px-4 py-2 font-black text-slate-700">Edit</button><button type="button" onClick={() => onToggle(stop)} className="tap-target rounded-xl bg-slate-100 px-4 py-2 font-black text-slate-700">{stop.active ? "Deactivate" : "Activate"}</button></div></article>)}</div>}</section>;
 }
 
-function RouteSection({ title, routes, empty, onEdit }) {
-  return <section className="space-y-4"><h2 className="text-xl font-black text-slate-900">{title}</h2>{routes.length === 0 ? <Empty text={empty} /> : <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">{routes.map((route) => <article key={route.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm"><div className="flex items-start justify-between gap-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-blue-50 px-3 py-1 text-xs font-black text-[#08264a]">{route.code}</span><Status active={route.status === "ACTIVE"} label={route.status} /><TripTypeBadge tripType={route.tripType} /></div><h3 className="safe-wrap mt-3 text-xl font-black text-slate-900">{route.name}</h3></div><button type="button" onClick={() => onEdit(route)} className="tap-target rounded-xl border border-slate-200 p-3 text-slate-600 hover:bg-slate-50" title="Edit route"><Edit3 size={18} /></button></div><div className="safe-wrap mt-5 flex items-start gap-3 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700"><MapPin size={18} /> {route.origin} to {route.destination}</div><div className="mt-4 grid grid-cols-2 gap-3 text-sm"><Info label="Distance" value={`${route.distanceKm} km`} /><Info label="Duration" value={`${route.estimatedDurationMinutes} min`} /></div>{route.tripType === "LOCAL" && <div className="safe-wrap mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">{route.stops?.length || 0} ordered stop(s) · {route.operatingStartTime || "--"} to {route.operatingEndTime || "--"}</div>}</article>)}</div>}</section>;
+function RouteSection({ title, routes, onEdit, onStatusChange, onDelete, routeStatusBusyId, deletingRouteId }) {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-xl font-black text-slate-900">{title}</h2>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {routes.map((route) => (
+          <article key={route.id} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-blue-50 px-3 py-1 text-xs font-black text-[#08264a]">{route.code}</span><Status active={route.status === "ACTIVE"} label={route.status} /><TripTypeBadge tripType={route.tripType} /></div><h3 className="safe-wrap mt-3 text-xl font-black text-slate-900">{route.name}</h3></div><div className="flex gap-2"><button type="button" onClick={() => onEdit(route)} disabled={routeStatusBusyId === route.id || deletingRouteId === route.id} className="tap-target rounded-xl border border-slate-200 p-3 text-slate-600 disabled:opacity-50" title="Edit route"><Edit3 size={18} /></button><button type="button" onClick={() => onStatusChange(route)} disabled={routeStatusBusyId === route.id || deletingRouteId === route.id} className="tap-target rounded-xl bg-slate-100 px-3 text-xs font-black text-slate-700 disabled:opacity-50">{routeStatusBusyId === route.id ? <Loader2 size={16} className="animate-spin" /> : route.status === "ACTIVE" ? "Deactivate" : "Activate"}</button><button type="button" onClick={() => onDelete(route)} disabled={routeStatusBusyId === route.id || deletingRouteId === route.id} className="tap-target rounded-xl border border-red-200 bg-red-50 p-3 text-red-700 disabled:opacity-50" title="Delete route">{deletingRouteId === route.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}</button></div></div>
+            <div className="safe-wrap mt-5 flex items-start gap-3 rounded-2xl bg-slate-50 p-4 text-sm font-bold text-slate-700"><MapPin size={18} /> {route.origin} to {route.destination}</div><div className="mt-4 grid grid-cols-2 gap-3 text-sm"><Info label="Distance" value={`${route.distanceKm} km`} /><Info label="Duration" value={`${route.estimatedDurationMinutes} min`} /></div>{route.tripType === "LOCAL" && <div className="safe-wrap mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-3 text-sm font-bold text-emerald-800">{route.stops?.length || 0} ordered stop(s) · {route.operatingStartTime || "--"} to {route.operatingEndTime || "--"}</div>}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
 }
 
+function FilterGroup({ label, value, onChange, options }) {
+  return <fieldset><legend className="text-xs font-black uppercase tracking-wider text-slate-500">{label}</legend><div className="mt-2 flex flex-wrap gap-2">{options.map(([optionValue, optionLabel]) => <button key={optionValue} type="button" aria-pressed={value === optionValue} onClick={() => onChange(optionValue)} className={`rounded-xl px-4 py-2 text-sm font-black transition ${value === optionValue ? "bg-[#08264a] text-white shadow-sm" : "border border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"}`}>{optionLabel}</button>)}</div></fieldset>;
+}
 function Modal({ title, onClose, children, wide = false }) {
   return <div className="responsive-modal-backdrop fixed inset-0 z-50 flex justify-center bg-black/50 sm:items-center"><div className={`responsive-modal-panel w-full ${wide ? "max-w-5xl" : "max-w-2xl"} rounded-3xl bg-white p-5 shadow-2xl sm:p-6`}><div className="mb-6 flex items-start justify-between gap-4"><div className="min-w-0"><h2 className="safe-wrap text-xl font-black sm:text-2xl">{title}</h2><p className="mt-1 text-sm text-slate-500">Admin-only local travel foundation controls.</p></div><button type="button" aria-label="Close form" onClick={onClose} className="tap-target rounded-xl p-2 hover:bg-slate-100"><X /></button></div>{children}</div></div>;
 }
