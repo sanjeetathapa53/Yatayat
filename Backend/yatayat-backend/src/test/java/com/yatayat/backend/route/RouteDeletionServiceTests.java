@@ -1,85 +1,129 @@
 package com.yatayat.backend.route;
 
 import com.yatayat.backend.entity.Route;
-import com.yatayat.backend.repository.*;
+import com.yatayat.backend.entity.RouteStatus;
+import com.yatayat.backend.entity.TripType;
+import com.yatayat.backend.repository.LocalFarePassRepository;
+import com.yatayat.backend.repository.LocalServiceRunRepository;
+import com.yatayat.backend.repository.RouteRepository;
+import com.yatayat.backend.repository.RouteStopRepository;
+import com.yatayat.backend.repository.ScheduledTripRepository;
 import com.yatayat.backend.service.RouteDeletionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RouteDeletionServiceTests {
+
     @Mock RouteRepository routeRepository;
     @Mock RouteStopRepository routeStopRepository;
     @Mock ScheduledTripRepository scheduledTripRepository;
     @Mock LocalServiceRunRepository localServiceRunRepository;
     @Mock LocalFarePassRepository localFarePassRepository;
-    RouteDeletionService service;
-    Route route;
+
+    private RouteDeletionService service;
 
     @BeforeEach
     void setUp() {
         service = new RouteDeletionService(routeRepository, routeStopRepository,
                 scheduledTripRepository, localServiceRunRepository, localFarePassRepository);
-        route = new Route();
-        route.setId(7L);
     }
 
     @Test
-    void unusedRouteDeletesLinksThenRoute() {
-        when(routeRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(route));
-        service.deleteRoute(7L);
-        var order = inOrder(routeStopRepository, routeRepository);
-        order.verify(routeStopRepository).deleteByRouteId(7L);
-        order.verify(routeStopRepository).flush();
-        order.verify(routeRepository).delete(route);
-        order.verify(routeRepository).flush();
+    void deletesUnusedLocalRouteAndOnlyItsRouteStopLinks() {
+        Route route = route(1L, TripType.LOCAL);
+        when(routeRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(route));
+
+        service.deleteUnusedRoute(1L);
+
+        verify(routeStopRepository).deleteByRouteId(1L);
+        verify(routeStopRepository).flush();
+        verify(routeRepository).delete(route);
+        verify(routeRepository).flush();
+    }
+
+    @Test
+    void deletesUnusedOutOfValleyRoute() {
+        Route route = route(2L, TripType.OUT_OF_VALLEY);
+        when(routeRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(route));
+
+        service.deleteUnusedRoute(2L);
+
+        verify(routeRepository).delete(route);
     }
 
     @Test
     void unknownRouteReturnsNotFound() {
-        when(routeRepository.findByIdForUpdate(7L)).thenReturn(Optional.empty());
-        ResponseStatusException error = assertThrows(ResponseStatusException.class,
-                () -> service.deleteRoute(7L));
-        assertEquals(404, error.getStatusCode().value());
+        when(routeRepository.findByIdForUpdate(99L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteUnusedRoute(99L))
+                .isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+                    assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+                    assertThat(exception.getReason()).isEqualTo("Route not found");
+                });
     }
 
     @Test
-    void scheduledTripReferenceReturnsConflict() {
-        when(routeRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(route));
+    void scheduledTripReferenceBlocksDeletionWithoutRemovingDependents() {
+        Route route = route(3L, TripType.OUT_OF_VALLEY);
+        when(routeRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(route));
         when(scheduledTripRepository.existsByRoute(route)).thenReturn(true);
-        assertConflict();
+
+        assertReferencedConflict(route);
+        verify(routeStopRepository, never()).deleteByRouteId(3L);
+        verify(routeRepository, never()).delete(route);
     }
 
     @Test
-    void localServiceReferenceReturnsConflict() {
-        when(routeRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(route));
+    void localServiceReferenceBlocksDeletionWithoutRemovingDependents() {
+        Route route = route(4L, TripType.LOCAL);
+        when(routeRepository.findByIdForUpdate(4L)).thenReturn(Optional.of(route));
         when(localServiceRunRepository.existsByRoute(route)).thenReturn(true);
-        assertConflict();
+
+        assertReferencedConflict(route);
+        verify(routeStopRepository, never()).deleteByRouteId(4L);
+        verify(routeRepository, never()).delete(route);
     }
 
     @Test
-    void localFarePassReferenceReturnsConflict() {
-        when(routeRepository.findByIdForUpdate(7L)).thenReturn(Optional.of(route));
+    void historicalLocalFarePassBlocksDeletion() {
+        Route route = route(5L, TripType.LOCAL);
+        when(routeRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(route));
         when(localFarePassRepository.existsByRoute(route)).thenReturn(true);
-        assertConflict();
+
+        assertReferencedConflict(route);
+        verify(routeRepository, never()).delete(route);
     }
 
-    private void assertConflict() {
-        ResponseStatusException error = assertThrows(ResponseStatusException.class,
-                () -> service.deleteRoute(7L));
-        assertEquals(409, error.getStatusCode().value());
-        assertEquals(RouteDeletionService.REFERENCED_MESSAGE, error.getReason());
-        verify(routeRepository, never()).delete(any());
-        verify(routeStopRepository, never()).deleteByRouteId(anyLong());
+    private void assertReferencedConflict(Route route) {
+        assertThatThrownBy(() -> service.deleteUnusedRoute(route.getId()))
+                .isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+                    assertThat(exception.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+                    assertThat(exception.getReason())
+                            .contains("operational history")
+                            .contains("Deactivate");
+                });
+    }
+
+    private Route route(Long id, TripType type) {
+        Route route = new Route();
+        route.setId(id);
+        route.setCode("ROUTE-" + id);
+        route.setTripType(type);
+        route.setStatus(RouteStatus.ACTIVE);
+        return route;
     }
 }

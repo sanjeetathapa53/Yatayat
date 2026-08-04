@@ -12,6 +12,7 @@ import java.util.Optional;
 
 public interface LocalServiceRunRepository extends JpaRepository<LocalServiceRun, Long> {
     boolean existsByRoute(Route route);
+
     @EntityGraph(attributePaths = {"route", "operator", "bus", "driver", "driver.user"})
     List<LocalServiceRun> findByOperatorOrderByServiceDateDescPlannedStartTimeDesc(TransportOperator operator);
 

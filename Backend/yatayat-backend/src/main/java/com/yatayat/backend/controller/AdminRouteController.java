@@ -23,7 +23,10 @@ public class AdminRouteController {
     private final RouteService routeService;
     private final RouteDeletionService routeDeletionService;
 
-    public AdminRouteController(RouteService routeService, RouteDeletionService routeDeletionService) {
+    public AdminRouteController(
+            RouteService routeService,
+            RouteDeletionService routeDeletionService
+    ) {
         this.routeService = routeService;
         this.routeDeletionService = routeDeletionService;
     }
@@ -88,9 +91,9 @@ public class AdminRouteController {
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteRoute(@PathVariable Long id) {
-        routeDeletionService.deleteRoute(id);
+    public ResponseEntity<Void> deleteRoute(@PathVariable Long id) {
+        routeDeletionService.deleteUnusedRoute(id);
+        return ResponseEntity.noContent().build();
     }
 
     @ExceptionHandler(ResponseStatusException.class)

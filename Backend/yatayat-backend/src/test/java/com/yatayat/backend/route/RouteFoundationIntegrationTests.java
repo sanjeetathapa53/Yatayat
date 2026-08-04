@@ -28,6 +28,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -241,6 +243,98 @@ class RouteFoundationIntegrationTests {
     void driverCannotAccessAdminRoutes() throws Exception {
         mockMvc.perform(get("/api/admin/routes"))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminFiltersRoutesByTypeAndStatus() throws Exception {
+        Route activeLocal = route(40L, "LOCAL-ACTIVE", RouteStatus.ACTIVE);
+        activeLocal.setTripType(TripType.LOCAL);
+        Route inactiveLocal = route(41L, "LOCAL-INACTIVE", RouteStatus.INACTIVE);
+        inactiveLocal.setTripType(TripType.LOCAL);
+        Route outside = route(42L, "OUTSIDE-ACTIVE", RouteStatus.ACTIVE);
+        outside.setTripType(TripType.OUT_OF_VALLEY);
+        when(routeRepository.findAllByOrderByCodeAsc())
+                .thenReturn(List.of(activeLocal, inactiveLocal, outside));
+
+        mockMvc.perform(get("/api/admin/routes").param("type", "LOCAL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].tripType").value("LOCAL"));
+
+        mockMvc.perform(get("/api/admin/routes").param("active", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].status").value("ACTIVE"))
+                .andExpect(jsonPath("$[1].status").value("ACTIVE"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCombinesSearchTypeAndStatusFilters() throws Exception {
+        Route match = route(43L, "KTM-PKR", RouteStatus.ACTIVE);
+        match.setTripType(TripType.OUT_OF_VALLEY);
+        Route wrongStatus = route(44L, "PKR-KTM", RouteStatus.INACTIVE);
+        wrongStatus.setTripType(TripType.OUT_OF_VALLEY);
+        Route wrongType = route(45L, "LOCAL-PKR", RouteStatus.ACTIVE);
+        wrongType.setTripType(TripType.LOCAL);
+        when(routeRepository.findAllByOrderByCodeAsc())
+                .thenReturn(List.of(match, wrongStatus, wrongType));
+
+        mockMvc.perform(get("/api/admin/routes")
+                        .param("search", "pokhara")
+                        .param("type", "OUT_OF_VALLEY")
+                        .param("active", "true"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].code").value("KTM-PKR"));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void adminCanDeleteUnusedRoute() throws Exception {
+        mockMvc.perform(delete("/api/admin/routes/50"))
+                .andExpect(status().isNoContent());
+        verify(routeDeletionService).deleteUnusedRoute(50L);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void deletingUnknownRouteReturnsNotFound() throws Exception {
+        doThrow(new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND, "Route not found"))
+                .when(routeDeletionService).deleteUnusedRoute(999L);
+
+        mockMvc.perform(delete("/api/admin/routes/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.message").value("Route not found"));
+    }
+
+    @Test
+    @WithMockUser(roles = "OPERATOR")
+    void operatorCannotDeleteRoute() throws Exception {
+        mockMvc.perform(delete("/api/admin/routes/50"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "PASSENGER")
+    void passengerCannotDeleteRoute() throws Exception {
+        mockMvc.perform(delete("/api/admin/routes/50"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithMockUser(roles = "DRIVER")
+    void driverCannotDeleteRoute() throws Exception {
+        mockMvc.perform(delete("/api/admin/routes/50"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unauthenticatedUserCannotDeleteRoute() throws Exception {
+        mockMvc.perform(delete("/api/admin/routes/50"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

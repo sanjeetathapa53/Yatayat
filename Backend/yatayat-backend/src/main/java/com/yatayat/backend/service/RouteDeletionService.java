@@ -14,8 +14,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class RouteDeletionService {
-    public static final String REFERENCED_MESSAGE =
-            "Route is referenced by operational history and cannot be deleted. Deactivate the route instead.";
+
+    private static final String REFERENCED_ROUTE_MESSAGE =
+            "Route is referenced by operational history and cannot be deleted. " +
+                    "Deactivate the route instead.";
 
     private final RouteRepository routeRepository;
     private final RouteStopRepository routeStopRepository;
@@ -23,10 +25,13 @@ public class RouteDeletionService {
     private final LocalServiceRunRepository localServiceRunRepository;
     private final LocalFarePassRepository localFarePassRepository;
 
-    public RouteDeletionService(RouteRepository routeRepository, RouteStopRepository routeStopRepository,
-                                ScheduledTripRepository scheduledTripRepository,
-                                LocalServiceRunRepository localServiceRunRepository,
-                                LocalFarePassRepository localFarePassRepository) {
+    public RouteDeletionService(
+            RouteRepository routeRepository,
+            RouteStopRepository routeStopRepository,
+            ScheduledTripRepository scheduledTripRepository,
+            LocalServiceRunRepository localServiceRunRepository,
+            LocalFarePassRepository localFarePassRepository
+    ) {
         this.routeRepository = routeRepository;
         this.routeStopRepository = routeStopRepository;
         this.scheduledTripRepository = scheduledTripRepository;
@@ -35,21 +40,24 @@ public class RouteDeletionService {
     }
 
     @Transactional
-    public void deleteRoute(Long id) {
-        Route route = routeRepository.findByIdForUpdate(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Route not found"));
-        if (scheduledTripRepository.existsByRoute(route)
-                || localServiceRunRepository.existsByRoute(route)
-                || localFarePassRepository.existsByRoute(route)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, REFERENCED_MESSAGE);
+    public void deleteUnusedRoute(Long routeId) {
+        Route route = routeRepository.findByIdForUpdate(routeId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Route not found"));
+
+        if (scheduledTripRepository.existsByRoute(route) ||
+                localServiceRunRepository.existsByRoute(route) ||
+                localFarePassRepository.existsByRoute(route)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, REFERENCED_ROUTE_MESSAGE);
         }
+
         try {
             routeStopRepository.deleteByRouteId(route.getId());
             routeStopRepository.flush();
             routeRepository.delete(route);
             routeRepository.flush();
         } catch (DataIntegrityViolationException exception) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, REFERENCED_MESSAGE);
+            throw new ResponseStatusException(HttpStatus.CONFLICT, REFERENCED_ROUTE_MESSAGE);
         }
     }
 }
