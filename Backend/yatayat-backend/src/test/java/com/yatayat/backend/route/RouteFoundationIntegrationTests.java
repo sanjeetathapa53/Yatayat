@@ -10,6 +10,7 @@ import com.yatayat.backend.repository.RouteStopRepository;
 import com.yatayat.backend.repository.TransportOperatorRepository;
 import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.service.RouteService;
+import com.yatayat.backend.service.RouteDeletionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -51,6 +52,8 @@ class RouteFoundationIntegrationTests {
     private UserRepository userRepository;
     @MockitoBean
     private TransportOperatorRepository operatorRepository;
+    @MockitoBean
+    private RouteDeletionService routeDeletionService;
 
     private User operatorUser;
     private TransportOperator operator;

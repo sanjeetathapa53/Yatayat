@@ -4,6 +4,8 @@ import com.yatayat.backend.dto.RouteRequest;
 import com.yatayat.backend.dto.RouteResponse;
 import com.yatayat.backend.dto.RouteStopRequest;
 import com.yatayat.backend.entity.RouteStatus;
+import com.yatayat.backend.entity.TripType;
+import com.yatayat.backend.service.RouteDeletionService;
 import com.yatayat.backend.service.RouteService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,14 +21,20 @@ import java.util.Map;
 public class AdminRouteController {
 
     private final RouteService routeService;
+    private final RouteDeletionService routeDeletionService;
 
-    public AdminRouteController(RouteService routeService) {
+    public AdminRouteController(RouteService routeService, RouteDeletionService routeDeletionService) {
         this.routeService = routeService;
+        this.routeDeletionService = routeDeletionService;
     }
 
     @GetMapping
-    public List<RouteResponse> getRoutes() {
-        return routeService.getAllRoutes();
+    public List<RouteResponse> getRoutes(
+            @RequestParam(required = false) TripType type,
+            @RequestParam(required = false) Boolean active,
+            @RequestParam(required = false) String search
+    ) {
+        return routeService.getRoutes(type, active, search);
     }
 
     @GetMapping("/local")
@@ -77,6 +85,12 @@ public class AdminRouteController {
             @RequestBody Map<String, RouteStatus> request
     ) {
         return routeService.setStatus(id, request.get("status"));
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteRoute(@PathVariable Long id) {
+        routeDeletionService.deleteRoute(id);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
