@@ -11,6 +11,8 @@ import java.util.Optional;
 public interface RouteRepository extends JpaRepository<Route, Long> {
     boolean existsByCodeIgnoreCase(String code);
     boolean existsByCodeIgnoreCaseAndIdNot(String code, Long id);
+    boolean existsByTripTypeAndOriginIgnoreCaseAndDestinationIgnoreCase(
+            TripType tripType, String origin, String destination);
     List<Route> findAllByOrderByCodeAsc();
     List<Route> findByTripTypeOrderByCodeAsc(TripType tripType);
     List<Route> findByStatusOrderByCodeAsc(RouteStatus status);
