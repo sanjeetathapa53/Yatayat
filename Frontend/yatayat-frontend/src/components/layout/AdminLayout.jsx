@@ -168,10 +168,10 @@ export default function AdminLayout({
                         key={item.path}
                         onClick={() => goTo(item.path)}
                         aria-current={active ? "page" : undefined}
-                        className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm font-black transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#08264a] ${
+                        className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#08264a] ${
                           active
-                            ? "bg-[#08264a] text-white shadow-sm"
-                            : "text-slate-600 hover:bg-slate-100 hover:text-[#08264a]"
+                            ? "bg-[#08264a] font-semibold text-white shadow-sm"
+                            : "font-medium text-slate-600 hover:bg-slate-100 hover:text-[#08264a]"
                         }`}
                       >
                         <Icon size={18} aria-hidden="true" />

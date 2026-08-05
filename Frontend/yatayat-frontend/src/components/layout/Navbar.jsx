@@ -32,7 +32,7 @@ export default function Navbar() {
                 className={({ isActive }) =>
                   `relative text-sm font-medium transition ${
                     isActive
-                      ? "text-[#08264a]"
+                      ? "font-semibold text-[#08264a]"
                       : "text-slate-600 hover:text-[#08264a]"
                   }`
                 }

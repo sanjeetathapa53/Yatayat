@@ -343,10 +343,10 @@ export default function DriverLayout({
                   type="button"
                   key={item.activeKey}
                   onClick={() => go(item.path)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-sm transition ${
                     isActive
-                      ? "bg-white/15 text-white"
-                      : "text-slate-300 hover:bg-white/10 hover:text-white"
+                      ? "bg-white/15 font-semibold text-white"
+                      : "font-medium text-slate-300 hover:bg-white/10 hover:text-white"
                   }`}
                 >
                   {item.icon}
