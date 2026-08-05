@@ -66,7 +66,11 @@ export default function PassengerDashboard() {
   return (
     <PassengerLayout
       activePage="Dashboard"
-      title={`Namaste, ${user?.fullName?.split(" ")[0] || "Passenger"} 👋`}
+      title={
+        <span className="font-semibold">
+          {`Namaste, ${user?.fullName?.split(" ")[0] || "Passenger"}`}
+        </span>
+      }
       subtitle="View your wallet, routes, bookings, passes, and live buses."
     >
       <div className="grid min-w-0 grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(300px,330px)]">

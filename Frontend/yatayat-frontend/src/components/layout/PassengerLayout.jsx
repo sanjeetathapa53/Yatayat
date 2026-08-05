@@ -137,10 +137,10 @@ export default function PassengerLayout({ children, activePage = "Dashboard", ti
                 type="button"
                 key={item.activeKey}
                 onClick={() => go(item.path)}
-                className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-semibold transition ${
+                className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm transition ${
                   activePage === item.activeKey
-                    ? "bg-[#1d3f6e] text-white"
-                    : "text-slate-600 hover:bg-slate-100 hover:text-[#08264a]"
+                    ? "bg-[#1d3f6e] font-semibold text-white"
+                    : "font-medium text-slate-600 hover:bg-slate-100 hover:text-[#08264a]"
                 }`}
               >
                 {item.icon}

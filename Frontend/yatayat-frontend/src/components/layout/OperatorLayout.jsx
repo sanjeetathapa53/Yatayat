@@ -68,7 +68,7 @@ export default function OperatorLayout({ children }) {
 
 function NavItem({ icon, label, path, active, onNavigate }) {
   return (
-    <button type="button" onClick={() => onNavigate(path)} className={`tap-target flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-black ${active ? "bg-[#08264a] text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+    <button type="button" onClick={() => onNavigate(path)} className={`tap-target flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm ${active ? "bg-[#08264a] font-semibold text-white" : "font-medium text-slate-600 hover:bg-slate-100"}`}>
       {icon} {label}
     </button>
   );
