@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   Bus,
   CalendarDays,
   CheckCircle2,
@@ -10,6 +11,7 @@ import {
   QrCode,
   RefreshCw,
   Users,
+  XCircle,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
@@ -131,17 +133,17 @@ export default function TripManagementPage() {
 
   return (
     <DriverLayout activePage="Trip Management">
-      <div className="space-y-6">
+      <div className="space-y-5">
         <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-black text-slate-900">Trip Management</h1>
+            <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Trip Management</h1>
             <p className="mt-1 text-slate-500">Manage boarding, live operation, and completion for your assigned trip.</p>
           </div>
           <button
             type="button"
             onClick={loadTrip}
             disabled={loading || operating}
-            className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
           >
             <RefreshCw size={17} className={loading ? "animate-spin" : ""} />
             Refresh
@@ -156,33 +158,33 @@ export default function TripManagementPage() {
         )}
 
         {loading ? (
-          <div className="flex min-h-72 items-center justify-center rounded-3xl border border-slate-200 bg-white">
+          <div className="flex min-h-48 items-center justify-center rounded-3xl border border-slate-200 bg-white">
             <Loader2 size={30} className="animate-spin text-[#08264a]" />
           </div>
         ) : !trip ? (
-          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-            <Bus size={42} className="mx-auto text-slate-300" />
-            <h2 className="mt-4 text-2xl font-black text-slate-900">No active assignment</h2>
-            <p className="mt-2 text-sm font-semibold text-slate-500">
+          <div className="rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+            <Bus size={32} className="mx-auto text-slate-300" />
+            <h2 className="mt-3 text-lg font-semibold text-slate-900">No active assignment</h2>
+            <p className="mt-1.5 text-sm text-slate-500">
               Your current scheduled trip or local service will appear here.
             </p>
           </div>
         ) : (
           <>
-            <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em] text-slate-500">
+                  <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500">
                     {trip.workType === "LOCAL_SERVICE" ? "Local service" : trip.routeCode || "Assigned trip"}
                   </p>
-                  <h2 className="mt-2 text-2xl font-black text-slate-900">
+                  <h2 className="mt-1.5 text-xl font-semibold text-slate-900">
                     {trip.origin} → {trip.destination}
                   </h2>
-                  <p className="mt-1 font-semibold text-slate-500">
+                  <p className="mt-1 text-sm font-medium text-slate-500">
                     {trip.routeName}{trip.operatorName ? ` · ${trip.operatorName}` : ""}
                   </p>
                 </div>
-                <span className={`self-start rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${
+                <span className={`self-start rounded-full px-3 py-1.5 text-xs font-medium uppercase tracking-wide ${
                   trip.workType === "LOCAL_SERVICE" ? serviceStatusTone(trip.status) : tripStatusTone(trip.status)
                 }`}>
                   {trip.workType === "LOCAL_SERVICE" ? serviceStatusLabel(trip.status) : tripStatusLabel(trip.status)}
@@ -196,7 +198,7 @@ export default function TripManagementPage() {
                 <GpsStatus status={localGps.status} message={localGps.message} />
               )}
 
-              <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 <Detail icon={<Bus size={19} />} label="Assigned bus" value={`${trip.busNumber}${trip.busName ? ` · ${trip.busName}` : ""}`} />
                 {trip.workType === "LOCAL_SERVICE" ? (
                   <>
@@ -214,17 +216,17 @@ export default function TripManagementPage() {
               </div>
 
               {trip.workType === "LOCAL_SERVICE" && trip.orderedStops?.length > 0 && (
-                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <h3 className="font-black text-slate-900">Ordered stops</h3>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+                  <h3 className="font-semibold text-slate-900">Ordered stops</h3>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
                     {trip.orderedStops.map((stop) => (
-                      <div key={stop.id} className="flex items-center gap-3 rounded-xl bg-white p-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#08264a] text-xs font-black text-white">
+                      <div key={stop.id} className="flex items-center gap-3 rounded-xl bg-white p-2.5">
+                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#08264a] text-xs font-semibold text-white">
                           {stop.stopOrder}
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate font-black text-slate-900">{stop.stopName}</p>
-                          <p className="truncate text-xs font-semibold text-slate-500">{stop.landmark || "Local route stop"}</p>
+                          <p className="truncate font-semibold text-slate-900">{stop.stopName}</p>
+                          <p className="truncate text-xs text-slate-500">{stop.landmark || "Local route stop"}</p>
                         </div>
                       </div>
                     ))}
@@ -232,7 +234,7 @@ export default function TripManagementPage() {
                 </div>
               )}
 
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 {trip.workType === "LOCAL_SERVICE" && trip.status === "PLANNED" && (
                   <ActionButton busy={operating} onClick={() => operate("start")}>
                     <Play size={18} /> Start Local Service
@@ -243,7 +245,7 @@ export default function TripManagementPage() {
                     type="button"
                     disabled={operating}
                     onClick={() => setConfirmFinish(true)}
-                    className="rounded-2xl bg-red-600 px-5 py-3 font-black text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700 disabled:opacity-60"
+                    className="inline-flex h-11 w-fit items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-semibold text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700 disabled:opacity-60"
                   >
                     End Local Service
                   </button>
@@ -278,7 +280,7 @@ export default function TripManagementPage() {
                       type="button"
                       disabled={operating}
                       onClick={() => setConfirmFinish(true)}
-                      className="rounded-2xl bg-red-600 px-5 py-3 font-black text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700 disabled:opacity-60"
+                      className="inline-flex h-11 w-fit items-center justify-center rounded-xl bg-red-600 px-4 text-sm font-semibold text-white shadow-lg shadow-red-600/20 transition hover:bg-red-700 disabled:opacity-60"
                     >
                       Finish Trip
                     </button>
@@ -308,6 +310,7 @@ export default function TripManagementPage() {
               subtitle="Completed and cancelled scheduled trips."
               trips={history.content}
               empty="No completed or cancelled scheduled trips."
+              history
               hasMore={!history.last}
               loadingMore={loadingMore === "HISTORY"}
               onLoadMore={() => loadMore("HISTORY")}
@@ -334,26 +337,26 @@ export default function TripManagementPage() {
 }
 
 function ScheduledTripList({
-  title, subtitle, trips, empty, grouped = false,
+  title, subtitle, trips, empty, grouped = false, history = false,
   hasMore, loadingMore, onLoadMore,
 }) {
   const sections = grouped ? groupTripsByDate(trips) : [["", trips]];
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-      <h2 className="text-2xl font-black text-slate-900">{title}</h2>
-      <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+      <h2 className="text-xl font-semibold text-slate-900">{title}</h2>
+      <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
       {trips.length === 0 ? (
-        <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-          <CalendarDays className="mx-auto text-slate-300" size={36} />
-          <p className="mt-3 font-bold text-slate-600">{empty}</p>
+        <div className="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
+          <CalendarDays className="mx-auto text-slate-300" size={28} />
+          <p className="mt-2 text-sm text-slate-600">{empty}</p>
         </div>
       ) : (
-        <div className="mt-6 space-y-6">
+        <div className={history ? "mt-3 space-y-3" : "mt-4 space-y-4"}>
           {sections.map(([heading, items]) => (
             <div key={heading || "history"}>
-              {heading && <h3 className="mb-3 text-sm font-black uppercase tracking-wider text-blue-700">{heading}</h3>}
-              <div className="grid gap-4 xl:grid-cols-2">
-                {items.map((item) => <ScheduledTripCard key={item.scheduledTripId} trip={item} />)}
+              {heading && <h3 className="mb-2 text-sm font-semibold uppercase tracking-wider text-blue-700">{heading}</h3>}
+              <div className={`grid gap-3 ${history ? "lg:grid-cols-2" : "xl:grid-cols-2"}`}>
+                {items.map((item) => <ScheduledTripCard key={item.scheduledTripId} trip={item} history={history} />)}
               </div>
             </div>
           ))}
@@ -361,7 +364,7 @@ function ScheduledTripList({
       )}
       {hasMore && (
         <button type="button" disabled={loadingMore} onClick={onLoadMore}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 py-3 font-black text-slate-700 disabled:opacity-60">
+          className="mx-auto mt-4 flex h-11 w-fit items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 disabled:opacity-60">
           {loadingMore && <Loader2 size={17} className="animate-spin" />}
           {loadingMore ? "Loading..." : "Load More"}
         </button>
@@ -370,32 +373,79 @@ function ScheduledTripList({
   );
 }
 
-function ScheduledTripCard({ trip }) {
+function ScheduledTripCard({ trip, history = false }) {
+  if (history) {
+    return (
+      <article className="min-w-0 rounded-2xl border border-slate-200 bg-slate-100/80 p-4">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <h3 className="wrap-break-word text-sm font-semibold leading-5 text-slate-900">{trip.routeName}</h3>
+            <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-sm font-normal leading-5 text-slate-500">
+              <span className="min-w-0 wrap-break-word">{trip.origin}</span>
+              <ArrowRight aria-hidden="true" className="shrink-0" size={14} strokeWidth={1.8} />
+              <span className="min-w-0 wrap-break-word">{trip.destination}</span>
+            </p>
+          </div>
+          <span className={`inline-flex h-6 shrink-0 items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold uppercase leading-none ${
+            trip.status === "CANCELLED"
+              ? "border border-red-300 bg-red-200 text-red-800"
+              : tripStatusTone(trip.status)
+          }`}>
+            {trip.status === "CANCELLED" && <XCircle aria-hidden="true" size={12} strokeWidth={2.2} />}
+            {tripStatusLabel(trip.status)}
+          </span>
+        </div>
+
+        <dl className="mt-3 grid gap-x-4 gap-y-2.5 sm:grid-cols-2 2xl:grid-cols-3">
+          <HistoryTripFact label="Departure" value={formatDateTime(trip.departureAt)} keepTogether />
+          <HistoryTripFact label="Estimated arrival" value={formatDateTime(trip.estimatedArrivalAt)} keepTogether />
+          <HistoryTripFact label="Bus" value={<BusIdentity number={trip.busNumber} name={trip.busName} />} />
+          <HistoryTripFact label="Operator" value={trip.operatorName} />
+          <HistoryTripFact label="Fare" value={trip.fare == null ? "Not available" : `NPR ${Number(trip.fare).toFixed(2)}`} />
+        </dl>
+
+        {trip.boardingNotes && (
+          <p className="mt-3 border-t border-slate-200 pt-2.5 text-sm leading-5 text-slate-600">
+            {trip.boardingNotes}
+          </p>
+        )}
+      </article>
+    );
+  }
+
   return (
-    <article className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5">
+    <article className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="wrap-break-word text-lg font-black text-slate-900">{trip.routeName}</h3>
-          <p className="mt-1 wrap-break-word text-sm font-bold text-slate-600">{trip.origin} → {trip.destination}</p>
+          <h3 className="wrap-break-word text-base font-semibold text-slate-900">{trip.routeName}</h3>
+          <p className="mt-0.5 wrap-break-word text-sm font-medium text-slate-600">{trip.origin} → {trip.destination}</p>
         </div>
-        <span className={`rounded-full px-3 py-1 text-xs font-black uppercase ${tripStatusTone(trip.status)}`}>
+        <span className={`rounded-full px-3 py-1 text-xs font-medium uppercase ${tripStatusTone(trip.status)}`}>
           {tripStatusLabel(trip.status)}
         </span>
       </div>
-      <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+      <dl className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
         <TripFact label="Departure" value={formatDateTime(trip.departureAt)} />
         <TripFact label="Estimated arrival" value={formatDateTime(trip.estimatedArrivalAt)} />
         <TripFact label="Bus" value={`${trip.busNumber}${trip.busName ? ` · ${trip.busName}` : ""}`} />
         <TripFact label="Operator" value={trip.operatorName} />
         <TripFact label="Fare" value={trip.fare == null ? "Not available" : `NPR ${Number(trip.fare).toFixed(2)}`} />
       </dl>
-      {trip.boardingNotes && <p className="mt-4 rounded-xl bg-white p-3 text-sm font-semibold text-slate-600">{trip.boardingNotes}</p>}
+      {trip.boardingNotes && <p className="mt-3 rounded-xl bg-white p-2.5 text-sm text-slate-600">{trip.boardingNotes}</p>}
     </article>
   );
 }
 
+function HistoryTripFact({ label, value, keepTogether = false }) {
+  return <div className="min-w-0"><dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</dt><dd className={`mt-0.5 text-sm font-semibold leading-5 text-slate-700 ${keepTogether ? "whitespace-nowrap" : "wrap-break-word"}`}>{value || "Not available"}</dd></div>;
+}
+
+function BusIdentity({ number, name }) {
+  return <span className="inline-flex flex-wrap items-center gap-1.5"><span>{number}</span>{name && <><span aria-hidden="true" className="h-1 w-1 rounded-full bg-slate-400" /><span>{name}</span></>}</span>;
+}
+
 function TripFact({ label, value }) {
-  return <div><dt className="text-xs font-black uppercase tracking-wide text-slate-400">{label}</dt><dd className="mt-1 wrap-break-word font-bold text-slate-700">{value || "Not available"}</dd></div>;
+  return <div><dt className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</dt><dd className="mt-0.5 wrap-break-word font-semibold text-slate-700">{value || "Not available"}</dd></div>;
 }
 
 function groupTripsByDate(trips) {
@@ -427,7 +477,7 @@ function ActionButton({ busy, onClick, children }) {
       type="button"
       disabled={busy}
       onClick={onClick}
-      className="flex items-center justify-center gap-2 rounded-2xl bg-[#08264a] px-5 py-3 font-black text-white shadow-lg shadow-blue-950/20 transition hover:bg-[#0d3566] disabled:opacity-60"
+      className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 text-sm font-semibold text-white shadow-lg shadow-blue-950/20 transition hover:bg-[#0d3566] disabled:opacity-60"
     >
       {children}
     </button>
@@ -439,7 +489,7 @@ function SecondaryButton({ onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center justify-center gap-2 rounded-2xl border border-slate-300 bg-white px-5 py-3 font-black text-slate-700 transition hover:bg-slate-50"
+      className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
     >
       {children}
     </button>
@@ -448,9 +498,9 @@ function SecondaryButton({ onClick, children }) {
 
 function Detail({ icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="flex items-center gap-2 text-slate-500">{icon}<span className="text-xs font-black uppercase">{label}</span></div>
-      <p className="mt-2 font-black text-slate-900">{value || "Not available"}</p>
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex items-center gap-2 text-slate-500">{icon}<span className="text-xs font-medium uppercase">{label}</span></div>
+      <p className="mt-1.5 text-sm font-semibold text-slate-900">{value || "Not available"}</p>
     </div>
   );
 }
@@ -464,9 +514,9 @@ function GpsStatus({ status, message }) {
     [GPS_STATUS.WAITING]: "border-blue-200 bg-blue-50 text-blue-800",
   }[status] || "border-slate-200 bg-slate-50 text-slate-700";
   return (
-    <div className={`mt-5 rounded-2xl border p-4 ${tone}`}>
-      <p className="font-black">{status}</p>
-      {message && <p className="mt-1 text-sm font-semibold">{message}</p>}
+    <div className={`mt-4 rounded-xl border p-3 ${tone}`}>
+      <p className="font-semibold">{status}</p>
+      {message && <p className="mt-0.5 text-sm">{message}</p>}
     </div>
   );
 }
