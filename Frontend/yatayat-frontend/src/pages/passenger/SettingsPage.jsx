@@ -11,15 +11,31 @@ import {
 } from "lucide-react";
 import PassengerLayout from "../../components/layout/PassengerLayout";
 import { useLanguage } from "../../hooks/useLanguage";
+import { useAuth } from "../../hooks/useAuth";
 import { toast } from "react-toastify";
 
 export default function SettingsPage() {
   const { language, setLanguage, t } = useLanguage();
+  const { user, restoring } = useAuth();
   const [emailTickets, setEmailTickets] = useState(true);
   const [tripAlerts, setTripAlerts] = useState(true);
   const [paymentAlerts, setPaymentAlerts] = useState(true);
   const [twoFactor, setTwoFactor] = useState(true);
   const [autoWallet, setAutoWallet] = useState(false);
+
+  const email = user?.email?.trim() || "Not available";
+  const emailUsername = user?.email?.split("@")[0]?.trim();
+  const fullName = user?.fullName?.trim() || emailUsername || "Passenger";
+  const phone = user?.phone?.trim() || "Not provided";
+  const role = formatRole(user?.role) || t("passenger.settings.passenger");
+  const accountSummary = restoring
+    ? {
+        name: "—",
+        role: "—",
+        email: "—",
+        phone: "—",
+      }
+    : { name: fullName, role, email, phone };
 
   const saveSettings = () => {
     toast.info("Preferences updated for this browser session.", {
@@ -149,10 +165,10 @@ export default function SettingsPage() {
             </h2>
 
             <div className="mt-4 space-y-3 text-sm">
-              <SummaryRow label={t("passenger.settings.name")} value="Nischal P." />
-              <SummaryRow label={t("passenger.settings.role")} value={t("passenger.settings.passenger")} />
-              <SummaryRow label={t("passenger.settings.email")} value="nischal@example.com" />
-              <SummaryRow label={t("passenger.settings.phone")} value="+977 9841234567" />
+              <SummaryRow label={t("passenger.settings.name")} value={accountSummary.name} />
+              <SummaryRow label={t("passenger.settings.role")} value={accountSummary.role} />
+              <SummaryRow label={t("passenger.settings.email")} value={accountSummary.email} />
+              <SummaryRow label={t("passenger.settings.phone")} value={accountSummary.phone} />
             </div>
           </div>
 
@@ -243,4 +259,15 @@ function SummaryRow({ label, value }) {
       <span className="text-right font-black text-slate-900">{value}</span>
     </div>
   );
+}
+
+function formatRole(role) {
+  const normalized = String(role || "").trim().toLowerCase();
+  if (!normalized) return "";
+
+  return normalized
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
