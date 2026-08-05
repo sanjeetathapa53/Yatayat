@@ -83,23 +83,23 @@ export default function PassengerBookingsPage() {
 function BookingCard({ booking, ticketLoading, onView, onTicket, onCancel, t }) {
   const confirmed = booking.bookingStatus === "CONFIRMED";
   const cancellable = confirmed && new Date(booking.departureAt) > new Date();
-  return <article className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-    <div className="flex flex-col justify-between gap-5 lg:flex-row">
-      <div>
-        <div className="flex flex-wrap items-center gap-3"><h2 className="text-xl font-black">{booking.origin} → {booking.destination}</h2><Status status={booking.bookingStatus} t={t} /></div>
-        <p className="mt-1 font-bold text-slate-500">{booking.routeCode} · {booking.routeName}</p>
-        <div className="mt-4 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <p><b>{t("passenger.tickets.reference")}:</b> {booking.bookingReference}</p>
-          <p><b>{t("passenger.tickets.departure")}:</b> {formatBookingDate(booking.departureAt)}</p>
-          <p><b>{t("passenger.tickets.operator")}:</b> {booking.operatorName}</p>
-          <p><b>{t("passenger.tickets.bus")}:</b> {booking.busNumber}</p>
-          <p><b>{t("passenger.tickets.seats")}:</b> {booking.numberOfSeats}</p>
-          <p><b>{t("passenger.tickets.total")}:</b> {formatNpr(booking.totalFare)}</p>
-          <p><b>{t("passenger.tickets.booked")}:</b> {formatBookingDate(booking.bookedAt)}</p>
-          {booking.cancelledAt && <p><b>{t("passenger.tickets.cancelled")}:</b> {formatBookingDate(booking.cancelledAt)}</p>}
+  return <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 flex-wrap items-center gap-2"><h2 className="min-w-0 break-words text-xl font-black">{booking.origin} → {booking.destination}</h2><Status status={booking.bookingStatus} t={t} /></div>
+        <p className="mt-1 min-w-0 break-words text-sm font-bold text-slate-500">{booking.routeCode} · {booking.routeName}</p>
+        <div className="mt-3 grid min-w-0 grid-cols-1 gap-x-5 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <p className="min-w-0 break-words leading-5 [overflow-wrap:anywhere]"><span className="font-semibold">{t("passenger.tickets.reference")}:</span> {booking.bookingReference}</p>
+          <p className="min-w-0 leading-5"><span className="font-semibold">{t("passenger.tickets.departure")}:</span> <span className="whitespace-nowrap">{formatBookingDate(booking.departureAt)}</span></p>
+          <p className="min-w-0 break-words leading-5" title={booking.operatorName || undefined}><span className="font-semibold">{t("passenger.tickets.operator")}:</span> {booking.operatorName}</p>
+          <p className="min-w-0 leading-5"><span className="font-semibold">{t("passenger.tickets.bus")}:</span> <span className="whitespace-nowrap">{booking.busNumber}</span></p>
+          <p className="min-w-0 leading-5"><span className="font-semibold">{t("passenger.tickets.seats")}:</span> <span className="whitespace-nowrap">{booking.numberOfSeats}</span></p>
+          <p className="min-w-0 leading-5"><span className="font-semibold">{t("passenger.tickets.total")}:</span> <span className="whitespace-nowrap font-semibold">{formatNpr(booking.totalFare)}</span></p>
+          <p className="min-w-0 whitespace-nowrap leading-5"><span className="font-semibold">{t("passenger.tickets.booked")}:</span> <span className="whitespace-nowrap">{formatBookingDate(booking.bookedAt)}</span></p>
+          {booking.cancelledAt && <p className="min-w-0 leading-5"><span className="font-semibold">{t("passenger.tickets.cancelled")}:</span> <span className="whitespace-nowrap">{formatBookingDate(booking.cancelledAt)}</span></p>}
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap items-center gap-2 self-start lg:self-center">
+      <div className="flex shrink-0 flex-wrap items-center gap-2 self-start lg:justify-end lg:self-center">
         <button type="button" onClick={onView} className="inline-flex h-11 w-auto items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-300 px-4 font-black"><Eye size={17} /> {t("passenger.tickets.details")}</button>
         {confirmed && <button type="button" disabled={ticketLoading} onClick={onTicket} className="inline-flex h-11 w-auto items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#08264a] px-4 font-black text-white disabled:opacity-60"><Ticket size={17} /> {ticketLoading ? t("passenger.tickets.loading") : t("passenger.tickets.viewTicket")}</button>}
         {cancellable && <button type="button" onClick={onCancel} className="inline-flex h-11 w-auto items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-red-600 px-4 font-black text-white"><XCircle size={17} /> {t("passenger.tickets.cancel")}</button>}
