@@ -1,6 +1,7 @@
 package com.yatayat.backend.controller;
 
 import com.yatayat.backend.dto.PassengerTripDetailsResponse;
+import com.yatayat.backend.dto.PassengerRouteOptionResponse;
 import com.yatayat.backend.dto.PassengerTripSearchResponse;
 import com.yatayat.backend.service.PassengerTripService;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +30,11 @@ public class PassengerTripController {
             @RequestParam(required = false) LocalDate date
     ) {
         return passengerTripService.search(authentication.getName(), origin, destination, date);
+    }
+
+    @GetMapping("/route-options")
+    public List<PassengerRouteOptionResponse> routeOptions(Authentication authentication) {
+        return passengerTripService.routeOptions(authentication.getName());
     }
 
     @GetMapping("/{tripId}")

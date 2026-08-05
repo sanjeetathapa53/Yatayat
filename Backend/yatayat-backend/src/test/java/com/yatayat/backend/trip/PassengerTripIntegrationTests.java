@@ -4,6 +4,7 @@ import com.yatayat.backend.config.SecurityConfig;
 import com.yatayat.backend.controller.PassengerTripController;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.ScheduledTripRepository;
+import com.yatayat.backend.repository.RouteRepository;
 import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.service.PassengerTripService;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,7 @@ class PassengerTripIntegrationTests {
     @Autowired private MockMvc mockMvc;
     @MockitoBean private UserRepository userRepository;
     @MockitoBean private ScheduledTripRepository tripRepository;
+    @MockitoBean private RouteRepository routeRepository;
 
     private User passenger;
     private ScheduledTrip trip;
@@ -62,6 +64,35 @@ class PassengerTripIntegrationTests {
                 .andExpect(jsonPath("$[0].email").doesNotExist())
                 .andExpect(jsonPath("$[0].licenseNumber").doesNotExist())
                 .andExpect(jsonPath("$[0].version").doesNotExist());
+    }
+
+    @Test
+    @WithMockUser(username = "passenger@example.com", roles = "PASSENGER")
+    void routeOptionsReturnSafeActiveOutOfValleyLocations() throws Exception {
+        com.yatayat.backend.entity.Route route = new com.yatayat.backend.entity.Route();
+        route.setId(101L);
+        route.setCode("KTM-PKR");
+        route.setName("Kathmandu to Pokhara");
+        route.setOrigin("Kathmandu");
+        route.setDestination("Pokhara");
+        route.setStatus(RouteStatus.ACTIVE);
+        route.setTripType(TripType.OUT_OF_VALLEY);
+        when(routeRepository.findByStatusAndTripTypeOrderByCodeAsc(
+                RouteStatus.ACTIVE, TripType.OUT_OF_VALLEY)).thenReturn(List.of(route));
+
+        mockMvc.perform(get("/api/passenger/trips/route-options"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].routeId").value(101))
+                .andExpect(jsonPath("$[0].origin").value("Kathmandu"))
+                .andExpect(jsonPath("$[0].destination").value("Pokhara"))
+                .andExpect(jsonPath("$[0].routeName").value("Kathmandu to Pokhara"))
+                .andExpect(jsonPath("$[0].operatorName").doesNotExist());
+    }
+
+    @Test
+    void anonymousRouteOptionsRequestIsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/passenger/trips/route-options"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

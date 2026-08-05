@@ -1,11 +1,15 @@
 package com.yatayat.backend.service;
 
 import com.yatayat.backend.dto.PassengerTripDetailsResponse;
+import com.yatayat.backend.dto.PassengerRouteOptionResponse;
 import com.yatayat.backend.dto.PassengerTripSearchResponse;
+import com.yatayat.backend.entity.RouteStatus;
 import com.yatayat.backend.entity.ScheduledTrip;
 import com.yatayat.backend.entity.TripStatus;
+import com.yatayat.backend.entity.TripType;
 import com.yatayat.backend.entity.User;
 import com.yatayat.backend.repository.ScheduledTripRepository;
+import com.yatayat.backend.repository.RouteRepository;
 import com.yatayat.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,10 +26,13 @@ public class PassengerTripService {
 
     private final UserRepository userRepository;
     private final ScheduledTripRepository tripRepository;
+    private final RouteRepository routeRepository;
 
-    public PassengerTripService(UserRepository userRepository, ScheduledTripRepository tripRepository) {
+    public PassengerTripService(UserRepository userRepository, ScheduledTripRepository tripRepository,
+                                RouteRepository routeRepository) {
         this.userRepository = userRepository;
         this.tripRepository = tripRepository;
+        this.routeRepository = routeRepository;
     }
 
     public List<PassengerTripSearchResponse> search(
@@ -43,6 +50,15 @@ public class PassengerTripService {
                 ).stream()
                 .filter(this::resourcesValidForDeparture)
                 .map(this::toSearchResponse)
+                .toList();
+    }
+
+    public List<PassengerRouteOptionResponse> routeOptions(String email) {
+        requirePassenger(email);
+        return routeRepository.findByStatusAndTripTypeOrderByCodeAsc(
+                        RouteStatus.ACTIVE, TripType.OUT_OF_VALLEY).stream()
+                .map(route -> new PassengerRouteOptionResponse(
+                        route.getId(), route.getOrigin(), route.getDestination(), route.getName()))
                 .toList();
     }
 
