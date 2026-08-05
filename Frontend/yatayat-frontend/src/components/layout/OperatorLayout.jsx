@@ -1,7 +1,8 @@
-import { Building2, Bus, CalendarDays, LayoutDashboard, LogOut, MapPinned, Menu, Users, X } from "lucide-react";
+import { Bus, CalendarDays, LayoutDashboard, LogOut, MapPinned, Menu, Users, X } from "lucide-react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../services/authService";
+import YatayatLogo from "../branding/YatayatLogo";
 
 export default function OperatorLayout({ children }) {
   const navigate = useNavigate();
@@ -26,10 +27,10 @@ export default function OperatorLayout({ children }) {
 
       <aside className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(19rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white transition-transform lg:h-screen lg:w-72 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-          <div>
-            <h1 className="text-xl font-black sm:text-2xl">Yatayat Operator</h1>
-            <p className="mt-1 text-xs font-semibold text-slate-500">Operations Portal</p>
-          </div>
+          <button type="button" onClick={() => { navigate("/operator/dashboard"); setSidebarOpen(false); }} aria-label="Yatayat operator dashboard" className="rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#08264a]">
+            <YatayatLogo variant="compact" size="md" />
+            <span className="mt-1 block pl-[3.125rem] text-xs font-semibold text-slate-500">Operations Portal</span>
+          </button>
           <button type="button" onClick={() => setSidebarOpen(false)} className="p-2 lg:hidden">
             <X size={20} />
           </button>
@@ -56,7 +57,7 @@ export default function OperatorLayout({ children }) {
           <button type="button" aria-label="Open operator menu" onClick={() => setSidebarOpen(true)} className="tap-target rounded-xl border border-slate-200 p-3 lg:hidden">
             <Menu size={20} />
           </button>
-          <Building2 size={23} />
+          <YatayatLogo variant="icon" size="sm" />
           <h2 className="truncate text-lg font-black sm:text-xl">Operator Dashboard</h2>
         </header>
         <main className="px-4 py-6 sm:px-6 lg:px-8"><div className="responsive-shell">{children}</div></main>

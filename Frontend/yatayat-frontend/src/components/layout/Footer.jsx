@@ -1,4 +1,5 @@
 import { useLanguage } from "../../hooks/useLanguage";
+import YatayatLogo from "../branding/YatayatLogo";
 
 export default function Footer() {
   const { t } = useLanguage();
@@ -7,7 +8,7 @@ export default function Footer() {
     <footer className="bg-[#04294f] px-6 py-14 text-white">
       <div className="mx-auto grid max-w-7xl gap-10 md:grid-cols-4">
         <div>
-          <h2 className="text-3xl font-extrabold">Yatayat</h2>
+          <YatayatLogo variant="compact" size="md" light />
 
           <p className="mt-6 text-sm leading-6 text-slate-300">
             {t.footerText}

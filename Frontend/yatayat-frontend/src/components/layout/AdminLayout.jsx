@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../services/authService";
+import YatayatLogo from "../branding/YatayatLogo";
 
 const menuSections = [
   {
@@ -129,12 +130,11 @@ export default function AdminLayout({
           <button
             type="button"
             onClick={() => goTo("/admin/dashboard")}
-            className="text-left"
+            aria-label="Yatayat admin dashboard"
+            className="rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#08264a]"
           >
-              <h1 className="text-xl font-black leading-tight text-[#08264a] sm:text-2xl">
-              Yatayat Admin
-            </h1>
-            <p className="mt-1 text-xs font-semibold text-slate-500">
+            <YatayatLogo variant="compact" size="md" />
+            <p className="mt-1 pl-[3.125rem] text-xs font-semibold text-slate-500">
               Central Control Hub
             </p>
           </button>

@@ -1,14 +1,13 @@
-import { Bus } from "lucide-react";
 import { Link } from "react-router-dom";
+import YatayatLogo from "../branding/YatayatLogo";
 
 export default function AuthLayout({ children }) {
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-50 via-slate-100 to-emerald-50">
       <header className="h-14 bg-white/90 border-b border-slate-200">
         <div className="mx-auto flex h-full max-w-7xl items-center justify-between px-6">
-          <Link to="/" className="flex items-center gap-2 text-xl font-black text-[#08264a]">
-            <Bus size={20} />
-            Yatayat
+          <Link to="/" aria-label="Yatayat home" className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#08264a]">
+            <YatayatLogo variant="compact" size="sm" />
           </Link>
 
           <div className="hidden gap-6 text-sm font-medium text-slate-600 sm:flex">
