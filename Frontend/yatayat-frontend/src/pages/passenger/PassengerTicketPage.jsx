@@ -112,11 +112,10 @@ export default function PassengerTicketPage() {
           </div>
         </div>
       </section>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="flex flex-wrap items-center justify-center gap-3">
         <ActionButton icon={<Download size={18} />} disabled={downloading || emailing} onClick={download}>{downloading ? t("passenger.tickets.downloading") : t("passenger.tickets.downloadPdf")}</ActionButton>
         <ActionButton icon={<Mail size={18} />} disabled={downloading || emailing} onClick={email}>{emailing ? t("passenger.tickets.sending") : t("passenger.tickets.resendEticket")}</ActionButton>
         {import.meta.env.DEV && <ActionButton icon={copiedPayload ? <Check size={18} /> : <Copy size={18} />} disabled={!ticket.qrPayload} onClick={copyQrPayload}>{copiedPayload ? t("passenger.tickets.qrPayloadCopied") : t("passenger.tickets.copyQrPayloadDev")}</ActionButton>}
-        <ActionButton onClick={() => navigate(`/passenger/bookings/${ticket.bookingReference}`)}>{t("passenger.tickets.backToBooking")}</ActionButton>
         <ActionButton onClick={() => navigate("/passenger/bookings")}>{t("passenger.tickets.myBookings")}</ActionButton>
       </div>
     </>}
@@ -131,5 +130,5 @@ function TicketInfo({ icon, label, value, t }) {
 }
 
 function ActionButton({ icon, children, ...props }) {
-  return <button type="button" {...props} className="tap-target flex items-center justify-center gap-2 rounded-2xl bg-[#08264a] px-5 py-3 text-center font-black text-white shadow-lg shadow-blue-950/10 transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60">{icon}{children}</button>;
+  return <button type="button" {...props} className="tap-target inline-flex min-h-12 w-fit max-w-full items-center justify-center gap-2 rounded-2xl bg-[#08264a] px-5 py-3 text-center font-black text-white shadow-lg shadow-blue-950/10 transition hover:bg-blue-950 disabled:cursor-not-allowed disabled:opacity-60">{icon}{children}</button>;
 }
