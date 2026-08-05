@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { Bell, UserCircle } from "lucide-react";
 import { useLanguage } from "../../hooks/useLanguage";
+import YatayatLogo from "../branding/YatayatLogo";
 
 export default function Navbar() {
   const { language, setLanguage, t } = useLanguage();
@@ -16,10 +17,11 @@ export default function Navbar() {
 
   return (
     <header className="fixed left-0 top-0 z-50 w-full border-b border-slate-200 bg-white">
-      <nav className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
-        <div className="flex items-center gap-8">
-          <NavLink to="/" className="text-xl font-black text-[#08264a]">
-            Yatayat
+      <nav className="mx-auto flex h-14 max-w-7xl items-center justify-between px-3 sm:px-6">
+        <div className="flex items-center gap-3 md:gap-8">
+          <NavLink to="/" aria-label="Yatayat home" className="rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#08264a]">
+            <span className="sm:hidden"><YatayatLogo variant="icon" size="sm" /></span>
+            <span className="hidden sm:inline"><YatayatLogo variant="compact" size="sm" /></span>
           </NavLink>
 
           <div className="hidden items-center gap-6 md:flex">
@@ -49,7 +51,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-2 sm:gap-5">
           <div className="flex rounded-full border border-slate-300 bg-slate-100 p-1 text-xs font-bold">
             <button
               type="button"

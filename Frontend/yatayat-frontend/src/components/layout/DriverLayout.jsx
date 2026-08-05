@@ -23,6 +23,7 @@ import {
   fetchDriverUnreadCount,
 } from "../../utils/driverNotifications";
 import ConfirmationModal from "../common/ConfirmationModal";
+import YatayatLogo from "../branding/YatayatLogo";
 
 export default function DriverLayout({
   children,
@@ -228,11 +229,10 @@ export default function DriverLayout({
             <button
               type="button"
               onClick={() => go("/driver/dashboard")}
-              className="text-left"
+              aria-label="Yatayat driver dashboard"
+              className="rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#08264a]"
             >
-              <h1 className="truncate text-xl font-black text-[#08264a] sm:text-2xl">
-                Yatayat
-              </h1>
+              <YatayatLogo variant="compact" size="sm" />
             </button>
 
             <div className="hidden items-center gap-6 text-sm font-bold lg:flex">

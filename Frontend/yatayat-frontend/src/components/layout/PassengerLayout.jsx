@@ -19,6 +19,7 @@ import { logoutUser } from "../../services/authService";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useAuth } from "../../hooks/useAuth";
 import { useNotifications } from "../../context/NotificationContext";
+import YatayatLogo from "../branding/YatayatLogo";
 
 export default function PassengerLayout({ children, activePage = "Dashboard", title, subtitle }) {
   const navigate = useNavigate();
@@ -121,11 +122,8 @@ export default function PassengerLayout({ children, activePage = "Dashboard", ti
       >
         <div>
           <div className="flex items-start justify-between">
-            <button onClick={() => go("/passenger/dashboard")} className="text-left">
-              <h1 className="text-3xl font-black">Yatayat</h1>
-              <p className="mt-2 text-sm text-slate-500">
-                {t("passenger.layout.subtitle")}
-              </p>
+            <button type="button" onClick={() => go("/passenger/dashboard")} aria-label="Yatayat passenger dashboard" className="rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#08264a]">
+              <YatayatLogo variant="full" size="md" />
             </button>
 
             <button type="button" aria-label={t("passenger.layout.closeMenu")} onClick={() => setMenuOpen(false)} className="rounded-lg p-2 lg:hidden">
