@@ -99,10 +99,10 @@ function BookingCard({ booking, ticketLoading, onView, onTicket, onCancel, t }) 
           {booking.cancelledAt && <p><b>{t("passenger.tickets.cancelled")}:</b> {formatBookingDate(booking.cancelledAt)}</p>}
         </div>
       </div>
-      <div className="flex shrink-0 flex-wrap gap-2">
-        <button type="button" onClick={onView} className="flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3 font-black"><Eye size={17} /> {t("passenger.tickets.details")}</button>
-        {confirmed && <button type="button" disabled={ticketLoading} onClick={onTicket} className="flex items-center gap-2 rounded-xl bg-[#08264a] px-4 py-3 font-black text-white disabled:opacity-60"><Ticket size={17} /> {ticketLoading ? t("passenger.tickets.loading") : t("passenger.tickets.viewTicket")}</button>}
-        {cancellable && <button type="button" onClick={onCancel} className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-3 font-black text-white"><XCircle size={17} /> {t("passenger.tickets.cancel")}</button>}
+      <div className="flex shrink-0 flex-wrap items-center gap-2 self-start lg:self-center">
+        <button type="button" onClick={onView} className="inline-flex h-11 w-auto items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-300 px-4 font-black"><Eye size={17} /> {t("passenger.tickets.details")}</button>
+        {confirmed && <button type="button" disabled={ticketLoading} onClick={onTicket} className="inline-flex h-11 w-auto items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#08264a] px-4 font-black text-white disabled:opacity-60"><Ticket size={17} /> {ticketLoading ? t("passenger.tickets.loading") : t("passenger.tickets.viewTicket")}</button>}
+        {cancellable && <button type="button" onClick={onCancel} className="inline-flex h-11 w-auto items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-red-600 px-4 font-black text-white"><XCircle size={17} /> {t("passenger.tickets.cancel")}</button>}
       </div>
     </div>
   </article>;
