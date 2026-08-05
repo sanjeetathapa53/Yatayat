@@ -154,57 +154,57 @@ export default function DriverScannerPage() {
 
   return (
     <DriverLayout activePage="Scanner">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">Boarding QR Scanner</h1>
+          <h1 className="text-xl font-semibold text-slate-900 sm:text-2xl">Boarding QR Scanner</h1>
           <p className="mt-1 text-sm text-slate-600">
             Scan passenger e-ticket QR codes. Final validation is performed securely by the backend.
           </p>
         </div>
-        <span className="rounded-full bg-emerald-100 px-4 py-2 text-xs font-black uppercase tracking-widest text-emerald-700">
+        <span className="w-fit rounded-full bg-emerald-100 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-emerald-700">
           Driver controlled
         </span>
       </header>
 
-      <div className="grid gap-6 xl:grid-cols-12">
-        <section className="space-y-5 xl:col-span-7">
+      <div className="grid items-start gap-4 lg:grid-cols-12">
+        <section className="space-y-4 lg:col-span-7">
           <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-            <div className="bg-[#08264a] p-6 text-white">
+            <div className="bg-[#08264a] p-4 text-white">
               <div className="flex items-center gap-3">
-                <div className="rounded-2xl bg-white/10 p-3"><QrCode size={28} /></div>
+                <div className="rounded-xl bg-white/10 p-2.5"><QrCode size={24} /></div>
                 <div>
-                  <h2 className="text-xl font-black">Camera Scanner</h2>
-                  <p className="text-sm font-semibold text-blue-100">Camera starts only when you press Start Scanning.</p>
+                  <h2 className="text-lg font-semibold">Camera Scanner</h2>
+                  <p className="text-sm text-blue-100">Camera starts only when you press Start Scanning.</p>
                 </div>
               </div>
             </div>
 
-            <div className="p-5">
-              <div className="min-h-72 overflow-hidden rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50 p-3 sm:min-h-80 sm:p-4">
+            <div className="p-4">
+              <div className="min-h-56 overflow-hidden rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-3 sm:min-h-64">
                 <div id={scannerRegionId} className="mx-auto max-w-full overflow-hidden rounded-2xl" />
                 {cameraState !== "scanning" && (
-                  <div className="flex min-h-72 flex-col items-center justify-center text-center">
+                  <div className="flex min-h-56 flex-col items-center justify-center text-center sm:min-h-64">
                     {cameraState === "permission" || cameraState === "validating" ? (
-                      <Loader2 size={44} className="animate-spin text-[#08264a]" />
+                      <Loader2 size={36} className="animate-spin text-[#08264a]" />
                     ) : (
-                      <QrCode size={56} className="text-slate-300" />
+                      <QrCode size={40} className="text-slate-300" />
                     )}
-                    <h3 className="mt-4 text-lg font-black text-slate-900">
+                    <h3 className="mt-3 text-base font-semibold text-slate-900">
                       {cameraState === "permission" ? "Requesting camera permission" : cameraState === "validating" ? "Validating ticket" : "Ready to scan"}
                     </h3>
-                    <p className="mt-2 max-w-sm text-sm text-slate-500">
+                    <p className="mt-1.5 max-w-sm text-sm text-slate-500">
                       Place the passenger ticket QR inside the frame. The camera stops automatically after detection.
                     </p>
                   </div>
                 )}
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-4 flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={startCamera}
                   disabled={cameraState === "permission" || cameraState === "scanning" || cameraState === "validating"}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#08264a] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 text-sm font-semibold text-white transition hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {cameraState === "permission" ? <Loader2 size={18} className="animate-spin" /> : <QrCode size={18} />}
                   Start Scanning
@@ -213,7 +213,7 @@ export default function DriverScannerPage() {
                   type="button"
                   onClick={stopCamera}
                   disabled={cameraState !== "scanning"}
-                  className="rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="inline-flex h-11 w-fit items-center justify-center rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Stop Camera
                 </button>
@@ -280,7 +280,7 @@ export default function DriverScannerPage() {
           </section>}
         </section>
 
-        <aside className="space-y-5 xl:col-span-5">
+        <aside className="space-y-4 lg:col-span-5">
           <ResultCard result={result} onReset={reset} onManifest={() => manifestId && navigate(`/driver/trips/${manifestId}/manifest`)} hasManifest={Boolean(manifestId)} />
           <RecentScans scans={recentScans} />
         </aside>
@@ -292,10 +292,10 @@ export default function DriverScannerPage() {
 function ResultCard({ result, onReset, onManifest, hasManifest }) {
   if (!result) {
     return (
-      <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm">
-        <QrCode size={48} className="mx-auto text-slate-300" />
-        <h2 className="mt-4 text-xl font-black text-slate-900">Waiting for ticket</h2>
-        <p className="mt-2 text-sm text-slate-500">Scan a QR code or paste the full QR payload.</p>
+      <div className="rounded-3xl border border-slate-200 bg-white p-5 text-center shadow-sm">
+        <QrCode size={32} className="mx-auto text-slate-300" />
+        <h2 className="mt-3 text-lg font-semibold text-slate-900">Waiting for ticket</h2>
+        <p className="mt-1 text-sm text-slate-500">Scan a QR code or paste the full QR payload.</p>
       </div>
     );
   }
@@ -306,19 +306,19 @@ function ResultCard({ result, onReset, onManifest, hasManifest }) {
 
   return (
     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className={`${color === "emerald" ? "bg-emerald-600" : color === "amber" ? "bg-amber-500" : "bg-red-600"} p-6 text-white`}>
+      <div className={`${color === "emerald" ? "bg-emerald-600" : color === "amber" ? "bg-amber-500" : "bg-red-600"} p-4 text-white`}>
         <div className="flex items-center gap-3">
-          {success ? <CheckCircle size={28} /> : <XCircle size={28} />}
+          {success ? <CheckCircle size={24} /> : <XCircle size={24} />}
           <div>
-            <h2 className="text-xl font-black">
+            <h2 className="text-lg font-semibold">
               {success ? "Boarding Confirmed" : alreadyUsed ? "Already Used" : readableResult(result.result)}
             </h2>
-            <p className="mt-1 text-sm font-semibold opacity-90">{result.message}</p>
+            <p className="mt-1 text-sm opacity-90">{result.message}</p>
           </div>
         </div>
       </div>
 
-      <div className="space-y-3 p-5">
+      <div className="space-y-2 p-4">
         {(result.ticketNumber || result.passNumber) && (
           <>
             <Info label="Passenger" value={result.passengerName} />
@@ -330,10 +330,11 @@ function ResultCard({ result, onReset, onManifest, hasManifest }) {
           </>
         )}
 
+        <div className="mt-2 flex flex-wrap items-center justify-center gap-2">
         <button
           type="button"
           onClick={onReset}
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#08264a] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+          className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 text-sm font-semibold text-white transition hover:bg-[#0d3566]"
         >
           <RefreshCw size={18} />
           Scan Next Ticket
@@ -342,12 +343,13 @@ function ResultCard({ result, onReset, onManifest, hasManifest }) {
           <button
             type="button"
             onClick={onManifest}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-300 px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl border border-slate-300 px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           >
             <Bus size={18} />
             View Manifest
           </button>
         )}
+        </div>
       </div>
     </div>
   );
@@ -355,18 +357,18 @@ function ResultCard({ result, onReset, onManifest, hasManifest }) {
 
 function RecentScans({ scans }) {
   return (
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h2 className="text-lg font-black text-slate-900">Recent Scan Results</h2>
-      <div className="mt-4 space-y-3">
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
+      <h2 className="text-base font-semibold text-slate-900">Recent Scan Results</h2>
+      <div className="mt-3 space-y-2">
         {scans.length === 0 ? (
           <p className="text-sm text-slate-500">No scan attempts yet.</p>
         ) : scans.map((scan, index) => (
-          <div key={`${scan.time}-${index}`} className="rounded-2xl bg-slate-50 p-4">
-            <div className="flex items-center justify-between gap-3">
-              <p className="safe-wrap font-black text-slate-900">{scan.ticketNumber || readableResult(scan.result)}</p>
-              <span className={`text-xs font-black ${scan.result === "VALID" ? "text-emerald-700" : "text-red-600"}`}>{scan.result}</span>
+          <div key={`${scan.time}-${index}`} className="min-w-0 rounded-xl bg-slate-50 p-3">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <p className="safe-wrap min-w-0 font-semibold text-slate-900">{scan.ticketNumber || readableResult(scan.result)}</p>
+              <span className={`shrink-0 text-xs font-medium ${scan.result === "VALID" ? "text-emerald-700" : "text-red-600"}`}>{scan.result}</span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">{scan.time} · {scan.source}</p>
+            <p className="mt-1 break-words text-xs text-slate-500">{scan.time} · {scan.source}</p>
           </div>
         ))}
       </div>
@@ -376,9 +378,9 @@ function RecentScans({ scans }) {
 
 function Info({ label, value }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <p className="text-xs font-black uppercase tracking-widest text-slate-500">{label}</p>
-      <p className="mt-1 break-words font-black text-slate-900">{value || "Not available"}</p>
+    <div className="rounded-xl bg-slate-50 p-3">
+      <p className="text-xs font-medium uppercase tracking-widest text-slate-500">{label}</p>
+      <p className="mt-0.5 break-words font-semibold text-slate-900">{value || "Not available"}</p>
     </div>
   );
 }

@@ -98,16 +98,16 @@ export default function DriverDashboard() {
 
   return (
     <DriverLayout activePage="Dashboard">
-      <div className="space-y-6">
-        <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="space-y-5">
+        <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-700">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">
               Driver operations
             </p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-slate-900 sm:text-4xl">
+            <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
               Welcome back, {firstName(driver?.fullName || loggedInUser?.fullName)}
             </h1>
-            <p className="mt-2 max-w-2xl text-sm font-medium text-slate-500 sm:text-base">
+            <p className="mt-1.5 max-w-2xl text-sm text-slate-500">
               Review your operator association and current driving assignment.
             </p>
           </div>
@@ -115,7 +115,7 @@ export default function DriverDashboard() {
             type="button"
             onClick={() => loadDashboard(true)}
             disabled={loading || refreshing}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
             {refreshing ? "Refreshing..." : "Refresh"}
@@ -177,7 +177,7 @@ export default function DriverDashboard() {
               onOpen={() => navigate("/driver/trip")}
             />
 
-            <section className="grid gap-6 xl:grid-cols-5">
+            <section className="grid items-start gap-4 xl:grid-cols-5">
               <div className="xl:col-span-3">
                 <ProfileSummary
                   driver={driver}
@@ -201,18 +201,18 @@ export default function DriverDashboard() {
 function CurrentOperation({ work, onOpen }) {
   if (!work) {
     return (
-      <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-          <Route size={28} />
+      <section className="rounded-3xl border border-dashed border-slate-300 bg-white p-5 text-center shadow-sm">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+          <Route size={24} />
         </div>
-        <h2 className="mt-4 text-xl font-black text-slate-900">No current operation</h2>
-        <p className="mx-auto mt-2 max-w-lg text-sm font-medium text-slate-500">
+        <h2 className="mt-3 text-xl font-semibold text-slate-900">No current operation</h2>
+        <p className="mx-auto mt-1.5 max-w-lg text-sm text-slate-500">
           Your next scheduled trip or local service will appear here when it is assigned.
         </p>
         <button
           type="button"
           onClick={onOpen}
-          className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+          className="mt-4 inline-flex h-11 items-center gap-2 rounded-xl bg-[#08264a] px-4 text-sm font-semibold text-white transition hover:bg-[#0d3566]"
         >
           Open Trip Management <ArrowRight size={17} />
         </button>
@@ -230,20 +230,20 @@ function CurrentOperation({ work, onOpen }) {
 
   return (
     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-col gap-5 border-b border-slate-100 p-6 sm:flex-row sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-700">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">
             {local ? "Local service" : "Out-of-valley scheduled trip"}
           </p>
-          <h2 className="mt-2 text-2xl font-black text-slate-900">
+          <h2 className="mt-1.5 text-xl font-semibold text-slate-900">
             {work.origin || "Origin unavailable"} <span aria-hidden="true">→</span>{" "}
             {work.destination || "Destination unavailable"}
           </h2>
-          <p className="mt-2 text-sm font-semibold text-slate-500">
+          <p className="mt-1.5 text-sm font-medium text-slate-500">
             {[work.routeName, work.operatorName].filter(Boolean).join(" · ") || "Route details unavailable"}
           </p>
         </div>
-        <span className={`w-fit rounded-full px-4 py-2 text-xs font-black uppercase tracking-wide ${statusTone}`}>
+        <span className={`w-fit rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${statusTone}`}>
           {statusLabel}
         </span>
       </div>
@@ -273,14 +273,14 @@ function CurrentOperation({ work, onOpen }) {
         />
       </div>
 
-      <div className="flex flex-col gap-3 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm font-semibold text-slate-600">
+      <div className="flex flex-col gap-3 bg-slate-50 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-600">
           Continue operational actions and GPS status from Trip Management.
         </p>
         <button
           type="button"
           onClick={onOpen}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-5 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+          className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 text-sm font-semibold text-white transition hover:bg-[#0d3566]"
         >
           Open Trip Management <ArrowRight size={17} />
         </button>
@@ -291,25 +291,25 @@ function CurrentOperation({ work, onOpen }) {
 
 function ProfileSummary({ driver, onOpen }) {
   return (
-    <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#08264a] text-lg font-black text-white">
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#08264a] text-base font-semibold text-white">
             {initials(driver?.fullName)}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Driver profile</p>
-            <h2 className="mt-1 truncate text-xl font-black text-slate-900">
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">Driver profile</p>
+            <h2 className="mt-0.5 truncate text-lg font-semibold text-slate-900">
               {driver?.fullName || "Driver"}
             </h2>
-            <p className="truncate text-sm font-medium text-slate-500">
+            <p className="truncate text-sm text-slate-500">
               {driver?.email || "Email unavailable"}
             </p>
           </div>
         </div>
-        <UserCircle size={24} className="shrink-0 text-slate-400" />
+        <UserCircle size={22} className="shrink-0 text-slate-400" />
       </div>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <CompactDetail label="Driver ID" value={driver?.applicationId ? `DRV-${driver.applicationId}` : null} />
         <CompactDetail label="Licence category" value={driver?.licenseCategory} />
         <CompactDetail label="Phone" value={driver?.phone} />
@@ -318,7 +318,7 @@ function ProfileSummary({ driver, onOpen }) {
       <button
         type="button"
         onClick={onOpen}
-        className="mt-5 inline-flex items-center gap-2 text-sm font-black text-blue-700 transition hover:text-blue-900"
+        className="mt-4 inline-flex h-10 w-fit items-center gap-2 text-sm font-semibold text-blue-700 transition hover:text-blue-900"
       >
         View full profile <ArrowRight size={16} />
       </button>
@@ -328,22 +328,22 @@ function ProfileSummary({ driver, onOpen }) {
 
 function OperatorSummary({ association, onOpen }) {
   return (
-    <section className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
-        <BriefcaseBusiness size={22} />
+    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700">
+        <BriefcaseBusiness size={20} />
       </div>
-      <p className="mt-5 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+      <p className="mt-3 text-xs font-medium uppercase tracking-[0.18em] text-slate-500">
         Operator association
       </p>
-      <h2 className="mt-2 text-xl font-black text-slate-900">
+      <h2 className="mt-1 text-lg font-semibold text-slate-900">
         {association?.operatorName || "No active operator"}
       </h2>
-      <p className="mt-2 text-sm font-medium leading-6 text-slate-500">
+      <p className="mt-1.5 text-sm leading-5 text-slate-500">
         {association
           ? "You are actively associated with this transport operator."
           : "Review operator invitations to establish an active association."}
       </p>
-      <div className="mt-5 flex items-center gap-2 text-sm font-bold text-slate-700">
+      <div className="mt-3 flex items-center gap-2 text-sm font-medium text-slate-700">
         {association ? (
           <>
             <CheckCircle2 size={17} className="text-emerald-600" /> Active association
@@ -357,7 +357,7 @@ function OperatorSummary({ association, onOpen }) {
       <button
         type="button"
         onClick={onOpen}
-        className="mt-5 inline-flex items-center gap-2 text-sm font-black text-blue-700 transition hover:text-blue-900"
+        className="mt-4 inline-flex h-10 w-fit items-center gap-2 text-sm font-semibold text-blue-700 transition hover:text-blue-900"
       >
         View invitations <ArrowRight size={16} />
       </button>
@@ -374,25 +374,25 @@ function SummaryCard({ icon, label, value, detail, tone }) {
   };
 
   return (
-    <article className="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-      <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${tones[tone] || tones.slate}`}>
+    <article className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tones[tone] || tones.slate}`}>
         {icon}
       </div>
-      <p className="mt-4 text-xs font-black uppercase tracking-[0.16em] text-slate-500">{label}</p>
-      <h2 className="mt-2 wrap-break-word text-xl font-black text-slate-900">{value}</h2>
-      <p className="mt-2 text-xs font-medium leading-5 text-slate-500">{detail}</p>
+      <p className="mt-3 text-xs font-medium uppercase tracking-[0.16em] text-slate-500">{label}</p>
+      <h2 className="mt-1 wrap-break-word text-lg font-semibold text-slate-900">{value}</h2>
+      <p className="mt-1 text-xs leading-4 text-slate-500">{detail}</p>
     </article>
   );
 }
 
 function OperationDetail({ icon, label, value }) {
   return (
-    <div className="bg-white p-5">
+    <div className="bg-white p-4">
       <div className="flex items-center gap-2 text-blue-700">
         {icon}
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">{label}</p>
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-slate-500">{label}</p>
       </div>
-      <p className="mt-3 wrap-break-word text-sm font-black text-slate-900">
+      <p className="mt-2 wrap-break-word text-sm font-semibold text-slate-900">
         {value || "Not available"}
       </p>
     </div>
@@ -401,25 +401,25 @@ function OperationDetail({ icon, label, value }) {
 
 function CompactDetail({ label, value }) {
   return (
-    <div className="rounded-xl bg-slate-50 p-3">
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">{label}</p>
-      <p className="mt-1 wrap-break-word text-sm font-black text-slate-900">{value || "Not available"}</p>
+    <div className="rounded-xl bg-slate-50 p-2.5">
+      <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500">{label}</p>
+      <p className="mt-0.5 wrap-break-word text-sm font-semibold text-slate-900">{value || "Not available"}</p>
     </div>
   );
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="space-y-6" aria-label="Loading driver dashboard">
+    <div className="space-y-5" aria-label="Loading driver dashboard">
       <div className="grid gap-4 md:grid-cols-3">
         {[0, 1, 2].map((item) => (
-          <div key={item} className="h-44 animate-pulse rounded-2xl bg-slate-200" />
+          <div key={item} className="h-32 animate-pulse rounded-2xl bg-slate-200" />
         ))}
       </div>
-      <div className="flex min-h-72 items-center justify-center rounded-3xl border border-slate-200 bg-white">
+      <div className="flex min-h-48 items-center justify-center rounded-3xl border border-slate-200 bg-white">
         <div className="text-center">
           <Loader2 size={30} className="mx-auto animate-spin text-[#08264a]" />
-          <p className="mt-3 text-sm font-bold text-slate-500">Loading current operation...</p>
+          <p className="mt-2 text-sm text-slate-500">Loading current operation...</p>
         </div>
       </div>
     </div>
