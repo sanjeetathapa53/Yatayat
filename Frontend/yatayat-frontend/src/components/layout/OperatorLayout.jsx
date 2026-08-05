@@ -1,13 +1,43 @@
 import { Bus, CalendarDays, LayoutDashboard, LogOut, MapPinned, Menu, Users, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import { logoutUser } from "../../services/authService";
+import { apiFetch } from "../../utils/api";
 import YatayatLogo from "../branding/YatayatLogo";
 
 export default function OperatorLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [organizationName, setOrganizationName] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    apiFetch("/api/operator/dashboard")
+      .then(async (response) => (response.ok ? response.json() : null))
+      .then((dashboard) => {
+        const name = dashboard?.organizationName?.trim();
+        if (active && name) setOrganizationName(name);
+      })
+      .catch(() => {
+        // The authenticated-user fallback keeps the sidebar stable.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const authenticatedName = user?.fullName?.trim();
+  const emailUsername = user?.email?.split("@")[0]?.trim();
+  const operatorName = organizationName
+    || user?.organizationName?.trim()
+    || authenticatedName
+    || emailUsername
+    || "Operator";
 
   const logout = async () => {
     await logoutUser();
@@ -46,7 +76,19 @@ export default function OperatorLayout({ children }) {
         </nav>
 
         <div className="border-t border-slate-200 p-5">
-          <button type="button" onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-black text-red-600">
+          <div className="mb-4 flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#08264a] text-sm font-semibold text-white">
+              {getInitials(operatorName)}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-slate-900" title={operatorName}>
+                {operatorName}
+              </p>
+              <p className="mt-0.5 text-[11px] font-medium uppercase tracking-wide text-slate-500">OPERATOR</p>
+            </div>
+          </div>
+
+          <button type="button" onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-semibold text-red-600">
             <LogOut size={18} /> Logout
           </button>
         </div>
@@ -72,4 +114,17 @@ function NavItem({ icon, label, path, active, onNavigate }) {
       {icon} {label}
     </button>
   );
+}
+
+function getInitials(name) {
+  const words = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+  if (words.length >= 2) {
+    return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  }
+
+  return words[0]?.slice(0, 2).toUpperCase() || "OP";
 }
