@@ -3,6 +3,7 @@ package com.yatayat.backend.security;
 import com.yatayat.backend.config.SecurityConfig;
 import com.yatayat.backend.controller.*;
 import com.yatayat.backend.dto.DriverInvitationRequest;
+import com.yatayat.backend.dto.DriverProfileUpdateRequest;
 import com.yatayat.backend.dto.DriverLocalFarePassValidationResponse;
 import com.yatayat.backend.dto.DriverTicketValidationResponse;
 import com.yatayat.backend.dto.TripLocationResponse;
@@ -38,6 +39,7 @@ import java.time.LocalDate;
 import java.math.BigDecimal;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -952,6 +954,64 @@ class EndpointSecurityIntegrationTests {
                 .andExpect(status().isNotFound());
     }
 
+
+    @Test
+    @WithMockUser(username = "driver-a@example.com", roles = "DRIVER")
+    void driverProfileUpdateUsesAuthenticatedDriverIdentity() throws Exception {
+        passengerA.setEmail("driver-a@example.com");
+        passengerA.setRole("DRIVER");
+        when(userRepository.findByEmailIgnoreCase("driver-a@example.com"))
+                .thenReturn(Optional.of(passengerA));
+        when(driverApplicationService.updateDriverProfile(
+                any(User.class),
+                any(DriverProfileUpdateRequest.class)
+        )).thenReturn(Map.of(
+                "success", true,
+                "driver", Map.of("fullName", "Updated Driver")
+        ));
+
+        mockMvc.perform(put("/api/drivers/profile")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "fullName": "Updated Driver",
+                                  "phone": "9812345678",
+                                  "permanentAddress": "Kathmandu",
+                                  "currentAddress": "Lalitpur",
+                                  "emergencyContactName": "Emergency Person",
+                                  "emergencyContactPhone": "9800000001",
+                                  "preferredOperatingArea": "Bagmati"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+
+        verify(driverApplicationService).updateDriverProfile(
+                eq(passengerA),
+                any(DriverProfileUpdateRequest.class)
+        );
+    }
+
+    @Test
+    @WithMockUser(username = "driver-a@example.com", roles = "DRIVER")
+    void driverProfileUpdateRejectsInvalidInput() throws Exception {
+        mockMvc.perform(put("/api/drivers/profile")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "fullName": " ",
+                                  "phone": "invalid",
+                                  "permanentAddress": "",
+                                  "currentAddress": "",
+                                  "emergencyContactName": "",
+                                  "emergencyContactPhone": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+
+        verifyNoInteractions(driverApplicationService);
+    }
     @Test
     @WithMockUser(username = "driver-a@example.com", roles = "DRIVER")
     void driverCannotViewAnotherDriversProfile() throws Exception {

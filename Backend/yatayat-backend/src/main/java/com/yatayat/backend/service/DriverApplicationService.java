@@ -1,5 +1,6 @@
 package com.yatayat.backend.service;
 
+import com.yatayat.backend.dto.DriverProfileUpdateRequest;
 import com.yatayat.backend.entity.*;
 import com.yatayat.backend.repository.DriverDocumentRepository;
 import com.yatayat.backend.repository.DriverProfileRepository;
@@ -282,6 +283,40 @@ public class DriverApplicationService {
         driverDocumentRepository.save(document);
     }
 
+
+    @Transactional
+    public Map<String, Object> updateDriverProfile(
+            User user,
+            DriverProfileUpdateRequest request
+    ) {
+        if (!"DRIVER".equalsIgnoreCase(user.getRole())) {
+            throw new IllegalArgumentException("This account is not a driver");
+        }
+
+        DriverProfile profile = driverProfileRepository.findByUser(user)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Driver profile was not found"
+                ));
+
+        user.setFullName(request.fullName().trim());
+        user.setPhone(request.phone().trim());
+        profile.setPermanentAddress(request.permanentAddress().trim());
+        profile.setCurrentAddress(request.currentAddress().trim());
+        profile.setEmergencyContactName(request.emergencyContactName().trim());
+        profile.setEmergencyContactPhone(request.emergencyContactPhone().trim());
+        profile.setPreferredOperatingArea(
+                request.preferredOperatingArea() == null
+                        ? ""
+                        : request.preferredOperatingArea().trim()
+        );
+
+        userRepository.save(user);
+        driverProfileRepository.save(profile);
+
+        Map<String, Object> response = getDriverProfile(user.getId());
+        response.put("message", "Driver profile updated successfully");
+        return response;
+    }
     public Map<String, Object> getDriverProfile(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(

@@ -38,6 +38,10 @@ export default function DriverProfilePage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState("");
+  const [editForm, setEditForm] = useState(() => createEditForm(null));
 
   const fetchDriverProfile = useCallback(async (manualRefresh = false) => {
     if (!loggedInUser?.id) {
@@ -107,6 +111,71 @@ export default function DriverProfilePage() {
     return () => window.clearTimeout(timer);
   }, [fetchDriverProfile]);
 
+
+  const startEditing = () => {
+    setEditForm(createEditForm(driver));
+    setEditError("");
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setEditForm(createEditForm(driver));
+    setEditError("");
+    setEditing(false);
+  };
+
+  const updateEditField = (field, value) => {
+    setEditForm((current) => ({ ...current, [field]: value }));
+    setEditError("");
+  };
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+    if (saving) return;
+    const validationError = validateEditForm(editForm);
+    if (validationError) {
+      setEditError(validationError);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setEditError("");
+      const response = await fetch(
+        `${API_BASE_URL}/api/drivers/profile`,
+        {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editForm),
+        }
+      );
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Unable to update driver profile.");
+      }
+
+      setDriver(data.driver);
+      localStorage.setItem(
+        "yatayatUser",
+        JSON.stringify({
+          ...loggedInUser,
+          fullName: data.driver.fullName,
+          email: data.driver.email,
+          phone: data.driver.phone,
+        })
+      );
+      setEditForm(createEditForm(data.driver));
+      setEditing(false);
+      toast.success(data.message || "Driver profile updated successfully.");
+    } catch (saveError) {
+      setEditError(
+        saveError.message || "Unable to update driver profile."
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
   if (loading) {
     return (
       <DriverLayout activePage="Profile">
@@ -240,12 +309,9 @@ export default function DriverProfilePage() {
 
             <button
               type="button"
-              onClick={() =>
-                toast.info(
-                  "Profile editing will be connected after the update API is created."
-                )
-              }
-              className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-[#08264a] transition hover:bg-slate-100 lg:w-auto"
+              onClick={startEditing}
+              disabled={editing || saving}
+              className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-[#08264a] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
             >
               <Edit size={17} />
               Edit Profile
@@ -273,6 +339,17 @@ export default function DriverProfilePage() {
         </div>
       </section>
 
+
+      {editing && (
+        <ProfileEditForm
+          form={editForm}
+          error={editError}
+          saving={saving}
+          onChange={updateEditField}
+          onCancel={cancelEditing}
+          onSubmit={saveProfile}
+        />
+      )}
       {/* FUTURE OPERATIONAL STATS */}
 
       <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -498,6 +575,191 @@ export default function DriverProfilePage() {
   );
 }
 
+
+function ProfileEditForm({
+  form,
+  error,
+  saving,
+  onChange,
+  onCancel,
+  onSubmit,
+}) {
+  return (
+    <section className="mb-5 rounded-2xl border border-blue-200 bg-white p-4 shadow-sm">
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-slate-900">
+          Edit Profile
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Update your contact and operating information. Verified identity
+          and licence details remain read-only.
+        </p>
+      </div>
+
+      <form onSubmit={onSubmit}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <EditField
+            label="Full Name"
+            value={form.fullName}
+            maxLength={120}
+            required
+            onChange={(value) => onChange("fullName", value)}
+          />
+          <EditField
+            label="Phone Number"
+            value={form.phone}
+            maxLength={20}
+            inputMode="tel"
+            required
+            onChange={(value) => onChange("phone", value)}
+          />
+          <EditField
+            label="Permanent Address"
+            value={form.permanentAddress}
+            maxLength={300}
+            required
+            multiline
+            onChange={(value) => onChange("permanentAddress", value)}
+          />
+          <EditField
+            label="Current Address"
+            value={form.currentAddress}
+            maxLength={300}
+            required
+            multiline
+            onChange={(value) => onChange("currentAddress", value)}
+          />
+          <EditField
+            label="Emergency Contact Name"
+            value={form.emergencyContactName}
+            maxLength={120}
+            required
+            onChange={(value) => onChange("emergencyContactName", value)}
+          />
+          <EditField
+            label="Emergency Contact Phone"
+            value={form.emergencyContactPhone}
+            maxLength={20}
+            inputMode="tel"
+            required
+            onChange={(value) => onChange("emergencyContactPhone", value)}
+          />
+          <div className="sm:col-span-2">
+            <EditField
+              label="Preferred Operating Area"
+              value={form.preferredOperatingArea}
+              maxLength={200}
+              onChange={(value) => onChange("preferredOperatingArea", value)}
+            />
+          </div>
+        </div>
+
+        {error && (
+          <div
+            role="alert"
+            className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700"
+          >
+            <AlertTriangle size={17} className="mt-0.5 shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
+
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 text-sm font-semibold text-white transition hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {saving && <Loader2 size={16} className="animate-spin" />}
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+          <button
+            type="button"
+            disabled={saving}
+            onClick={onCancel}
+            className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
+function EditField({
+  label,
+  value,
+  onChange,
+  required = false,
+  multiline = false,
+  maxLength,
+  inputMode,
+}) {
+  const className =
+    "mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100";
+
+  return (
+    <label className="block text-sm font-medium text-slate-700">
+      {label}
+      {required && <span className="ml-1 text-red-600">*</span>}
+      {multiline ? (
+        <textarea
+          rows={2}
+          value={value}
+          required={required}
+          maxLength={maxLength}
+          onChange={(event) => onChange(event.target.value)}
+          className={`${className} resize-y`}
+        />
+      ) : (
+        <input
+          type="text"
+          value={value}
+          required={required}
+          maxLength={maxLength}
+          inputMode={inputMode}
+          onChange={(event) => onChange(event.target.value)}
+          className={className}
+        />
+      )}
+    </label>
+  );
+}
+
+function createEditForm(driver) {
+  return {
+    fullName: driver?.fullName || "",
+    phone: driver?.phone || "",
+    permanentAddress: driver?.permanentAddress || "",
+    currentAddress: driver?.currentAddress || "",
+    emergencyContactName: driver?.emergencyContactName || "",
+    emergencyContactPhone: driver?.emergencyContactPhone || "",
+    preferredOperatingArea: driver?.preferredOperatingArea || "",
+  };
+}
+
+function validateEditForm(form) {
+  const required = [
+    ["fullName", "Full name"],
+    ["phone", "Phone number"],
+    ["permanentAddress", "Permanent address"],
+    ["currentAddress", "Current address"],
+    ["emergencyContactName", "Emergency contact name"],
+    ["emergencyContactPhone", "Emergency contact phone"],
+  ];
+  const missing = required.find(([field]) => !form[field].trim());
+  if (missing) return `${missing[1]} is required.`;
+
+  const phonePattern = /^[0-9+()\-\s]{7,20}$/;
+  if (!phonePattern.test(form.phone.trim())) {
+    return "Enter a valid phone number.";
+  }
+  if (!phonePattern.test(form.emergencyContactPhone.trim())) {
+    return "Enter a valid emergency contact phone number.";
+  }
+  return "";
+}
 function ProfileSection({ icon, title, children }) {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
