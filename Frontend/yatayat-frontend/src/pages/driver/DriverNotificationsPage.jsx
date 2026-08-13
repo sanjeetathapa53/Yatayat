@@ -136,7 +136,7 @@ export default function DriverNotificationsPage() {
         </div>
 
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
-        {association && activeTab === "INVITATIONS" && <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6"><div className="flex items-center gap-3 text-emerald-700"><CheckCircle2 /><h2 className="text-xl font-black">Active Operator</h2></div><p className="mt-4 text-2xl font-black text-slate-900">{association.operatorName}</p></section>}
+        {association && activeTab === "INVITATIONS" && <section className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3"><div className="flex shrink-0 items-center gap-2 text-emerald-700"><CheckCircle2 size={20} /><h2 className="text-sm font-black">Active Operator</h2></div><p className="text-base font-black text-slate-900">{association.operatorName}</p></section>}
 
         {loading ? <div className="flex min-h-72 items-center justify-center"><Loader2 size={40} className="animate-spin" /></div> : activeTab === "INVITATIONS" ? (
           invitations.length === 0 ? <Empty icon={<Mail size={46} />} title="No pending operator invitations." /> : <section className="grid gap-4 lg:grid-cols-2">{invitations.map((invitation) => <InvitationCard key={invitation.associationId} invitation={invitation} processing={processing} onRespond={setConfirmation} />)}</section>
