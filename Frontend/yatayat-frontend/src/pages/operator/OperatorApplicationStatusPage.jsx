@@ -188,13 +188,13 @@ export default function OperatorApplicationStatusPage() {
   if (loading) {
     return (
       <AuthLayout>
-        <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-10 text-center shadow-xl">
+        <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xl">
           <Loader2
             size={42}
             className="mx-auto animate-spin text-[#08264a]"
           />
 
-          <h2 className="mt-5 text-xl font-black text-slate-900">
+          <h2 className="mt-5 text-xl font-semibold text-slate-900">
             Checking operator status
           </h2>
 
@@ -211,21 +211,21 @@ export default function OperatorApplicationStatusPage() {
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-3xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
+      <div className="w-full max-w-3xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
         <div
           className={`${config.headerStyle} px-6 py-8 text-white sm:px-9`}
         >
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/15">
               {config.icon}
             </div>
 
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-white/75">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/75">
                 Transport Operator Verification
               </p>
 
-              <h1 className="mt-2 text-2xl font-black sm:text-3xl">
+              <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
                 {config.title}
               </h1>
 
@@ -289,7 +289,7 @@ export default function OperatorApplicationStatusPage() {
               />
 
               <div>
-                <h2 className="font-black text-slate-900">
+                <h2 className="font-semibold text-slate-900">
                   What happens next?
                 </h2>
 
@@ -339,7 +339,7 @@ export default function OperatorApplicationStatusPage() {
           )}
 
           {status === "REJECTED" && (
-            <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5">
+            <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 p-5">
               <div className="flex items-start gap-3">
                 <ShieldAlert
                   size={23}
@@ -347,7 +347,7 @@ export default function OperatorApplicationStatusPage() {
                 />
 
                 <div>
-                  <h3 className="font-black text-red-800">
+                  <h3 className="font-semibold text-red-800">
                     Application requires correction
                   </h3>
 
@@ -364,7 +364,7 @@ export default function OperatorApplicationStatusPage() {
             <button
               type="button"
               onClick={handleLogout}
-              className="flex items-center justify-center gap-2 rounded-2xl border border-slate-300 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50"
+              className="flex items-center justify-center gap-2 rounded-2xl border border-slate-300 px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
             >
               <ArrowLeft size={18} />
               Logout
@@ -375,7 +375,7 @@ export default function OperatorApplicationStatusPage() {
                 type="button"
                 onClick={() => fetchStatus(true)}
                 disabled={refreshing}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-[#08264a] px-6 py-3 text-sm font-black text-[#08264a] transition hover:bg-blue-50 disabled:opacity-60"
+                className="flex items-center justify-center gap-2 rounded-2xl border border-[#08264a] px-6 py-2.5 text-sm font-semibold text-[#08264a] transition hover:bg-blue-50 disabled:opacity-60"
               >
                 <RefreshCw
                   size={18}
@@ -393,7 +393,7 @@ export default function OperatorApplicationStatusPage() {
                 <button
                   type="button"
                   onClick={editAndResubmit}
-                  className="rounded-2xl bg-[#08264a] px-6 py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+                  className="rounded-2xl bg-[#08264a] px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0d3566]"
                 >
                   Edit and Resubmit
                 </button>
@@ -403,7 +403,7 @@ export default function OperatorApplicationStatusPage() {
                 <button
                   type="button"
                   onClick={openDashboard}
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-3 text-sm font-black text-white transition hover:bg-emerald-700"
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
                 >
                   <CheckCircle2 size={18} />
                   Open Operator Dashboard
@@ -414,7 +414,7 @@ export default function OperatorApplicationStatusPage() {
                 <button
                   type="button"
                   disabled
-                  className="flex cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-slate-200 px-6 py-3 text-sm font-black text-slate-500"
+                  className="flex cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-slate-200 px-6 py-2.5 text-sm font-semibold text-slate-500"
                 >
                   <Clock3 size={18} />
                   Awaiting Admin Review
@@ -529,7 +529,7 @@ function StatusStep({
           )}
         </span>
 
-        <p className="text-sm font-black text-slate-800">
+        <p className="text-sm font-semibold text-slate-800">
           {label}
         </p>
       </div>
@@ -540,11 +540,11 @@ function StatusStep({
 function DetailCard({ label, value }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-black uppercase tracking-wider text-slate-500">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
         {label}
       </p>
 
-      <p className="mt-2 wrap-break-word text-sm font-black text-slate-900">
+      <p className="mt-2 wrap-break-word text-sm font-semibold text-slate-900">
         {value || "Not available"}
       </p>
     </div>

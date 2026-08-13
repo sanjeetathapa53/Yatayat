@@ -50,17 +50,17 @@ export default function OperatorDashboard() {
       {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 p-5 font-bold text-red-700">{error}</div>
       ) : !dashboard ? (
-        <div className="flex min-h-[360px] items-center justify-center"><Loader2 className="animate-spin" size={40} /></div>
+        <div className="flex min-h-48 items-center justify-center"><Loader2 className="animate-spin" size={32} /></div>
       ) : (
-        <div className="space-y-6">
-          <section className="rounded-3xl bg-[#08264a] p-7 text-white shadow-sm">
-            <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
+        <div className="space-y-5">
+          <section className="rounded-2xl bg-[#08264a] p-5 text-white shadow-sm">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
               <div>
                 <p className="text-sm font-bold text-blue-200">Namaste,</p>
-                <h1 className="mt-2 text-3xl font-black">{dashboard.organizationName}</h1>
+                <h1 className="mt-2 text-2xl font-semibold">{dashboard.organizationName}</h1>
                 <p className="mt-2 text-sm text-slate-300">Registration: {dashboard.registrationNumber}</p>
               </div>
-              <span className="inline-flex items-center gap-2 self-start rounded-full bg-emerald-500/20 px-4 py-2 text-sm font-black text-emerald-100">
+              <span className="inline-flex items-center gap-2 self-start rounded-full bg-emerald-500/20 px-4 py-2 text-sm font-semibold text-emerald-100">
                 <CheckCircle2 size={18} /> {dashboard.approvalStatus}
               </span>
             </div>
@@ -74,13 +74,13 @@ export default function OperatorDashboard() {
             <Stat label="Active Trips" value={tripCounts.active} icon={<CheckCircle2 />} />
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
               <div>
-                <h2 className="text-xl font-black">Live Trip Monitoring</h2>
+                <h2 className="text-xl font-semibold">Live Trip Monitoring</h2>
                 <p className="mt-1 text-sm text-slate-500">Boarding, on-the-way, and recently completed trips.</p>
               </div>
-              <button type="button" onClick={() => navigate("/operator/trips")} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-700">All trips</button>
+              <button type="button" onClick={() => navigate("/operator/trips")} className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">All trips</button>
             </div>
             <div className="mt-5 space-y-3">
               {liveTrips.length === 0 ? (
@@ -89,11 +89,11 @@ export default function OperatorDashboard() {
                 <article key={trip.scheduledTripId} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                   <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
                     <div>
-                      <p className="font-black text-slate-900">{trip.origin} → {trip.destination}</p>
+                      <p className="font-semibold text-slate-900">{trip.origin} → {trip.destination}</p>
                       <p className="mt-1 text-sm font-semibold text-slate-500">{trip.busNumber} • {trip.driverName}</p>
                       <p className="mt-1 text-xs font-bold text-slate-400">Departure {formatTripDate(trip.departureAt)}</p>
                     </div>
-                    <span className={`self-start rounded-full px-3 py-1 text-xs font-black ${statusTone(trip.status)}`}>{statusLabel(trip.status)}</span>
+                    <span className={`self-start rounded-full px-3 py-1 text-xs font-semibold ${statusTone(trip.status)}`}>{statusLabel(trip.status)}</span>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <MiniStat label="Passengers" value={trip.passengerCount} />
@@ -105,8 +105,8 @@ export default function OperatorDashboard() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-black">Quick Actions</h2>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-xl font-semibold">Quick Actions</h2>
             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
               {[
                 { label: "Register Bus", path: "/operator/buses/register" },
@@ -118,7 +118,7 @@ export default function OperatorDashboard() {
                 { label: "Monitor Live Fleet", path: "/operator/live-fleet" },
               ].map((action) => (
                 <button key={action.label} type="button" disabled={!action.path} onClick={() => action.path && navigate(action.path)} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 text-left disabled:opacity-70">
-                  <p className="font-black text-slate-700">{action.label}</p>
+                  <p className="font-semibold text-slate-700">{action.label}</p>
                   <p className="mt-2 text-xs font-bold text-slate-500">{action.path ? "Open" : "Coming next"}</p>
                 </button>
               ))}
@@ -126,8 +126,8 @@ export default function OperatorDashboard() {
           </section>
 
           {dashboard.totalBuses === 0 && (
-            <section className="rounded-3xl border border-blue-200 bg-blue-50 p-6">
-              <h2 className="font-black">Your organization is approved.</h2>
+            <section className="rounded-2xl border border-blue-200 bg-blue-50 p-6">
+              <h2 className="font-semibold">Your organization is approved.</h2>
               <p className="mt-2 text-sm text-slate-600">Register your first bus to continue.</p>
             </section>
           )}
@@ -139,10 +139,10 @@ export default function OperatorDashboard() {
 
 function Stat({ label, value, icon }) {
   return (
-    <article className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="text-[#08264a]">{icon}</div>
-      <p className="mt-4 text-xs font-black uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-2 text-3xl font-black">{value}</p>
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold">{value}</p>
     </article>
   );
 }
@@ -150,8 +150,8 @@ function Stat({ label, value, icon }) {
 function MiniStat({ label, value }) {
   return (
     <div className="rounded-2xl bg-white p-3">
-      <p className="text-[10px] font-black uppercase tracking-wide text-slate-400">{label}</p>
-      <p className="mt-1 text-sm font-black text-slate-800">{value || "—"}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
+      <p className="mt-1 text-sm font-semibold text-slate-800">{value || "—"}</p>
     </div>
   );
 }

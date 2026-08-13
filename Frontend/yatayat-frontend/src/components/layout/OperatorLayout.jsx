@@ -55,8 +55,8 @@ export default function OperatorLayout({ children }) {
         />
       )}
 
-      <aside className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(19rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white transition-transform lg:h-screen lg:w-72 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+      <aside className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(19rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white transition-transform lg:h-screen lg:w-64 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <button type="button" onClick={() => { navigate("/operator/dashboard"); setSidebarOpen(false); }} aria-label="Yatayat operator dashboard" className="rounded-lg text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#08264a]">
             <YatayatLogo variant="compact" size="md" />
             <span className="mt-1 block pl-[3.125rem] text-xs font-semibold text-slate-500">Operations Portal</span>
@@ -66,7 +66,7 @@ export default function OperatorLayout({ children }) {
           </button>
         </div>
 
-        <nav className="flex-1 space-y-2 p-4">
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
           <NavItem icon={<LayoutDashboard size={19} />} label="Dashboard" path="/operator/dashboard" active={location.pathname === "/operator/dashboard"} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
           <NavItem icon={<Bus size={19} />} label="Buses" path="/operator/buses" active={location.pathname.startsWith("/operator/buses")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
           <NavItem icon={<Users size={19} />} label="Drivers" path="/operator/drivers" active={location.pathname.startsWith("/operator/drivers")} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
@@ -75,9 +75,9 @@ export default function OperatorLayout({ children }) {
           <NavItem icon={<MapPinned size={19} />} label="Live Fleet" path="/operator/live-fleet" active={location.pathname === "/operator/live-fleet"} onNavigate={(path) => { navigate(path); setSidebarOpen(false); }} />
         </nav>
 
-        <div className="border-t border-slate-200 p-5">
-          <div className="mb-4 flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#08264a] text-sm font-semibold text-white">
+        <div className="border-t border-slate-200 p-4">
+          <div className="mb-3 flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#08264a] text-sm font-semibold text-white">
               {getInitials(operatorName)}
             </div>
             <div className="min-w-0">
@@ -88,21 +88,21 @@ export default function OperatorLayout({ children }) {
             </div>
           </div>
 
-          <button type="button" onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-semibold text-red-600">
+          <button type="button" onClick={logout} className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 h-10 text-sm font-semibold text-red-600">
             <LogOut size={18} /> Logout
           </button>
         </div>
       </aside>
 
-      <div className="min-h-screen lg:ml-72">
-        <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-4 sm:px-6 lg:px-8">
-          <button type="button" aria-label="Open operator menu" onClick={() => setSidebarOpen(true)} className="tap-target rounded-xl border border-slate-200 p-3 lg:hidden">
+      <div className="min-h-screen lg:ml-64">
+        <header className="flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-3 sm:px-6 lg:px-8">
+          <button type="button" aria-label="Open operator menu" onClick={() => setSidebarOpen(true)} className="tap-target rounded-xl border border-slate-200 p-2.5 lg:hidden">
             <Menu size={20} />
           </button>
           <YatayatLogo variant="icon" size="sm" />
-          <h2 className="truncate text-lg font-black sm:text-xl">Operator Dashboard</h2>
+          <h2 className="truncate text-lg font-semibold sm:text-xl">Operator Dashboard</h2>
         </header>
-        <main className="px-4 py-6 sm:px-6 lg:px-8"><div className="responsive-shell">{children}</div></main>
+        <main className="px-4 py-5 sm:px-6 lg:px-8"><div className="responsive-shell">{children}</div></main>
       </div>
     </div>
   );
@@ -110,7 +110,7 @@ export default function OperatorLayout({ children }) {
 
 function NavItem({ icon, label, path, active, onNavigate }) {
   return (
-    <button type="button" onClick={() => onNavigate(path)} className={`tap-target flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm ${active ? "bg-[#08264a] font-semibold text-white" : "font-medium text-slate-600 hover:bg-slate-100"}`}>
+    <button type="button" onClick={() => onNavigate(path)} className={`tap-target flex w-full items-center gap-3 rounded-xl px-4 h-10 text-sm ${active ? "bg-[#08264a] font-semibold text-white" : "font-medium text-slate-600 hover:bg-slate-100"}`}>
       {icon} {label}
     </button>
   );

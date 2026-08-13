@@ -104,11 +104,11 @@ export default function OperatorBusRegistrationPage() {
     }
   };
 
-  return <OperatorLayout><div className="mx-auto max-w-4xl space-y-6">
-    <button type="button" onClick={() => navigate("/operator/buses")} className="flex items-center gap-2 text-sm font-black"><ArrowLeft size={17} /> Back to buses</button>
-    <div><h1 className="text-3xl font-black">Register Bus</h1><p className="mt-1 text-sm text-slate-500">New buses are submitted with PENDING status.</p></div>
+  return <OperatorLayout><div className="mx-auto max-w-4xl space-y-5">
+    <button type="button" onClick={() => navigate("/operator/buses")} className="flex items-center gap-2 text-sm font-semibold"><ArrowLeft size={17} /> Back to buses</button>
+    <div><h1 className="text-2xl font-semibold">Register Bus</h1><p className="mt-1 text-sm text-slate-500">New buses are submitted with PENDING status.</p></div>
     {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
-    <form onSubmit={submit} noValidate className="grid grid-cols-1 gap-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
+    <form onSubmit={submit} noValidate className="grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
       <Field name="busNumber" label="Bus Number *" value={form.busNumber} error={fieldErrors.busNumber} onChange={update} />
       <Field name="busName" label="Bus Name *" value={form.busName} error={fieldErrors.busName} onChange={update} />
       <Field name="busType" label="Bus Type *" value={form.busType} error={fieldErrors.busType} onChange={update} />
@@ -119,14 +119,14 @@ export default function OperatorBusRegistrationPage() {
       <Field name="permitNumber" label="Permit Number" value={form.permitNumber} error={fieldErrors.permitNumber} onChange={update} />
       <Field name="permitExpiryDate" label="Permit Expiry Date" type="date" value={form.permitExpiryDate} onChange={update} />
       <Field name="insuranceExpiryDate" label="Insurance Expiry Date" type="date" value={form.insuranceExpiryDate} onChange={update} />
-      <button type="submit" disabled={saving} className="flex items-center justify-center gap-2 rounded-xl bg-[#08264a] py-3 font-black text-white disabled:opacity-60 sm:col-span-2">{saving && <Loader2 className="animate-spin" size={18} />}{saving ? "Registering..." : "Register Bus"}</button>
+      <button type="submit" disabled={saving} className="flex items-center justify-center gap-2 rounded-xl bg-[#08264a] py-2.5 font-semibold text-white disabled:opacity-60 sm:col-span-2">{saving && <Loader2 className="animate-spin" size={18} />}{saving ? "Registering..." : "Register Bus"}</button>
     </form>
   </div></OperatorLayout>;
 }
 
 function Field({ label, error, ...props }) {
-  return <label className="text-sm font-black text-slate-700">{label}
-    <input {...props} aria-invalid={Boolean(error)} className={`mt-2 w-full rounded-xl border px-4 py-3 font-normal outline-none focus:border-[#08264a] ${error ? "border-red-400 bg-red-50" : "border-slate-300"}`} />
+  return <label className="text-sm font-semibold text-slate-700">{label}
+    <input {...props} aria-invalid={Boolean(error)} className={`mt-2 w-full rounded-xl border px-4 py-2.5 font-normal outline-none focus:border-[#08264a] ${error ? "border-red-400 bg-red-50" : "border-slate-300"}`} />
     {error && <span className="mt-1 block text-xs font-bold text-red-600">{error}</span>}
   </label>;
 }
