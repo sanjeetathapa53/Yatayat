@@ -122,11 +122,11 @@ export default function AdminLayout({
       )}
 
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(19rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:h-screen lg:w-72 lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-50 flex h-dvh w-[min(19rem,calc(100vw-2rem))] flex-col border-r border-slate-200 bg-white transition-transform duration-300 lg:h-screen lg:w-64 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <button
             type="button"
             onClick={() => goTo("/admin/dashboard")}
@@ -148,12 +148,12 @@ export default function AdminLayout({
           </button>
         </div>
 
-        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4">
-          <div className="space-y-5">
+        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+          <div className="space-y-4">
             {menuSections.map((section, sectionIndex) => (
               <div key={section.label || `primary-${sectionIndex}`}>
                 {section.label && (
-                  <p className="mb-2 px-4 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                  <p className="mb-2 px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-400">
                     {section.label}
                   </p>
                 )}
@@ -168,7 +168,7 @@ export default function AdminLayout({
                         key={item.path}
                         onClick={() => goTo(item.path)}
                         aria-current={active ? "page" : undefined}
-                        className={`flex w-full items-center gap-3 rounded-xl px-4 py-2.5 text-left text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#08264a] ${
+                        className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#08264a] ${
                           active
                             ? "bg-[#08264a] font-semibold text-white shadow-sm"
                             : "font-medium text-slate-600 hover:bg-slate-100 hover:text-[#08264a]"
@@ -185,14 +185,14 @@ export default function AdminLayout({
           </div>
         </nav>
 
-        <div className="border-t border-slate-200 p-5">
-          <div className="mb-4 flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#08264a] text-sm font-black text-white">
+        <div className="border-t border-slate-200 p-4">
+          <div className="mb-3 flex items-center gap-3 rounded-2xl bg-slate-50 p-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#08264a] text-sm font-semibold text-white">
               {getInitials(admin?.fullName || "Admin User")}
             </div>
 
             <div className="min-w-0">
-              <p className="truncate text-sm font-black text-slate-900">
+              <p className="truncate text-sm font-semibold text-slate-900">
                 {admin?.fullName || "Admin User"}
               </p>
 
@@ -205,7 +205,7 @@ export default function AdminLayout({
           <button
             type="button"
             onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 py-3 text-sm font-black text-red-600 transition hover:bg-red-100"
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 h-10 text-sm font-semibold text-red-600 transition hover:bg-red-100"
           >
             <LogOut size={18} />
             Logout
@@ -213,20 +213,20 @@ export default function AdminLayout({
         </div>
       </aside>
 
-      <div className="min-h-screen lg:ml-72">
-        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+      <div className="min-h-screen lg:ml-64">
+        <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open admin menu"
-              className="tap-target rounded-xl border border-slate-200 p-3 text-slate-600 hover:bg-slate-100 lg:hidden"
+              className="tap-target rounded-xl border border-slate-200 p-2.5 text-slate-600 hover:bg-slate-100 lg:hidden"
             >
               <Menu size={20} />
             </button>
 
             <div className="min-w-0 flex-1">
-              <h2 className="truncate text-xl font-black text-[#08264a] sm:text-2xl">
+              <h2 className="truncate text-lg font-semibold text-[#08264a] sm:text-xl">
                 {title}
               </h2>
 
@@ -238,7 +238,7 @@ export default function AdminLayout({
           </div>
         </header>
 
-        <main className="px-4 py-6 sm:px-6 lg:px-8">
+        <main className="px-4 py-5 sm:px-6 lg:px-8">
           <div className="responsive-shell">{children}</div>
         </main>
       </div>

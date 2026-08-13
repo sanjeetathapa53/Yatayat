@@ -227,7 +227,7 @@ export default function TransportOperatorsPage() {
       title="Transport Operators"
       subtitle="Review and manage public transport companies, cooperatives and independent operators."
     >
-      <div className="space-y-6">
+      <div className="space-y-5">
         <section className="grid grid-cols-2 gap-4 xl:grid-cols-4">
           <SummaryCard
             label="Total Operators"
@@ -257,14 +257,14 @@ export default function TransportOperatorsPage() {
           />
         </section>
 
-        <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-12">
             <div className="lg:col-span-8">
-              <label className="text-xs font-black uppercase tracking-widest text-slate-500">
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Search operators
               </label>
 
-              <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
+              <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5">
                 <Search
                   size={18}
                   className="text-slate-400"
@@ -283,7 +283,7 @@ export default function TransportOperatorsPage() {
             </div>
 
             <div className="lg:col-span-4">
-              <label className="text-xs font-black uppercase tracking-widest text-slate-500">
+              <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Status
               </label>
 
@@ -292,7 +292,7 @@ export default function TransportOperatorsPage() {
                 onChange={(event) =>
                   setStatusFilter(event.target.value)
                 }
-                className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-sm font-bold outline-none"
+                className="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 text-sm font-bold outline-none"
               >
                 <option value="ALL">
                   All statuses
@@ -324,10 +324,10 @@ export default function TransportOperatorsPage() {
           </div>
         )}
 
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-slate-200 px-5 py-5">
             <div>
-              <h2 className="text-xl font-black text-slate-900">
+              <h2 className="text-xl font-semibold text-slate-900">
                 Operator Applications
               </h2>
 
@@ -340,7 +340,7 @@ export default function TransportOperatorsPage() {
             <button
               type="button"
               onClick={loadOperators}
-              className="flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-50"
+              className="flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
             >
               <RefreshCw size={17} />
               Refresh
@@ -361,7 +361,7 @@ export default function TransportOperatorsPage() {
                 className="mx-auto text-slate-300"
               />
 
-              <h3 className="mt-4 text-xl font-black text-slate-900">
+              <h3 className="mt-4 text-xl font-semibold text-slate-900">
                 No operators found
               </h3>
             </div>
@@ -370,23 +370,23 @@ export default function TransportOperatorsPage() {
               <div className="hidden overflow-x-auto lg:block">
                 <table className="w-full min-w-[1000px] text-left">
                   <thead className="bg-slate-50">
-                    <tr className="text-xs font-black uppercase tracking-wider text-slate-500">
-                      <th className="px-6 py-4">
+                    <tr className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-2.5">
                         Organization
                       </th>
-                      <th className="px-6 py-4">
+                      <th className="px-4 py-2.5">
                         Contact
                       </th>
-                      <th className="px-6 py-4">
+                      <th className="px-4 py-2.5">
                         Registration
                       </th>
-                      <th className="px-6 py-4">
+                      <th className="px-4 py-2.5">
                         Type
                       </th>
-                      <th className="px-6 py-4">
+                      <th className="px-4 py-2.5">
                         Status
                       </th>
-                      <th className="px-6 py-4 text-right">
+                      <th className="px-4 py-2.5 text-right">
                         Action
                       </th>
                     </tr>
@@ -399,8 +399,8 @@ export default function TransportOperatorsPage() {
                           key={operator.id}
                           className="hover:bg-slate-50"
                         >
-                          <td className="px-6 py-5">
-                            <p className="font-black text-slate-900">
+                          <td className="px-4 py-2.5">
+                            <p className="font-semibold text-slate-900">
                               {operator.name}
                             </p>
 
@@ -409,7 +409,7 @@ export default function TransportOperatorsPage() {
                             </p>
                           </td>
 
-                          <td className="px-6 py-5">
+                          <td className="px-4 py-2.5">
                             <p className="text-sm font-bold text-slate-700">
                               {operator.contactPerson}
                             </p>
@@ -419,8 +419,8 @@ export default function TransportOperatorsPage() {
                             </p>
                           </td>
 
-                          <td className="px-6 py-5">
-                            <p className="font-black text-slate-900">
+                          <td className="px-4 py-2.5">
+                            <p className="font-semibold text-slate-900">
                               {
                                 operator.registrationNumber
                               }
@@ -433,13 +433,13 @@ export default function TransportOperatorsPage() {
                             </p>
                           </td>
 
-                          <td className="px-6 py-5 text-sm font-bold text-slate-700">
+                          <td className="px-4 py-2.5 text-sm font-bold text-slate-700">
                             {formatOperatorType(
                               operator.operatorType
                             )}
                           </td>
 
-                          <td className="px-6 py-5">
+                          <td className="px-4 py-2.5">
                             <StatusBadge
                               status={
                                 operator.verificationStatus
@@ -447,7 +447,7 @@ export default function TransportOperatorsPage() {
                             />
                           </td>
 
-                          <td className="px-6 py-5 text-right">
+                          <td className="px-4 py-2.5 text-right">
                             <button
                               type="button"
                               onClick={() =>
@@ -455,7 +455,7 @@ export default function TransportOperatorsPage() {
                                   operator
                                 )
                               }
-                              className="inline-flex items-center gap-2 rounded-xl bg-[#08264a] px-4 py-2.5 text-sm font-black text-white hover:bg-[#0d3566]"
+                              className="inline-flex items-center gap-2 rounded-xl bg-[#08264a] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#0d3566]"
                             >
                               <Eye size={16} />
                               Review
@@ -476,7 +476,7 @@ export default function TransportOperatorsPage() {
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-black text-slate-900">
+                        <h3 className="font-semibold text-slate-900">
                           {operator.name}
                         </h3>
 
@@ -505,7 +505,7 @@ export default function TransportOperatorsPage() {
                       onClick={() =>
                         setSelectedOperator(operator)
                       }
-                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-3 text-sm font-black text-white"
+                      className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-2.5 text-sm font-semibold text-white"
                     >
                       <Eye size={17} />
                       Review Application
@@ -560,14 +560,14 @@ function OperatorDetailsModal({
 }) {
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center overflow-y-auto bg-black/50 px-4 py-6 backdrop-blur-sm">
-      <div className="w-full max-w-2xl rounded-3xl bg-white shadow-2xl">
+      <div className="w-full max-w-2xl rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-slate-200 p-6">
           <div>
-            <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
               Operator Application
             </p>
 
-            <h2 className="mt-1 text-2xl font-black text-slate-900">
+            <h2 className="mt-1 text-2xl font-semibold text-slate-900">
               {operator.name}
             </h2>
           </div>
@@ -628,7 +628,7 @@ function OperatorDetailsModal({
               type="button"
               onClick={onReject}
               disabled={loading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 py-3 text-sm font-black text-red-700 hover:bg-red-100"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-300 bg-red-50 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
             >
               <XCircle size={18} />
               Reject
@@ -638,7 +638,7 @@ function OperatorDetailsModal({
               type="button"
               onClick={onApprove}
               disabled={loading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-black text-white hover:bg-emerald-700"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
             >
               {loading ? (
                 <Loader2
@@ -666,13 +666,13 @@ function RejectModal({
 }) {
   return (
     <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl">
         <div className="p-6 text-center">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-100 text-red-600">
             <ShieldAlert size={31} />
           </div>
 
-          <h2 className="mt-5 text-2xl font-black text-slate-900">
+          <h2 className="mt-5 text-2xl font-semibold text-slate-900">
             Reject operator?
           </h2>
 
@@ -697,7 +697,7 @@ function RejectModal({
             type="button"
             onClick={onCancel}
             disabled={loading}
-            className="flex-1 rounded-xl border border-slate-300 bg-white py-3 text-sm font-black text-slate-700"
+            className="flex-1 rounded-xl border border-slate-300 bg-white py-2.5 text-sm font-semibold text-slate-700"
           >
             Cancel
           </button>
@@ -706,7 +706,7 @@ function RejectModal({
             type="button"
             onClick={onReject}
             disabled={loading || !reason.trim()}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-3 text-sm font-black text-white disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-600 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             {loading && (
               <Loader2
@@ -746,11 +746,11 @@ function SummaryCard({
         {icon}
       </div>
 
-      <p className="mt-4 text-xs font-black uppercase tracking-widest text-slate-500">
+      <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-slate-500">
         {label}
       </p>
 
-      <p className="mt-2 text-3xl font-black text-slate-900">
+      <p className="mt-2 text-3xl font-semibold text-slate-900">
         {value}
       </p>
     </div>
@@ -771,7 +771,7 @@ function StatusBadge({ status }) {
 
   return (
     <span
-      className={`inline-flex rounded-full px-3 py-1.5 text-[10px] font-black ${
+      className={`inline-flex rounded-full px-3 py-1.5 text-[10px] font-semibold ${
         styles[status] ||
         "bg-slate-100 text-slate-600"
       }`}
@@ -786,12 +786,12 @@ function ModalDetail({ icon, label, value }) {
     <div className="rounded-2xl bg-slate-50 p-4">
       <div className="flex items-center gap-2 text-slate-500">
         {icon}
-        <p className="text-[10px] font-black uppercase tracking-widest">
+        <p className="text-[10px] font-semibold uppercase tracking-widest">
           {label}
         </p>
       </div>
 
-      <p className="mt-2 break-words text-sm font-black text-slate-900">
+      <p className="mt-2 break-words text-sm font-semibold text-slate-900">
         {value || "Not available"}
       </p>
     </div>
