@@ -2,6 +2,7 @@ package com.yatayat.backend.security;
 
 import com.yatayat.backend.config.SecurityConfig;
 import com.yatayat.backend.controller.*;
+import com.yatayat.backend.dto.ChangePasswordRequest;
 import com.yatayat.backend.dto.DriverInvitationRequest;
 import com.yatayat.backend.dto.DriverProfileUpdateRequest;
 import com.yatayat.backend.dto.DriverLocalFarePassValidationResponse;
@@ -90,6 +91,8 @@ class EndpointSecurityIntegrationTests {
     @MockitoBean
     private OtpVerificationService otpVerificationService;
     @MockitoBean
+    private PasswordChangeService passwordChangeService;
+    @MockitoBean
     private WalletRepository walletRepository;
     @MockitoBean
     private WalletTransactionRepository walletTransactionRepository;
@@ -146,6 +149,60 @@ class EndpointSecurityIntegrationTests {
                 "PASSENGER"
         );
         passengerA.setId(1L);
+    }
+
+    @Test
+    void anonymousUserCannotChangePassword() throws Exception {
+        mockMvc.perform(post("/api/auth/change-password")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "oldPassword": "current-password",
+                                  "newPassword": "new-password",
+                                  "confirmNewPassword": "new-password"
+                                }
+                                """))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(passwordChangeService);
+    }
+
+    @Test
+    @WithMockUser(username = "driver-a@example.com", roles = "DRIVER")
+    void authenticatedDriverChangesOnlyPrincipalsPassword() throws Exception {
+        mockMvc.perform(post("/api/auth/change-password")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "oldPassword": "current-password",
+                                  "newPassword": "new-password",
+                                  "confirmNewPassword": "new-password"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Password changed successfully"));
+
+        verify(passwordChangeService).changePassword(
+                eq("driver-a@example.com"),
+                any(ChangePasswordRequest.class)
+        );
+    }
+
+    @Test
+    @WithMockUser(username = "driver-a@example.com", roles = "DRIVER")
+    void invalidPasswordChangeRequestIsRejected() throws Exception {
+        mockMvc.perform(post("/api/auth/change-password")
+                        .contentType("application/json")
+                        .content("""
+                                {
+                                  "oldPassword": "",
+                                  "newPassword": "short",
+                                  "confirmNewPassword": ""
+                                }
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verifyNoInteractions(passwordChangeService);
     }
 
     @Test

@@ -9,7 +9,9 @@ import com.yatayat.backend.entity.OtpPurpose;
 import com.yatayat.backend.entity.AuthenticationProvider;
 import com.yatayat.backend.repository.UserRepository;
 import com.yatayat.backend.service.OtpVerificationService;
+import com.yatayat.backend.service.PasswordChangeService;
 import com.yatayat.backend.service.SessionLogoutService;
+import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -23,6 +25,8 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.server.ResponseStatusException;
 import com.yatayat.backend.dto.ForgotPasswordRequest;
 import com.yatayat.backend.entity.Wallet;
@@ -39,15 +43,18 @@ public class AuthController {
     private final OtpVerificationService otpVerificationService;
     private final PasswordEncoder passwordEncoder;
     private final SessionLogoutService sessionLogoutService;
+    private final PasswordChangeService passwordChangeService;
 
     public AuthController(UserRepository userRepository,
                           OtpVerificationService otpVerificationService,
                           PasswordEncoder passwordEncoder,
-                          SessionLogoutService sessionLogoutService) {
+                          SessionLogoutService sessionLogoutService,
+                          PasswordChangeService passwordChangeService) {
         this.userRepository = userRepository;
         this.otpVerificationService = otpVerificationService;
         this.passwordEncoder = passwordEncoder;
         this.sessionLogoutService = sessionLogoutService;
+        this.passwordChangeService = passwordChangeService;
     }
 
     @GetMapping("/google-login")
@@ -263,30 +270,38 @@ public class AuthController {
     }
 
     @PostMapping("/change-password")
-    public String changePassword(
-            @RequestBody ChangePasswordRequest request,
+    public ResponseEntity<String> changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
             Authentication authentication
     ) {
-        User user = userRepository.findByEmailIgnoreCase(authentication.getName()).orElse(null);
-
-        if (user == null) return "User not found";
-        if (user.getPassword() == null || user.getPassword().isBlank()) {
-            return "Password missing. Please register again.";
-        }
-
         try {
-            if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-                return "Old password is incorrect";
-            }
-        } catch (Exception e) {
-            return "Password is not encrypted. Please register again.";
+            passwordChangeService.changePassword(
+                    authentication.getName(),
+                    request
+            );
+            return ResponseEntity.ok("Password changed successfully");
+        } catch (ResponseStatusException exception) {
+            return ResponseEntity.status(exception.getStatusCode()).body(
+                    exception.getReason() == null
+                            ? "Unable to change password."
+                            : exception.getReason()
+            );
         }
-
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-
-        return "Password changed successfully";
     }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<String> handlePasswordValidation(
+            MethodArgumentNotValidException exception
+    ) {
+        String message = exception.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage() == null
+                        ? "Invalid password request."
+                        : error.getDefaultMessage())
+                .orElse("Invalid password request.");
+        return ResponseEntity.badRequest().body(message);
+    }
+
     @PostMapping("/send-forgot-password-otp")
     public String sendForgotPasswordOtp(@RequestBody ForgotPasswordRequest request) {
         String email = otpVerificationService.normalizeEmail(

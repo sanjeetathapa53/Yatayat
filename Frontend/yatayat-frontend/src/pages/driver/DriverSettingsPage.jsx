@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Shield,
   MapPin,
@@ -16,10 +16,17 @@ import {
   BadgeCheck,
   Loader2,
   RotateCcw,
+  X,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import DriverLayout from "../../components/layout/DriverLayout";
 import { API_BASE_URL } from "../../utils/api";
+
+const emptyPasswordForm = {
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
+};
 
 const defaultSettings = {
   twoFactor: false,
@@ -44,6 +51,10 @@ export default function DriverSettingsPage() {
   const [driver, setDriver] = useState(null);
   const [loadingDriver, setLoadingDriver] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordForm, setPasswordForm] = useState(emptyPasswordForm);
 
   const [settings, setSettings] = useState(() => {
     try {
@@ -111,6 +122,79 @@ export default function DriverSettingsPage() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [fetchDriver]);
+
+  const openPasswordForm = () => {
+    setPasswordForm(emptyPasswordForm);
+    setPasswordError("");
+    setChangingPassword(true);
+  };
+
+  const closePasswordForm = () => {
+    if (passwordSaving) return;
+    setPasswordForm(emptyPasswordForm);
+    setPasswordError("");
+    setChangingPassword(false);
+  };
+
+  const updatePasswordField = (field, value) => {
+    setPasswordForm((current) => ({ ...current, [field]: value }));
+    setPasswordError("");
+  };
+
+  const submitPasswordChange = async (event) => {
+    event.preventDefault();
+    if (passwordSaving) return;
+
+    const validationError = validatePasswordForm(passwordForm);
+    if (validationError) {
+      setPasswordError(validationError);
+      return;
+    }
+
+    try {
+      setPasswordSaving(true);
+      setPasswordError("");
+      const response = await fetch(
+        `${API_BASE_URL}/api/auth/change-password`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            oldPassword: passwordForm.currentPassword,
+            newPassword: passwordForm.newPassword,
+            confirmNewPassword: passwordForm.confirmPassword,
+          }),
+        }
+      );
+      const rawBody = await response.text();
+      let message = rawBody;
+      try {
+        const data = JSON.parse(rawBody);
+        message = data.detail || data.message || data.error || rawBody;
+      } catch {
+        // Successful responses use plain text.
+      }
+
+      if (!response.ok) {
+        throw new Error(
+          message || (response.status === 401
+            ? "Your session has expired. Please log in again."
+            : "Unable to change password.")
+        );
+      }
+
+      toast.success(message || "Password changed successfully.");
+      setPasswordForm(emptyPasswordForm);
+      setChangingPassword(false);
+    } catch (passwordChangeError) {
+      setPasswordError(
+        passwordChangeError.message || "Unable to change password."
+      );
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   const updateSetting = (field, value) => {
     setSettings((current) => ({
@@ -253,10 +337,19 @@ export default function DriverSettingsPage() {
       <section>
         <SettingCard icon={<Shield size={20} />} title="Account & Security">
           <div className="mt-4">
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Password</label>
-            <div className="mt-2 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-500">Password</label>
+              <button
+                type="button"
+                onClick={openPasswordForm}
+                className="text-sm font-semibold text-[#1d3f6e] hover:underline"
+              >
+                Change Password
+              </button>
+            </div>
+
+            <div className="mt-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
               <span className="font-semibold tracking-widest text-slate-700">••••••••••</span>
-              <button type="button" onClick={() => toast.info("Password change will be connected to the backend next.")} className="text-sm font-semibold text-[#1d3f6e] hover:underline">Change</button>
             </div>
           </div>
 
@@ -418,8 +511,161 @@ export default function DriverSettingsPage() {
           </div>
         </div>
       </section>
+
+      <PasswordChangeModal
+        open={changingPassword}
+        form={passwordForm}
+        error={passwordError}
+        saving={passwordSaving}
+        onChange={updatePasswordField}
+        onCancel={closePasswordForm}
+        onSubmit={submitPasswordChange}
+      />
     </DriverLayout>
   );
+}
+
+function PasswordChangeModal({
+  open,
+  form,
+  error,
+  saving,
+  onChange,
+  onCancel,
+  onSubmit,
+}) {
+  const currentPasswordRef = useRef(null);
+
+  useEffect(() => {
+    if (open) currentPasswordRef.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape" && !saving) onCancel();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onCancel, open, saving]);
+
+  if (!open) return null;
+
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget && !saving) onCancel();
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/60 p-4 backdrop-blur-sm sm:items-center"
+      onMouseDown={handleBackdropClick}
+      role="presentation"
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="driver-password-modal-title"
+        className="max-h-[calc(100dvh-2rem)] w-full max-w-md overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl sm:p-6"
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 id="driver-password-modal-title" className="text-xl font-semibold text-slate-900">
+              Change Password
+            </h2>
+            <p className="mt-1 text-sm leading-5 text-slate-500">
+              Confirm your current password before choosing a new one.
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="Close change password dialog"
+            disabled={saving}
+            onClick={onCancel}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 disabled:opacity-50"
+          >
+            <X size={19} />
+          </button>
+        </div>
+
+        <form onSubmit={onSubmit} className="mt-5">
+          <div className="space-y-3">
+            <PasswordField
+              inputRef={currentPasswordRef}
+              label="Current Password"
+              value={form.currentPassword}
+              autoComplete="current-password"
+              onChange={(value) => onChange("currentPassword", value)}
+            />
+            <PasswordField
+              label="New Password"
+              value={form.newPassword}
+              autoComplete="new-password"
+              onChange={(value) => onChange("newPassword", value)}
+            />
+            <PasswordField
+              label="Confirm New Password"
+              value={form.confirmPassword}
+              autoComplete="new-password"
+              onChange={(value) => onChange("confirmPassword", value)}
+            />
+          </div>
+
+          <p className="mt-2 text-xs text-slate-500">
+            Use at least 6 characters.
+          </p>
+
+          {error && (
+            <div role="alert" className="mt-3 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+              <AlertTriangle size={17} className="mt-0.5 shrink-0" />
+              <p>{error}</p>
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button type="button" disabled={saving} onClick={onCancel} className="inline-flex h-10 items-center justify-center rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60">
+              Cancel
+            </button>
+            <button type="submit" disabled={saving} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 text-sm font-semibold text-white transition hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:opacity-60">
+              {saving && <Loader2 size={16} className="animate-spin" />}
+              {saving ? "Changing..." : "Change Password"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function PasswordField({ label, value, autoComplete, onChange, inputRef }) {
+  return (
+    <label className="block text-sm font-medium text-slate-700">
+      {label}
+      <input
+        ref={inputRef}
+        type="password"
+        required
+        value={value}
+        autoComplete={autoComplete}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1.5 h-10 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+      />
+    </label>
+  );
+}
+
+function validatePasswordForm(form) {
+  if (!form.currentPassword) return "Current password is required.";
+  if (!form.newPassword) return "New password is required.";
+  if (!form.confirmPassword) return "Password confirmation is required.";
+  if (form.newPassword.length < 6) {
+    return "New password must contain at least 6 characters.";
+  }
+  if (form.newPassword !== form.confirmPassword) {
+    return "New password and confirmation do not match.";
+  }
+  return "";
 }
 
 function AccountDetail({ icon, label, value }) {

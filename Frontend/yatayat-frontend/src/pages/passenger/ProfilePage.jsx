@@ -67,6 +67,7 @@ export default function ProfilePage() {
           email,
           oldPassword,
           newPassword,
+          confirmNewPassword: confirmPassword,
         }),
       });
 
