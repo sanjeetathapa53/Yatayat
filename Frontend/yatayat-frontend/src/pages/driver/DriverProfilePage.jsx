@@ -110,14 +110,14 @@ export default function DriverProfilePage() {
   if (loading) {
     return (
       <DriverLayout activePage="Profile">
-        <div className="flex min-h-130 items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex min-h-64 items-center justify-center rounded-3xl border border-slate-200 bg-white shadow-sm">
           <div className="text-center">
             <Loader2
-              size={42}
+              size={32}
               className="mx-auto animate-spin text-[#08264a]"
             />
 
-            <h2 className="mt-5 text-xl font-black text-slate-900">
+            <h2 className="mt-4 text-lg font-semibold text-slate-900">
               Loading driver profile
             </h2>
 
@@ -133,13 +133,13 @@ export default function DriverProfilePage() {
   if (error && !driver) {
     return (
       <DriverLayout activePage="Profile">
-        <div className="rounded-3xl border border-red-200 bg-red-50 p-8 text-center">
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center">
           <AlertTriangle
-            size={44}
+            size={36}
             className="mx-auto text-red-600"
           />
 
-          <h2 className="mt-4 text-xl font-black text-red-800">
+          <h2 className="mt-3 text-lg font-semibold text-red-800">
             Profile could not be loaded
           </h2>
 
@@ -150,7 +150,7 @@ export default function DriverProfilePage() {
           <button
             type="button"
             onClick={() => fetchDriverProfile(true)}
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white transition hover:bg-red-700"
+            className="mt-4 inline-flex h-11 items-center gap-2 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white transition hover:bg-red-700"
           >
             <RefreshCw size={17} />
             Try Again
@@ -167,9 +167,9 @@ export default function DriverProfilePage() {
 
   return (
     <DriverLayout activePage="Profile">
-      <header className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <header className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 sm:text-3xl">
+          <h1 className="text-3xl font-semibold text-slate-900">
             Driver Profile
           </h1>
 
@@ -183,7 +183,7 @@ export default function DriverProfilePage() {
           type="button"
           onClick={() => fetchDriverProfile(true)}
           disabled={refreshing}
-          className="flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-11 w-fit items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <RefreshCw
             size={17}
@@ -195,7 +195,7 @@ export default function DriverProfilePage() {
       </header>
 
       {error && (
-        <div className="mb-6 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
+        <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold text-amber-800">
           <AlertTriangle
             size={19}
             className="mt-0.5 shrink-0"
@@ -206,25 +206,25 @@ export default function DriverProfilePage() {
 
       {/* PROFILE HEADER */}
 
-      <section className="mb-6 overflow-hidden rounded-3xl bg-[#08264a] text-white shadow-sm">
-        <div className="p-6 sm:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-              <div className="flex h-28 w-28 shrink-0 items-center justify-center rounded-3xl border-4 border-white/30 bg-white/10 text-3xl font-black">
+      <section className="mb-5 overflow-hidden rounded-3xl bg-[#08264a] text-white shadow-sm">
+        <div className="p-5 sm:p-6">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex min-w-0 items-center gap-4">
+              <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-2 border-white/25 bg-white/10 text-2xl font-semibold">
                 {getInitials(driver?.fullName)}
               </div>
 
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200">
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-200">
                   Yatayat Driver
                 </p>
 
-                <h2 className="mt-2 text-3xl font-black">
+                <h2 className="mt-1 text-2xl font-semibold">
                   {driver?.fullName || "Driver User"}
                 </h2>
 
-                <div className="mt-3 flex flex-wrap gap-3">
-                  <span className="rounded-full bg-white/10 px-3 py-1.5 text-sm font-bold text-slate-200">
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-slate-200">
                     Driver ID:{" "}
                     {driver?.applicationId
                       ? `DRV-${driver.applicationId}`
@@ -245,7 +245,7 @@ export default function DriverProfilePage() {
                   "Profile editing will be connected after the update API is created."
                 )
               }
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-black text-[#08264a] transition hover:bg-slate-100 lg:w-auto"
+              className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-semibold text-[#08264a] transition hover:bg-slate-100 lg:w-auto"
             >
               <Edit size={17} />
               Edit Profile
@@ -275,19 +275,19 @@ export default function DriverProfilePage() {
 
       {/* FUTURE OPERATIONAL STATS */}
 
-      <section className="mb-6 grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <section className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <StatCard
           title="Completed Trips"
           value="0"
           description="Trip records will appear here"
-          icon={<Bus size={25} />}
+          icon={<Bus size={21} />}
         />
 
         <StatCard
           title="Trip Revenue"
           value="NPR 0"
           description="Calculated from completed trips"
-          icon={<Wallet size={25} />}
+          icon={<Wallet size={21} />}
           green
         />
 
@@ -295,19 +295,19 @@ export default function DriverProfilePage() {
           title="Assigned Bus"
           value="Not Assigned"
           description="Bus assignment comes next"
-          icon={<Briefcase size={25} />}
+          icon={<Briefcase size={21} />}
         />
       </section>
 
-      <section className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-        <div className="space-y-6 xl:col-span-8">
+      <section className="grid grid-cols-1 gap-5 xl:grid-cols-12">
+        <div className="space-y-5 xl:col-span-8">
           {/* PERSONAL INFORMATION */}
 
           <ProfileSection
             icon={<UserCircle size={22} />}
             title="Personal Information"
           >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <InformationCard
                 icon={<Mail size={19} />}
                 label="Email Address"
@@ -358,7 +358,7 @@ export default function DriverProfilePage() {
             icon={<ShieldCheck size={22} />}
             title="Verification Information"
           >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <InformationCard
                 icon={<FileText size={19} />}
                 label="Citizenship Number"
@@ -388,14 +388,14 @@ export default function DriverProfilePage() {
           </ProfileSection>
         </div>
 
-        <aside className="space-y-6 xl:col-span-4">
+        <aside className="space-y-5 xl:col-span-4">
           {/* LICENCE INFORMATION */}
 
           <ProfileSection
             icon={<Briefcase size={22} />}
             title="Professional Details"
           >
-            <div className="space-y-5">
+            <div className="space-y-4">
               <Detail
                 label="Licence Number"
                 value={driver?.licenseNumber}
@@ -427,12 +427,12 @@ export default function DriverProfilePage() {
               />
 
               <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-                <span className="text-xs font-black uppercase tracking-widest text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Compliance Status
                 </span>
 
                 <span
-                  className={`flex items-center gap-1 text-sm font-black ${
+                  className={`flex items-center gap-1 text-sm font-semibold ${
                     isApproved
                       ? "text-emerald-600"
                       : "text-amber-600"
@@ -460,7 +460,7 @@ export default function DriverProfilePage() {
             icon={<FileText size={22} />}
             title="Submitted Documents"
           >
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <DocumentStatusCard
                 title="Profile Photo"
                 status={verificationStatus}
@@ -500,13 +500,13 @@ export default function DriverProfilePage() {
 
 function ProfileSection({ icon, title, children }) {
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="mb-5 flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#08264a] text-white">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#08264a] text-white">
           {icon}
         </div>
 
-        <h2 className="text-xl font-black text-slate-900">
+        <h2 className="text-lg font-semibold text-slate-900">
           {title}
         </h2>
       </div>
@@ -518,12 +518,12 @@ function ProfileSection({ icon, title, children }) {
 
 function HeaderDetail({ label, value }) {
   return (
-    <div className="border-b border-white/10 px-6 py-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
-      <p className="text-[10px] font-black uppercase tracking-widest text-blue-200">
+    <div className="border-b border-white/10 px-5 py-3 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-blue-200">
         {label}
       </p>
 
-      <p className="mt-1 wrap-break-word text-sm font-black text-white">
+      <p className="mt-1 wrap-break-word text-sm font-semibold text-white">
         {value || "Not available"}
       </p>
     </div>
@@ -538,24 +538,24 @@ function StatCard({
   green,
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
             {title}
           </p>
 
-          <h2 className="mt-2 text-2xl font-black text-[#08264a]">
+          <h2 className="mt-1.5 text-xl font-semibold text-[#08264a]">
             {value}
           </h2>
 
-          <p className="mt-2 text-xs text-slate-500">
+          <p className="mt-1.5 text-xs text-slate-500">
             {description}
           </p>
         </div>
 
         <div
-          className={`flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl p-3 ${
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
             green
               ? "bg-emerald-100 text-emerald-700"
               : "bg-blue-50 text-[#08264a]"
@@ -570,16 +570,16 @@ function StatCard({
 
 function InformationCard({ icon, label, value }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
       <div className="flex items-center gap-2 text-slate-500">
         {icon}
 
-        <p className="text-[10px] font-black uppercase tracking-widest">
+        <p className="text-[10px] font-semibold uppercase tracking-wider">
           {label}
         </p>
       </div>
 
-      <p className="mt-2 wrap-break-word text-sm font-black text-slate-900">
+      <p className="mt-1.5 wrap-break-word text-sm font-semibold text-slate-900">
         {value || "Not provided"}
       </p>
     </div>
@@ -589,11 +589,11 @@ function InformationCard({ icon, label, value }) {
 function Detail({ label, value }) {
   return (
     <div>
-      <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
         {label}
       </p>
 
-      <p className="mt-1 wrap-break-word font-black text-slate-900">
+      <p className="mt-1 wrap-break-word text-sm font-semibold text-slate-900">
         {value || "Not available"}
       </p>
     </div>
@@ -604,25 +604,25 @@ function DocumentStatusCard({ title, status }) {
   const approved = status === "APPROVED";
 
   return (
-    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-4">
+    <div className="flex items-center justify-between gap-3 rounded-xl bg-slate-50 p-3">
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-[#08264a]">
-          <FileText size={21} />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-[#08264a]">
+          <FileText size={18} />
         </div>
 
         <div className="min-w-0">
-          <p className="truncate text-sm font-black text-slate-900">
+          <p className="truncate text-sm font-semibold text-slate-900">
             {title}
           </p>
 
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-0.5 text-xs text-slate-500">
             Submitted during driver application
           </p>
         </div>
       </div>
 
       <span
-        className={`shrink-0 rounded-full px-3 py-1 text-[10px] font-black ${
+        className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold ${
           approved
             ? "bg-emerald-100 text-emerald-700"
             : "bg-amber-100 text-amber-700"
@@ -644,7 +644,7 @@ function VerificationBadge({ status }) {
 
   return (
     <span
-      className={`flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-bold ${
+      className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${
         styles[status] || "bg-white/10 text-slate-200"
       }`}
     >
