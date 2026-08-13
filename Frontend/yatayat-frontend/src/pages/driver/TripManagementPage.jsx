@@ -16,6 +16,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import ConfirmationModal from "../../components/common/ConfirmationModal";
+import DriverRouteStops from "../../components/driver/DriverRouteStops";
 import DriverLayout from "../../components/layout/DriverLayout";
 import { GPS_STATUS, useDriverLocationTracking } from "../../hooks/useDriverLocationTracking";
 import { useLocalServiceLocationTracking } from "../../hooks/useLocalServiceLocationTracking";
@@ -215,23 +216,8 @@ export default function TripManagementPage() {
                 )}
               </div>
 
-              {trip.workType === "LOCAL_SERVICE" && trip.orderedStops?.length > 0 && (
-                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
-                  <h3 className="font-semibold text-slate-900">Ordered stops</h3>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                    {trip.orderedStops.map((stop) => (
-                      <div key={stop.id} className="flex items-center gap-3 rounded-xl bg-white p-2.5">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#08264a] text-xs font-semibold text-white">
-                          {stop.stopOrder}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="truncate font-semibold text-slate-900">{stop.stopName}</p>
-                          <p className="truncate text-xs text-slate-500">{stop.landmark || "Local route stop"}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {trip.workType === "LOCAL_SERVICE" && (
+                <DriverRouteStops stops={trip.orderedStops} title="Ordered stops" />
               )}
 
               <div className="mt-4 flex flex-wrap items-center gap-2">
