@@ -113,17 +113,17 @@ export default function DriverApplicationsPage() {
       title="Driver Applications"
       subtitle="Review pending driver identities, licences, experience and submitted documents."
     >
-      <div className="space-y-6">
+      <div className="space-y-5">
         {/* SUMMARY HEADER */}
 
-        <section className="overflow-hidden rounded-3xl bg-[#08264a] px-6 py-7 text-white shadow-sm sm:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <section className="overflow-hidden rounded-2xl bg-[#08264a] px-6 py-7 text-white shadow-sm sm:px-8">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-200">
                 Driver Verification Centre
               </p>
 
-              <h1 className="mt-3 text-2xl font-black sm:text-3xl">
+              <h1 className="mt-3 text-2xl font-semibold sm:text-3xl">
                 Pending driver applications
               </h1>
 
@@ -135,12 +135,12 @@ export default function DriverApplicationsPage() {
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row">
-              <div className="rounded-2xl bg-white/10 px-5 py-4 backdrop-blur">
-                <p className="text-xs font-black uppercase tracking-widest text-blue-200">
+              <div className="rounded-2xl bg-white/10 px-4 py-2.5 backdrop-blur">
+                <p className="text-xs font-semibold uppercase tracking-widest text-blue-200">
                   Awaiting Review
                 </p>
 
-                <p className="mt-2 text-3xl font-black">
+                <p className="mt-2 text-3xl font-semibold">
                   {loading ? "—" : applications.length}
                 </p>
               </div>
@@ -149,7 +149,7 @@ export default function DriverApplicationsPage() {
                 type="button"
                 onClick={() => fetchApplications(true)}
                 disabled={refreshing}
-                className="flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-black text-[#08264a] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+                className="flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-semibold text-[#08264a] transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <RefreshCw
                   size={18}
@@ -166,11 +166,11 @@ export default function DriverApplicationsPage() {
 
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-12">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:col-span-8">
-            <label className="text-xs font-black uppercase tracking-widest text-slate-500">
+            <label className="text-xs font-semibold uppercase tracking-widest text-slate-500">
               Search applications
             </label>
 
-            <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 focus-within:border-[#08264a] focus-within:bg-white">
+            <div className="mt-2 flex items-center gap-3 rounded-xl border border-slate-300 bg-slate-50 px-4 py-2.5 focus-within:border-[#08264a] focus-within:bg-white">
               <Search size={19} className="shrink-0 text-slate-400" />
 
               <input
@@ -185,7 +185,7 @@ export default function DriverApplicationsPage() {
                 <button
                   type="button"
                   onClick={() => setSearchText("")}
-                  className="text-xs font-black text-[#08264a] hover:underline"
+                  className="text-xs font-semibold text-[#08264a] hover:underline"
                 >
                   Clear
                 </button>
@@ -199,7 +199,7 @@ export default function DriverApplicationsPage() {
             </div>
 
             <div>
-              <p className="font-black text-amber-900">
+              <p className="font-semibold text-amber-900">
                 Manual verification required
               </p>
 
@@ -221,7 +221,7 @@ export default function DriverApplicationsPage() {
               />
 
               <div>
-                <p className="font-black text-red-800">
+                <p className="font-semibold text-red-800">
                   Applications could not be loaded
                 </p>
 
@@ -234,7 +234,7 @@ export default function DriverApplicationsPage() {
             <button
               type="button"
               onClick={() => fetchApplications(true)}
-              className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white transition hover:bg-red-700"
+              className="flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
             >
               <RefreshCw size={17} />
               Try Again
@@ -244,10 +244,10 @@ export default function DriverApplicationsPage() {
 
         {/* CONTENT */}
 
-        <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-3 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div>
-              <h2 className="text-xl font-black text-slate-900">
+              <h2 className="text-xl font-semibold text-slate-900">
                 Applications awaiting review
               </h2>
 
@@ -257,7 +257,7 @@ export default function DriverApplicationsPage() {
               </p>
             </div>
 
-            <span className="w-fit rounded-full bg-amber-100 px-4 py-2 text-xs font-black text-amber-700">
+            <span className="w-fit rounded-full bg-amber-100 px-4 py-2 text-xs font-semibold text-amber-700">
               PENDING
             </span>
           </div>
@@ -273,14 +273,14 @@ export default function DriverApplicationsPage() {
               <div className="hidden overflow-x-auto lg:block">
                 <table className="w-full min-w-237.5 text-left">
                   <thead className="bg-slate-50">
-                    <tr className="text-xs font-black uppercase tracking-wider text-slate-500">
-                      <th className="px-6 py-4">Applicant</th>
-                      <th className="px-6 py-4">Contact</th>
-                      <th className="px-6 py-4">Licence</th>
-                      <th className="px-6 py-4">Experience</th>
-                      <th className="px-6 py-4">Submitted</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4 text-right">Action</th>
+                    <tr className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-2.5">Applicant</th>
+                      <th className="px-4 py-2.5">Contact</th>
+                      <th className="px-4 py-2.5">Licence</th>
+                      <th className="px-4 py-2.5">Experience</th>
+                      <th className="px-4 py-2.5">Submitted</th>
+                      <th className="px-4 py-2.5">Status</th>
+                      <th className="px-4 py-2.5 text-right">Action</th>
                     </tr>
                   </thead>
 
@@ -322,12 +322,12 @@ export default function DriverApplicationsPage() {
 function ApplicationTableRow({ application, onReview }) {
   return (
     <tr className="transition hover:bg-slate-50">
-      <td className="px-6 py-5">
+      <td className="px-4 py-2.5">
         <div className="flex items-center gap-3">
           <Avatar name={application.fullName} />
 
           <div className="min-w-0">
-            <p className="max-w-47.5 truncate font-black text-slate-900">
+            <p className="max-w-47.5 truncate font-semibold text-slate-900">
               {application.fullName || "Driver Applicant"}
             </p>
 
@@ -338,7 +338,7 @@ function ApplicationTableRow({ application, onReview }) {
         </div>
       </td>
 
-      <td className="px-6 py-5">
+      <td className="px-4 py-2.5">
         <div className="space-y-1">
           <p className="flex items-center gap-2 text-sm text-slate-700">
             <Mail size={14} className="shrink-0 text-slate-400" />
@@ -354,8 +354,8 @@ function ApplicationTableRow({ application, onReview }) {
         </div>
       </td>
 
-      <td className="px-6 py-5">
-        <p className="font-black text-slate-900">
+      <td className="px-4 py-2.5">
+        <p className="font-semibold text-slate-900">
           {application.licenseNumber || "N/A"}
         </p>
 
@@ -364,8 +364,8 @@ function ApplicationTableRow({ application, onReview }) {
         </p>
       </td>
 
-      <td className="px-6 py-5">
-        <p className="font-black text-slate-900">
+      <td className="px-4 py-2.5">
+        <p className="font-semibold text-slate-900">
           {application.yearsOfExperience ?? 0} year(s)
         </p>
 
@@ -374,7 +374,7 @@ function ApplicationTableRow({ application, onReview }) {
         </p>
       </td>
 
-      <td className="px-6 py-5">
+      <td className="px-4 py-2.5">
         <p className="flex items-center gap-2 text-sm font-bold text-slate-700">
           <CalendarDays size={15} className="text-slate-400" />
           {formatDate(application.submittedAt)}
@@ -385,15 +385,15 @@ function ApplicationTableRow({ application, onReview }) {
         </p>
       </td>
 
-      <td className="px-6 py-5">
+      <td className="px-4 py-2.5">
         <StatusBadge />
       </td>
 
-      <td className="px-6 py-5 text-right">
+      <td className="px-4 py-2.5 text-right">
         <button
           type="button"
           onClick={onReview}
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 py-2.5 text-sm font-black text-white transition hover:bg-[#0d3566]"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#08264a] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#0d3566]"
         >
           Review
           <ArrowRight size={16} />
@@ -411,7 +411,7 @@ function ApplicationCard({ application, onReview }) {
           <Avatar name={application.fullName} />
 
           <div className="min-w-0">
-            <h3 className="truncate font-black text-slate-900">
+            <h3 className="truncate font-semibold text-slate-900">
               {application.fullName || "Driver Applicant"}
             </h3>
 
@@ -461,7 +461,7 @@ function ApplicationCard({ application, onReview }) {
       <button
         type="button"
         onClick={onReview}
-        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-3 text-sm font-black text-white transition hover:bg-[#0d3566]"
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-[#08264a] py-2.5 text-sm font-semibold text-white transition hover:bg-[#0d3566]"
       >
         Review Application
         <ArrowRight size={17} />
@@ -476,7 +476,7 @@ function MobileInfo({ icon, label, value }) {
       <div className="mt-0.5 text-slate-400">{icon}</div>
 
       <div className="min-w-0">
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
           {label}
         </p>
 
@@ -490,7 +490,7 @@ function MobileInfo({ icon, label, value }) {
 
 function StatusBadge() {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-amber-700">
+    <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
       <Clock3 size={13} />
       Pending
     </span>
@@ -499,7 +499,7 @@ function StatusBadge() {
 
 function Avatar({ name }) {
   return (
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-sm font-black text-[#08264a]">
+    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-100 text-sm font-semibold text-[#08264a]">
       {getInitials(name || "Driver")}
     </div>
   );
@@ -515,7 +515,7 @@ function LoadingApplications() {
             className="mx-auto animate-spin text-[#08264a]"
           />
 
-          <p className="mt-3 text-sm font-black text-slate-700">
+          <p className="mt-3 text-sm font-semibold text-slate-700">
             Loading driver applications...
           </p>
         </div>
@@ -549,7 +549,7 @@ function EmptyApplications({ hasSearch }) {
         <CheckCircle2 size={31} />
       </div>
 
-      <h3 className="mt-4 text-xl font-black text-slate-900">
+      <h3 className="mt-4 text-xl font-semibold text-slate-900">
         {hasSearch
           ? "No matching applications"
           : "No pending applications"}
