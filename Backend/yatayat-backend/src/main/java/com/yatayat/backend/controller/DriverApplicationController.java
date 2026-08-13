@@ -1,7 +1,10 @@
 package com.yatayat.backend.controller;
 
+import com.yatayat.backend.dto.DriverProfileUpdateRequest;
 import com.yatayat.backend.service.DriverApplicationService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -119,6 +122,27 @@ public class DriverApplicationController {
         }
     }
 
+
+    @PutMapping("/profile")
+    public ResponseEntity<Map<String, Object>> updateDriverProfile(
+            @Valid @RequestBody DriverProfileUpdateRequest request,
+            Authentication authentication
+    ) {
+        try {
+            User authenticatedUser =
+                    authenticatedUserService.requireUser(authentication);
+            return ResponseEntity.ok(
+                    applicationService.updateDriverProfile(
+                            authenticatedUser,
+                            request
+                    )
+            );
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(
+                    errorResponse(exception.getMessage())
+            );
+        }
+    }
     @GetMapping("/profile/{userId}")
     public ResponseEntity<Map<String, Object>> getDriverProfile(
             @PathVariable Long userId,
@@ -136,6 +160,19 @@ public class DriverApplicationController {
         }
     }
 
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidation(
+            MethodArgumentNotValidException exception
+    ) {
+        String message = exception.getBindingResult().getFieldErrors().stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage() == null
+                        ? "Invalid profile information."
+                        : error.getDefaultMessage())
+                .orElse("Invalid profile information.");
+        return ResponseEntity.badRequest().body(errorResponse(message));
+    }
     private Map<String, Object> errorResponse(String message) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", false);
