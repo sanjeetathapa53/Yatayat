@@ -189,19 +189,19 @@ export default function OperatorApplicationPage() {
 
   return (
     <AuthLayout>
-      <div className="w-full max-w-4xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl">
+      <div className="w-full max-w-4xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
         <div className="bg-[#08264a] px-6 py-8 text-white sm:px-9">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/15">
               <Building2 size={32} />
             </div>
 
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-200">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-blue-200">
                 Transport Operator Verification
               </p>
 
-              <h1 className="mt-2 text-2xl font-black sm:text-3xl">
+              <h1 className="mt-2 text-2xl font-semibold sm:text-3xl">
                 {isResubmission
                   ? "Correct and Resubmit Application"
                   : "Submit Organization Application"}
@@ -219,12 +219,12 @@ export default function OperatorApplicationPage() {
 
         <form
           onSubmit={handleSubmit}
-          className="space-y-7 px-6 py-7 sm:px-9"
+          className="space-y-5 px-5 py-5 sm:px-6"
         >
           {isResubmission &&
             existingApplication?.rejectionReason && (
               <section className="rounded-2xl border border-red-200 bg-red-50 p-5">
-                <h2 className="font-black text-red-800">
+                <h2 className="font-semibold text-red-800">
                   Admin rejection reason
                 </h2>
 
@@ -343,7 +343,7 @@ export default function OperatorApplicationPage() {
               />
 
               <div>
-                <h2 className="font-black text-slate-900">
+                <h2 className="font-semibold text-slate-900">
                   Admin verification required
                 </h2>
 
@@ -358,7 +358,7 @@ export default function OperatorApplicationPage() {
           </section>
 
           <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-500">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
               Account Information
             </p>
 
@@ -394,7 +394,7 @@ export default function OperatorApplicationPage() {
               type="button"
               onClick={handleLogout}
               disabled={submitting}
-              className="rounded-2xl border border-slate-300 px-6 py-3 text-sm font-black text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+              className="rounded-2xl border border-slate-300 px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
             >
               Logout
             </button>
@@ -402,7 +402,7 @@ export default function OperatorApplicationPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center justify-center gap-2 rounded-2xl bg-[#08264a] px-8 py-3.5 text-sm font-black text-white transition hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:opacity-60"
+              className="flex items-center justify-center gap-2 rounded-2xl bg-[#08264a] px-8 py-2.5.5 text-sm font-semibold text-white transition hover:bg-[#0d3566] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting ? (
                 <>
@@ -437,7 +437,7 @@ function SectionTitle({ icon, title }) {
         {icon}
       </div>
 
-      <h2 className="text-xl font-black text-slate-900">
+      <h2 className="text-xl font-semibold text-slate-900">
         {title}
       </h2>
     </div>
@@ -455,12 +455,12 @@ function FormField({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
         {label}
         {required ? " *" : ""}
       </label>
 
-      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-[#08264a] focus-within:bg-white">
+      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition focus-within:border-[#08264a] focus-within:bg-white">
         <span className="shrink-0 text-slate-400">
           {icon}
         </span>
@@ -489,11 +489,11 @@ function SelectField({
 }) {
   return (
     <div>
-      <label className="mb-2 block text-xs font-black uppercase tracking-wider text-slate-500">
+      <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-slate-500">
         {label} *
       </label>
 
-      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 transition focus-within:border-[#08264a] focus-within:bg-white">
+      <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 transition focus-within:border-[#08264a] focus-within:bg-white">
         <span className="shrink-0 text-slate-400">
           {icon}
         </span>
@@ -523,11 +523,11 @@ function SelectField({
 function AccountDetail({ label, value }) {
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500">
         {label}
       </p>
 
-      <p className="mt-2 wrap-break-word text-sm font-black text-slate-900">
+      <p className="mt-2 wrap-break-word text-sm font-semibold text-slate-900">
         {value || "Not available"}
       </p>
     </div>

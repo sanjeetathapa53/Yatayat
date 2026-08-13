@@ -135,17 +135,17 @@ export default function OperatorTripDetailsPage() {
 
   return (
     <OperatorLayout>
-      <div className="mx-auto max-w-5xl space-y-6">
-        <button onClick={() => navigate("/operator/trips")} className="flex items-center gap-2 text-sm font-black">
+      <div className="mx-auto max-w-5xl space-y-5">
+        <button onClick={() => navigate("/operator/trips")} className="flex items-center gap-2 text-sm font-semibold">
           <ArrowLeft size={17} /> Back to trips
         </button>
         {error && <div className="rounded-2xl border border-red-200 bg-red-50 p-4 font-bold text-red-700">{error}</div>}
         {loading ? (
-          <div className="flex min-h-72 items-center justify-center"><Loader2 className="animate-spin" size={40} /></div>
+          <div className="flex min-h-48 items-center justify-center"><Loader2 className="animate-spin" size={32} /></div>
         ) : trip && editing ? (
           <>
             <div>
-              <h1 className="text-3xl font-black">Edit Scheduled Trip</h1>
+              <h1 className="text-2xl font-semibold">Edit Scheduled Trip</h1>
               <p className="mt-1 text-sm text-slate-500">
                 Changes are allowed only before confirmed passenger bookings exist.
               </p>
@@ -210,8 +210,8 @@ function TripDetails({ trip, onEdit, onAssign, onCancel }) {
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-black">Trip #{trip.id}</h1>
-            <span className={`rounded-full px-3 py-1 text-xs font-black ${statusTone(trip.status)}`}>
+            <h1 className="text-2xl font-semibold">Trip #{trip.id}</h1>
+            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${statusTone(trip.status)}`}>
               {statusLabel(trip.status)}
             </span>
           </div>
@@ -219,26 +219,26 @@ function TripDetails({ trip, onEdit, onAssign, onCancel }) {
         </div>
         <div className="flex flex-wrap gap-3">
           {trip.status === "SCHEDULED" && (
-            <button onClick={onEdit} className="flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-3 font-black">
+            <button onClick={onEdit} className="flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 font-semibold">
               <Pencil size={17} /> Edit Plan
             </button>
           )}
           {trip.status === "SCHEDULED" && (
-            <button onClick={onAssign} className="rounded-xl bg-[#08264a] px-4 py-3 font-black text-white">
+            <button onClick={onAssign} className="rounded-xl bg-[#08264a] px-4 py-2.5 font-semibold text-white">
               Assign Bus / Driver
             </button>
           )}
           {cancellable && (
-            <button onClick={onCancel} className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-3 font-black text-white">
+            <button onClick={onCancel} className="flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 font-semibold text-white">
               <XCircle size={17} /> Cancel Trip
             </button>
           )}
         </div>
       </div>
-      <div className="grid grid-cols-1 gap-4 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2">
         {rows.map(([label, value]) => (
           <div key={label} className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
             <p className="mt-2 font-bold text-slate-800">{value}</p>
           </div>
         ))}
@@ -249,21 +249,21 @@ function TripDetails({ trip, onEdit, onAssign, onCancel }) {
 
 function AssignmentForm({ trip, eligibility, form, submitting, onChange, onSubmit, onCancel }) {
   return (
-    <form onSubmit={onSubmit} className="space-y-6 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form onSubmit={onSubmit} className="space-y-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
       <div>
-        <h1 className="text-3xl font-black">Assign Bus and Driver</h1>
+        <h1 className="text-2xl font-semibold">Assign Bus and Driver</h1>
         <p className="mt-1 text-sm text-slate-500">
           {trip.routeName} · {formatTripDate(trip.departureAt)} to {formatTripDate(trip.estimatedArrivalAt)}
         </p>
       </div>
-      <div className="grid gap-5 md:grid-cols-2">
-        <label className="block text-sm font-black text-slate-700">
+      <div className="grid gap-4 md:grid-cols-2">
+        <label className="block text-sm font-semibold text-slate-700">
           Bus
           <select
             required
             value={form.busId}
             onChange={(event) => onChange("busId", event.target.value)}
-            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium outline-none focus:border-[#08264a]"
+            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-medium outline-none focus:border-[#08264a]"
           >
             <option value="">Select an eligible bus</option>
             {eligibility.buses.map((bus) => (
@@ -273,13 +273,13 @@ function AssignmentForm({ trip, eligibility, form, submitting, onChange, onSubmi
             ))}
           </select>
         </label>
-        <label className="block text-sm font-black text-slate-700">
+        <label className="block text-sm font-semibold text-slate-700">
           Driver
           <select
             required
             value={form.driverId}
             onChange={(event) => onChange("driverId", event.target.value)}
-            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 font-medium outline-none focus:border-[#08264a]"
+            className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-medium outline-none focus:border-[#08264a]"
           >
             <option value="">Select an eligible driver</option>
             {eligibility.drivers.map((driver) => (
@@ -294,10 +294,10 @@ function AssignmentForm({ trip, eligibility, form, submitting, onChange, onSubmi
         The server will re-check ownership, active association, licence validity, vehicle documents and overlapping schedules before saving.
       </p>
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <button type="button" onClick={onCancel} disabled={submitting} className="rounded-xl border border-slate-300 px-5 py-3 font-black text-slate-600">
+        <button type="button" onClick={onCancel} disabled={submitting} className="rounded-xl border border-slate-300 px-5 py-2.5 font-semibold text-slate-600">
           Cancel
         </button>
-        <button disabled={submitting} className="rounded-xl bg-[#08264a] px-6 py-3 font-black text-white disabled:opacity-60">
+        <button disabled={submitting} className="rounded-xl bg-[#08264a] px-6 py-2.5 font-semibold text-white disabled:opacity-60">
           {submitting ? "Saving..." : "Save Assignment"}
         </button>
       </div>
@@ -308,10 +308,10 @@ function AssignmentForm({ trip, eligibility, form, submitting, onChange, onSubmi
 function CancelModal({ reason, setReason, submitting, onClose, onConfirm }) {
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl">
-        <h2 className="text-2xl font-black">Cancel this trip?</h2>
+      <div className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl">
+        <h2 className="text-2xl font-semibold">Cancel this trip?</h2>
         <p className="mt-2 text-sm text-slate-500">The trip will remain visible with a cancelled status.</p>
-        <label className="mt-5 block text-sm font-black">
+        <label className="mt-5 block text-sm font-semibold">
           Reason <span className="font-medium text-slate-400">(optional)</span>
           <textarea
             rows={4}
@@ -322,10 +322,10 @@ function CancelModal({ reason, setReason, submitting, onClose, onConfirm }) {
           />
         </label>
         <div className="mt-6 flex justify-end gap-3">
-          <button onClick={onClose} disabled={submitting} className="rounded-xl border border-slate-300 px-4 py-3 font-black">
+          <button onClick={onClose} disabled={submitting} className="rounded-xl border border-slate-300 px-4 py-2.5 font-semibold">
             Keep Trip
           </button>
-          <button disabled={submitting} onClick={onConfirm} className="rounded-xl bg-red-600 px-4 py-3 font-black text-white disabled:opacity-60">
+          <button disabled={submitting} onClick={onConfirm} className="rounded-xl bg-red-600 px-4 py-2.5 font-semibold text-white disabled:opacity-60">
             {submitting ? "Cancelling..." : "Confirm Cancellation"}
           </button>
         </div>

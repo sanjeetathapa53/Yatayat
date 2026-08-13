@@ -93,10 +93,10 @@ export default function OperatorLiveFleetPage() {
       <div className="space-y-5">
         <header className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
-            <h1 className="text-3xl font-black text-slate-900">Live Fleet Monitoring</h1>
+            <h1 className="text-2xl font-semibold text-slate-900">Live Fleet Monitoring</h1>
             <p className="mt-1 text-sm font-semibold text-slate-500">Your active buses refresh automatically every seven seconds.</p>
           </div>
-          <div className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-black text-emerald-700">
+          <div className="rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
             {loading ? <span className="flex items-center gap-2"><Loader2 size={16} className="animate-spin" /> Loading</span> : `${fleet.length} active`}
           </div>
         </header>
@@ -105,9 +105,9 @@ export default function OperatorLiveFleetPage() {
         {completedTrip && <Notice tone="blue" title="Trip completed">{completedTrip.busNumber} has completed its trip and was removed from the active map.</Notice>}
         {!loading && !error && fleet.length === 0 && <Notice title="No active buses">No scheduled trips or local services in your fleet are currently active.</Notice>}
 
-        <div className="grid min-h-[650px] overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm xl:grid-cols-[360px_1fr]">
+        <div className="grid min-h-[650px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:grid-cols-[360px_1fr]">
           <aside className="max-h-[650px] overflow-y-auto border-b border-slate-200 p-4 xl:border-b-0 xl:border-r">
-            <h2 className="px-1 text-lg font-black">Active buses</h2>
+            <h2 className="px-1 text-lg font-semibold">Active buses</h2>
             <div className="mt-4 space-y-3">
               {fleet.map((trip) => {
                 const hasGps = Boolean(coordinates(trip));
@@ -121,10 +121,10 @@ export default function OperatorLiveFleetPage() {
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <OperationBadge type={trip.operationType} />
-                        <p className="font-black text-slate-900">{trip.busNumber}</p>
+                        <p className="font-semibold text-slate-900">{trip.busNumber}</p>
                         <p className="text-xs font-semibold text-slate-500">{trip.busName}</p>
                       </div>
-                      <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-black text-emerald-700">{statusLabel(trip.status)}</span>
+                      <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold text-emerald-700">{statusLabel(trip.status)}</span>
                     </div>
                     <div className="mt-3 space-y-2 text-sm text-slate-600">
                       <Line icon={<UserRound size={15} />} value={trip.driverName} />
@@ -160,7 +160,7 @@ export default function OperatorLiveFleetPage() {
             {fleet.length > 0 && fleet.every((trip) => !coordinates(trip)) && (
               <div className="absolute left-1/2 top-5 z-[500] -translate-x-1/2 rounded-2xl bg-white px-5 py-4 text-center shadow-xl">
                 <MapPinOff className="mx-auto text-amber-600" />
-                <p className="mt-2 font-black">GPS unavailable</p>
+                <p className="mt-2 font-semibold">GPS unavailable</p>
                 <p className="text-xs text-slate-500">Active trips are waiting for driver coordinates.</p>
               </div>
             )}
@@ -190,7 +190,7 @@ function CenterSelectedBus({ position, operationKey }) {
 
 function Notice({ title, children, tone = "amber" }) {
   const style = tone === "red" ? "border-red-200 bg-red-50 text-red-800" : tone === "blue" ? "border-blue-200 bg-blue-50 text-blue-800" : "border-amber-200 bg-amber-50 text-amber-800";
-  return <div className={`rounded-2xl border p-4 text-sm ${style}`}><p className="font-black">{title}</p><p className="mt-1 font-semibold">{children}</p></div>;
+  return <div className={`rounded-2xl border p-4 text-sm ${style}`}><p className="font-semibold">{title}</p><p className="mt-1 font-semibold">{children}</p></div>;
 }
 
 function Line({ icon, value }) {
@@ -198,13 +198,13 @@ function Line({ icon, value }) {
 }
 
 function Detail({ icon, label, value }) {
-  return <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3"><span className="text-[#08264a]">{icon}</span><div><p className="text-[10px] font-black uppercase text-slate-400">{label}</p><p className="mt-1 font-black">{value}</p></div></div>;
+  return <div className="flex items-start gap-3 rounded-xl bg-slate-50 p-3"><span className="text-[#08264a]">{icon}</span><div><p className="text-[10px] font-semibold uppercase text-slate-400">{label}</p><p className="mt-1 font-semibold">{value}</p></div></div>;
 }
 
 function OperationBadge({ type }) {
   const local = type === "LOCAL";
   return (
-    <span className={`mb-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-black tracking-wide ${local ? "bg-blue-100 text-blue-700" : "bg-violet-100 text-violet-700"}`}>
+    <span className={`mb-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide ${local ? "bg-blue-100 text-blue-700" : "bg-violet-100 text-violet-700"}`}>
       {operationLabel(type)}
     </span>
   );
