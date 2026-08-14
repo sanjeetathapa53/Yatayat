@@ -17,6 +17,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import { logoutUser } from "../../services/authService";
 import YatayatLogo from "../branding/YatayatLogo";
+import AdminApprovalNotifications from "../admin/AdminApprovalNotifications";
 
 const menuSections = [
   {
@@ -235,6 +236,7 @@ export default function AdminLayout({
               </p>
             </div>
 
+            <AdminApprovalNotifications />
           </div>
         </header>
 
